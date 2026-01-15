@@ -6,8 +6,8 @@ import chalk from 'chalk';
 import { parseSource, cloneRepo, cleanupTempDir } from './git.js';
 import { discoverSkills, getSkillDisplayName } from './skills.js';
 import { installSkillForAgent, isSkillInstalled, getInstallPath } from './installer.js';
-import { detectInstalledAgents, agents } from './agents.js';
-import type { Skill, AgentType } from './types.js';
+import { detectInstalledAgents, agents, getAgentConfig } from './agents.js';
+import type { Skill, AgentType, CustomGlobalDirs } from './types.js';
 
 const version = '1.0.0';
 
@@ -17,6 +17,10 @@ interface Options {
   yes?: boolean;
   skill?: string[];
   list?: boolean;
+  globalDirOpencode?: string;
+  globalDirClaudeCode?: string;
+  globalDirCodex?: string;
+  globalDirCursor?: string;
 }
 
 program
@@ -29,6 +33,10 @@ program
   .option('-s, --skill <skills...>', 'Specify skill names to install (skip selection prompt)')
   .option('-l, --list', 'List available skills in the repository without installing')
   .option('-y, --yes', 'Skip confirmation prompts')
+  .option('--global-dir-opencode <path>', 'Custom global directory for OpenCode skills')
+  .option('--global-dir-claude-code <path>', 'Custom global directory for Claude Code skills')
+  .option('--global-dir-codex <path>', 'Custom global directory for Codex skills')
+  .option('--global-dir-cursor <path>', 'Custom global directory for Cursor skills')
   .action(async (source: string, options: Options) => {
     await main(source, options);
   });
@@ -40,6 +48,13 @@ async function main(source: string, options: Options) {
   p.intro(chalk.bgCyan.black(' add-skill '));
 
   let tempDir: string | null = null;
+
+  // Build custom global directories object from CLI flags
+  const customDirs: CustomGlobalDirs = {};
+  if (options.globalDirOpencode) customDirs.opencode = options.globalDirOpencode;
+  if (options.globalDirClaudeCode) customDirs['claude-code'] = options.globalDirClaudeCode;
+  if (options.globalDirCodex) customDirs.codex = options.globalDirCodex;
+  if (options.globalDirCursor) customDirs.cursor = options.globalDirCursor;
 
   try {
     const spinner = p.spinner();
@@ -182,11 +197,14 @@ async function main(source: string, options: Options) {
           p.log.info(`Installing to: ${installedAgents.map(a => chalk.cyan(agents[a].displayName)).join(', ')}`);
         }
       } else {
-        const agentChoices = installedAgents.map(a => ({
-          value: a,
-          label: agents[a].displayName,
-          hint: `${options.global ? agents[a].globalSkillsDir : agents[a].skillsDir}`,
-        }));
+        const agentChoices = installedAgents.map(a => {
+          const config = getAgentConfig(a, customDirs);
+          return {
+            value: a,
+            label: config.displayName,
+            hint: `${options.global ? config.globalSkillsDir : config.skillsDir}`,
+          };
+        });
 
         const selected = await p.multiselect({
           message: 'Select agents to install skills to',
@@ -231,8 +249,8 @@ async function main(source: string, options: Options) {
     for (const skill of selectedSkills) {
       p.log.message(`  ${chalk.cyan(getSkillDisplayName(skill))}`);
       for (const agent of targetAgents) {
-        const path = getInstallPath(skill.name, agent, { global: installGlobally });
-        const installed = await isSkillInstalled(skill.name, agent, { global: installGlobally });
+        const path = getInstallPath(skill.name, agent, { global: installGlobally, customDirs });
+        const installed = await isSkillInstalled(skill.name, agent, { global: installGlobally, customDirs });
         const status = installed ? chalk.yellow(' (will overwrite)') : '';
         p.log.message(`    ${chalk.dim('→')} ${agents[agent].displayName}: ${chalk.dim(path)}${status}`);
       }
@@ -255,7 +273,7 @@ async function main(source: string, options: Options) {
 
     for (const skill of selectedSkills) {
       for (const agent of targetAgents) {
-        const result = await installSkillForAgent(skill, agent, { global: installGlobally });
+        const result = await installSkillForAgent(skill, agent, { global: installGlobally, customDirs });
         results.push({
           skill: getSkillDisplayName(skill),
           agent: agents[agent].displayName,

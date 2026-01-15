@@ -51,6 +51,10 @@ npx add-skill git@github.com:vercel-labs/agent-skills.git
 | `-s, --skill <skills...>` | Install specific skills by name |
 | `-l, --list` | List available skills without installing |
 | `-y, --yes` | Skip all confirmation prompts |
+| `--global-dir-opencode <path>` | Custom global directory for OpenCode skills |
+| `--global-dir-claude-code <path>` | Custom global directory for Claude Code skills |
+| `--global-dir-codex <path>` | Custom global directory for Codex skills |
+| `--global-dir-cursor <path>` | Custom global directory for Cursor skills |
 | `-V, --version` | Show version number |
 | `-h, --help` | Show help |
 
@@ -71,6 +75,12 @@ npx add-skill vercel-labs/agent-skills --skill frontend-design -g -a claude-code
 
 # Install all skills from a repo
 npx add-skill vercel-labs/agent-skills -y -g
+
+# Install to custom global directories
+npx add-skill vercel-labs/agent-skills -g --global-dir-claude-code /mnt/data/claude-skills
+
+# Install to custom directories for multiple agents
+npx add-skill vercel-labs/agent-skills -g --global-dir-opencode ~/custom/opencode --global-dir-cursor /opt/cursor-skills
 ```
 
 ## Installation Paths
@@ -98,6 +108,29 @@ Installed in your home directory. Available across all projects.
 | Claude Code | `~/.claude/skills/<name>/` |
 | Codex | `~/.codex/skills/<name>/` |
 | Cursor | `~/.cursor/skills/<name>/` |
+
+### Custom Global Directories
+
+You can override the default global installation path for each agent using the `--global-dir-<agent>` flags. This is useful when you want skills installed to a specific location, such as a shared network drive or custom directory structure.
+
+**Per-agent custom directories:**
+
+```bash
+# Install Claude Code skills to a custom location
+npx add-skill repo/skills -g --global-dir-claude-code /custom/path/to/claude-skills
+
+# Install to different custom directories for each agent
+npx add-skill repo/skills -g \
+  --global-dir-opencode /data/opencode/skills \
+  --global-dir-claude-code /data/claude/skills \
+  --global-dir-codex /data/codex/skills \
+  --global-dir-cursor /data/cursor/skills
+```
+
+When a custom global directory doesn't exist, you'll be prompted to either:
+- Create the directory automatically
+- Use the agent's default global path instead
+- Cancel the installation
 
 ## Agent Detection
 

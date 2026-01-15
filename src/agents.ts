@@ -1,7 +1,7 @@
 import { homedir } from 'os';
 import { join } from 'path';
 import { existsSync } from 'fs';
-import type { AgentConfig, AgentType } from './types.js';
+import type { AgentConfig, AgentType, CustomGlobalDirs } from './types.js';
 
 const home = homedir();
 
@@ -56,6 +56,10 @@ export async function detectInstalledAgents(): Promise<AgentType[]> {
   return installed;
 }
 
-export function getAgentConfig(type: AgentType): AgentConfig {
-  return agents[type];
+export function getAgentConfig(type: AgentType, customDirs?: CustomGlobalDirs): AgentConfig {
+  const config = agents[type];
+  if (customDirs?.[type]) {
+    return { ...config, globalSkillsDir: customDirs[type] };
+  }
+  return config;
 }

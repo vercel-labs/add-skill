@@ -1,7 +1,9 @@
 import { mkdir, cp, access, readdir } from 'fs/promises';
 import { join, basename } from 'path';
-import type { Skill, AgentType } from './types.js';
-import { agents } from './agents.js';
+import { existsSync } from 'fs';
+import * as p from '@clack/prompts';
+import type { Skill, AgentType, CustomGlobalDirs } from './types.js';
+import { getAgentConfig } from './agents.js';
 
 interface InstallResult {
   success: boolean;
@@ -12,14 +14,49 @@ interface InstallResult {
 export async function installSkillForAgent(
   skill: Skill,
   agentType: AgentType,
-  options: { global?: boolean; cwd?: string } = {}
+  options: { global?: boolean; cwd?: string; customDirs?: CustomGlobalDirs } = {}
 ): Promise<InstallResult> {
-  const agent = agents[agentType];
+  const agent = getAgentConfig(agentType, options.customDirs);
   const skillName = skill.name || basename(skill.path);
 
   const targetBase = options.global
     ? agent.globalSkillsDir
     : join(options.cwd || process.cwd(), agent.skillsDir);
+
+  // Validate custom global directory exists
+  if (options.global && options.customDirs?.[agentType]) {
+    if (!existsSync(targetBase)) {
+      const create = await p.confirm({
+        message: `Custom global directory does not exist: ${targetBase}\nWould you like to create it?`,
+      });
+
+      if (p.isCancel(create)) {
+        return {
+          success: false,
+          path: targetBase,
+          error: 'Installation cancelled',
+        };
+      }
+
+      if (create) {
+        try {
+          await mkdir(targetBase, { recursive: true });
+        } catch (error) {
+          return {
+            success: false,
+            path: targetBase,
+            error: error instanceof Error ? error.message : 'Failed to create directory',
+          };
+        }
+      } else {
+        return {
+          success: false,
+          path: targetBase,
+          error: 'Custom directory does not exist and creation was declined',
+        };
+      }
+    }
+  }
 
   const targetDir = join(targetBase, skillName);
 
@@ -57,9 +94,9 @@ async function copyDirectory(src: string, dest: string): Promise<void> {
 export async function isSkillInstalled(
   skillName: string,
   agentType: AgentType,
-  options: { global?: boolean; cwd?: string } = {}
+  options: { global?: boolean; cwd?: string; customDirs?: CustomGlobalDirs } = {}
 ): Promise<boolean> {
-  const agent = agents[agentType];
+  const agent = getAgentConfig(agentType, options.customDirs);
 
   const targetBase = options.global
     ? agent.globalSkillsDir
@@ -78,9 +115,9 @@ export async function isSkillInstalled(
 export function getInstallPath(
   skillName: string,
   agentType: AgentType,
-  options: { global?: boolean; cwd?: string } = {}
+  options: { global?: boolean; cwd?: string; customDirs?: CustomGlobalDirs } = {}
 ): string {
-  const agent = agents[agentType];
+  const agent = getAgentConfig(agentType, options.customDirs);
 
   const targetBase = options.global
     ? agent.globalSkillsDir

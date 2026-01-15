@@ -20,3 +20,5 @@ export interface ParsedSource {
   url: string;
   subpath?: string;
 }
+
+export type CustomGlobalDirs = Partial<Record<AgentType, string>>;
