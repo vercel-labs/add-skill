@@ -2,7 +2,9 @@
 
 Install agent skills onto your coding agents from any git repository.
 
-Supports [OpenCode](https://opencode.ai), [Claude Code](https://claude.ai/code), [Codex](https://developers.openai.com/codex), [Cursor](https://cursor.com), and [Antigravity](https://antigravity.google).
+<!-- agent-list:start -->
+Supports **Claude Code**, **Codex**, **Cursor**, and [6 more](#available-agents).
+<!-- agent-list:end -->
 
 ## Quick Start
 
@@ -47,7 +49,7 @@ npx add-skill git@github.com:vercel-labs/agent-skills.git
 | Option | Description |
 |--------|-------------|
 | `-g, --global` | Install to user directory instead of project |
-| `-a, --agent <agents...>` | Target specific agents: `opencode`, `claude-code`, `codex`, `cursor`, `antigravity` |
+| `-a, --agent <agents...>` | <!-- agent-names:start -->Target specific agents (e.g., `claude-code`, `codex`). See [Available Agents](#available-agents)<!-- agent-names:end --> |
 | `-s, --skill <skills...>` | Install specific skills by name |
 | `-l, --list` | List available skills without installing |
 | `-y, --yes` | Skip all confirmation prompts |
@@ -73,33 +75,23 @@ npx add-skill vercel-labs/agent-skills --skill frontend-design -g -a claude-code
 npx add-skill vercel-labs/agent-skills -y -g
 ```
 
-## Installation Paths
+## Available Agents
 
-Skills are installed to different locations depending on the agent and scope:
+Skills can be installed to any of these supported agents. Use `-g, --global` to install to the global path instead of project-level.
 
-### Project-level (default)
-
-Installed in your current working directory. Commit these to share with your team.
-
-| Agent | Path |
-|-------|------|
-| OpenCode | `.opencode/skill/<name>/` |
-| Claude Code | `.claude/skills/<name>/` |
-| Codex | `.codex/skills/<name>/` |
-| Cursor | `.cursor/skills/<name>/` |
-| Antigravity | `.agent/skills/<name>/` |
-
-### Global (`--global`)
-
-Installed in your home directory. Available across all projects.
-
-| Agent | Path |
-|-------|------|
-| OpenCode | `~/.config/opencode/skill/<name>/` |
-| Claude Code | `~/.claude/skills/<name>/` |
-| Codex | `~/.codex/skills/<name>/` |
-| Cursor | `~/.cursor/skills/<name>/` |
-| Antigravity | `~/.gemini/antigravity/skills/<name>/` |
+<!-- available-agents:start -->
+| Agent | Project Path | Global Path |
+|-------|--------------|-------------|
+| OpenCode | `.opencode/skill/` | `~/.config/opencode/skill/` |
+| Claude Code | `.claude/skills/` | `~/.claude/skills/` |
+| Codex | `.codex/skills/` | `~/.codex/skills/` |
+| Cursor | `.cursor/skills/` | `~/.cursor/skills/` |
+| Amp | `.agents/skills/` | `~/.config/agents/skills/` |
+| Kilo Code | `.kilocode/skills/` | `~/.kilocode/skills/` |
+| Roo Code | `.roo/skills/` | `~/.roo/skills/` |
+| Goose | `.goose/skills/` | `~/.config/goose/skills/` |
+| Antigravity | `.agent/skills/` | `~/.gemini/antigravity/skills/` |
+<!-- available-agents:end -->
 
 ## Agent Detection
 
@@ -138,16 +130,22 @@ Describe the scenarios where this skill should be used.
 
 The CLI searches for skills in these locations within a repository:
 
+<!-- skill-discovery:start -->
 - Root directory (if it contains `SKILL.md`)
 - `skills/`
 - `skills/.curated/`
 - `skills/.experimental/`
 - `skills/.system/`
-- `.codex/skills/`
-- `.claude/skills/`
 - `.opencode/skill/`
+- `.claude/skills/`
+- `.codex/skills/`
 - `.cursor/skills/`
+- `.agents/skills/`
+- `.kilocode/skills/`
+- `.roo/skills/`
+- `.goose/skills/`
 - `.agent/skills/`
+<!-- skill-discovery:end -->
 
 If no skills are found in standard locations, a recursive search is performed.
 

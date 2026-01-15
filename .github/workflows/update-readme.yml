@@ -1,0 +1,38 @@
+name: Update README
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/agents.ts'
+
+concurrency:
+  group: update-readme
+  cancel-in-progress: true
+
+jobs:
+  update-readme:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Update README
+        run: npm run update-readme
+
+      - name: Commit changes
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git diff --quiet README.md || (git add README.md && git commit -m "docs: update README with latest agents")
+
+      - name: Push changes
+        run: git push
