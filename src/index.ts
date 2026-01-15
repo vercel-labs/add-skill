@@ -6,7 +6,7 @@ import chalk from 'chalk';
 import { parseSource, cloneRepo, cleanupTempDir } from './git.js';
 import { discoverSkills, getSkillDisplayName } from './skills.js';
 import { installSkillForAgent, isSkillInstalled, getInstallPath } from './installer.js';
-import { detectInstalledAgents, agents } from './agents.js';
+import { detectInstalledAgents, agents, getAgentConfig } from './agents.js';
 import type { Skill, AgentType, CustomGlobalDirs } from './types.js';
 
 const version = '1.0.0';
@@ -197,11 +197,14 @@ async function main(source: string, options: Options) {
           p.log.info(`Installing to: ${installedAgents.map(a => chalk.cyan(agents[a].displayName)).join(', ')}`);
         }
       } else {
-        const agentChoices = installedAgents.map(a => ({
-          value: a,
-          label: agents[a].displayName,
-          hint: `${options.global ? agents[a].globalSkillsDir : agents[a].skillsDir}`,
-        }));
+        const agentChoices = installedAgents.map(a => {
+          const config = getAgentConfig(a, customDirs);
+          return {
+            value: a,
+            label: config.displayName,
+            hint: `${options.global ? config.globalSkillsDir : config.skillsDir}`,
+          };
+        });
 
         const selected = await p.multiselect({
           message: 'Select agents to install skills to',
