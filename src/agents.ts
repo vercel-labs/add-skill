@@ -86,7 +86,7 @@ export const agents: Record<AgentType, AgentConfig> = {
     detectInstalled: async () => {
       return existsSync(join(home, '.gemini'));
     },
-  }
+  },
   antigravity: {
     name: 'antigravity',
     displayName: 'Antigravity',

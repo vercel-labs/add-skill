@@ -3,7 +3,7 @@
 Install agent skills onto your coding agents from any git repository.
 
 <!-- agent-list:start -->
-Supports **Opencode**, **Claude Code**, **Codex**, **Cursor**, and [10 more](#available-agents).
+Supports **Opencode**, **Claude Code**, **Codex**, **Cursor**, and [11 more](#available-agents).
 <!-- agent-list:end -->
 
 ## Quick Start
@@ -90,6 +90,7 @@ Skills can be installed to any of these supported agents. Use `-g, --global` to 
 | Kilo Code | `.kilocode/skills/` | `~/.kilocode/skills/` |
 | Roo Code | `.roo/skills/` | `~/.roo/skills/` |
 | Goose | `.goose/skills/` | `~/.config/goose/skills/` |
+| Gemini CLI | `.gemini/skills/` | `~/.gemini/skills/` |
 | Antigravity | `.agent/skills/` | `~/.gemini/antigravity/skills/` |
 | GitHub Copilot | `.github/skills/` | `~/.copilot/skills/` |
 | Clawdbot | `skills/` | `~/.clawdbot/skills/` |
@@ -149,11 +150,11 @@ The CLI searches for skills in these locations within a repository:
 - `.kilocode/skills/`
 - `.roo/skills/`
 - `.goose/skills/`
+- `.gemini/skills/`
 - `.agent/skills/`
 - `.github/skills/`
 - `./skills/`
 - `.factory/skills/`
-- `.gemini/skills/`
 - `.windsurf/skills/`
 <!-- skill-discovery:end -->
 
