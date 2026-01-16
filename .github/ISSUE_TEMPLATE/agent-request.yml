@@ -1,0 +1,54 @@
+name: Agent Request
+description: Request support for a new coding agent
+title: "[Agent]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for requesting a new agent! Please provide the details below.
+
+  - type: input
+    id: agent-name
+    attributes:
+      label: Agent Name
+      description: The name of the coding agent
+      placeholder: e.g., Cursor, Claude Code
+    validations:
+      required: true
+
+  - type: input
+    id: agent-url
+    attributes:
+      label: Skills Documentation URL
+      description: Link to the agent's skills documentation
+      placeholder: https://example.com/docs/skills
+    validations:
+      required: true
+
+  - type: input
+    id: skills-dir
+    attributes:
+      label: Project Skills Directory
+      description: Where skills are stored at the project level
+      placeholder: e.g., .cursor/skills
+    validations:
+      required: true
+
+  - type: input
+    id: global-skills-dir
+    attributes:
+      label: Global Skills Directory
+      description: Where skills are stored at the user/global level
+      placeholder: e.g., ~/.cursor/skills
+    validations:
+      required: true
+
+  - type: input
+    id: detection-path
+    attributes:
+      label: Detection Path
+      description: Path to check if the agent is installed (usually a config directory)
+      placeholder: e.g., ~/.cursor
+    validations:
+      required: true

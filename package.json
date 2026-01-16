@@ -13,7 +13,8 @@
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts --clean",
     "dev": "tsx src/index.ts",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "update-readme": "tsx scripts/update-readme.ts"
   },
   "keywords": [
     "cli",
