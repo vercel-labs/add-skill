@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation
+    url: https://github.com/vercel-labs/add-skill#readme
+    about: Check the README for usage instructions
+  - name: Agent Skills Specification
+    url: https://agentskills.io/home
+    about: Learn about the Agent Skills specification

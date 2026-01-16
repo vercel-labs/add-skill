@@ -2,7 +2,9 @@
 
 Install agent skills onto your coding agents from any git repository.
 
-Supports [OpenCode](https://opencode.ai), [Claude Code](https://claude.ai/code), [Codex](https://developers.openai.com/codex), [Cursor](https://cursor.com), [Gemini CLI](https://geminicli.com), [Antigravity](https://antigravity.google), [GitHub Copilot](https://github.com/features/copilot), [Amp](https://ampcode.com), and [Roo Code](https://roocode.com).
+<!-- agent-list:start -->
+Supports **Opencode**, **Claude Code**, **Codex**, **Cursor**, and [10 more](#available-agents).
+<!-- agent-list:end -->
 
 ## Quick Start
 
@@ -47,7 +49,7 @@ npx add-skill git@github.com:vercel-labs/agent-skills.git
 | Option | Description |
 |--------|-------------|
 | `-g, --global` | Install to user directory instead of project |
-| `-a, --agent <agents...>` | Target specific agents: `opencode`, `claude-code`, `codex`, `cursor`, `gemini-cli`, `antigravity`, `amp`, `github-copilot`, `roo` |
+| `-a, --agent <agents...>` | <!-- agent-names:start -->Target specific agents (e.g., `claude-code`, `codex`). See [Available Agents](#available-agents)<!-- agent-names:end --> |
 | `-s, --skill <skills...>` | Install specific skills by name |
 | `-l, --list` | List available skills without installing |
 | `-y, --yes` | Skip all confirmation prompts |
@@ -73,41 +75,28 @@ npx add-skill vercel-labs/agent-skills --skill frontend-design -g -a claude-code
 npx add-skill vercel-labs/agent-skills -y -g
 ```
 
-## Installation Paths
+## Available Agents
 
-Skills are installed to different locations depending on the agent and scope:
+Skills can be installed to any of these supported agents. Use `-g, --global` to install to the global path instead of project-level.
 
-### Project-level (default)
-
-Installed in your current working directory. Commit these to share with your team.
-
-| Agent | Path |
-|-------|------|
-| OpenCode | `.opencode/skill/<name>/` |
-| Claude Code | `.claude/skills/<name>/` |
-| Codex | `.codex/skills/<name>/` |
-| Cursor | `.cursor/skills/<name>/` |
-| Gemini CLI | `.gemini/skills/<name>/` |
-| Amp | `.agents/skills/<name>/` |
-| Antigravity | `.agent/skills/<name>/` |
-| GitHub Copilot | `.github/skills/<name>/` |
-| Roo Code | `.roo/skills/<name>/` |
-
-### Global (`--global`)
-
-Installed in your home directory. Available across all projects.
-
-| Agent | Path |
-|-------|------|
-| OpenCode | `~/.config/opencode/skill/<name>/` |
-| Claude Code | `~/.claude/skills/<name>/` |
-| Codex | `~/.codex/skills/<name>/` |
-| Cursor | `~/.cursor/skills/<name>/` |
-| Gemini CLI | `~/.gemini/skills/<name>/` |
-| Amp | `~/.config/agents/skills/<name>/` |
-| Antigravity | `~/.gemini/antigravity/skills/<name>/` |
-| GitHub Copilot | `~/.copilot/skills/<name>/` |
-| Roo Code | `~/.roo/skills/<name>/` |
+<!-- available-agents:start -->
+| Agent | Project Path | Global Path |
+|-------|--------------|-------------|
+| OpenCode | `.opencode/skill/` | `~/.config/opencode/skill/` |
+| Claude Code | `.claude/skills/` | `~/.claude/skills/` |
+| Codex | `.codex/skills/` | `~/.codex/skills/` |
+| Cursor | `.cursor/skills/` | `~/.cursor/skills/` |
+| Amp | `.agents/skills/` | `~/.config/agents/skills/` |
+| Kilo Code | `.kilocode/skills/` | `~/.kilocode/skills/` |
+| Roo Code | `.roo/skills/` | `~/.roo/skills/` |
+| Goose | `.goose/skills/` | `~/.config/goose/skills/` |
+| Antigravity | `.agent/skills/` | `~/.gemini/antigravity/skills/` |
+| GitHub Copilot | `.github/skills/` | `~/.copilot/skills/` |
+| Clawdbot | `skills/` | `~/.clawdbot/skills/` |
+| Droid | `.factory/skills/` | `~/.factory/skills/` |
+| Gemini CLI | `.gemini/skills/` | `~/.gemini/skills/` |
+| Windsurf | `.windsurf/skills/` | `~/.codeium/windsurf/skills/` |
+<!-- available-agents:end -->
 
 ## Agent Detection
 
@@ -146,20 +135,27 @@ Describe the scenarios where this skill should be used.
 
 The CLI searches for skills in these locations within a repository:
 
+<!-- skill-discovery:start -->
 - Root directory (if it contains `SKILL.md`)
 - `skills/`
 - `skills/.curated/`
 - `skills/.experimental/`
 - `skills/.system/`
-- `.codex/skills/`
-- `.claude/skills/`
 - `.opencode/skill/`
+- `.claude/skills/`
+- `.codex/skills/`
 - `.cursor/skills/`
-- `.gemini/skills/`
-- `.agents/skills/` (Amp)
-- `.agent/skills/` (Antigravity)
+- `.agents/skills/`
+- `.kilocode/skills/`
+- `.roo/skills/`
+- `.goose/skills/`
+- `.agent/skills/`
 - `.github/skills/`
-- `.copilot/skills/`
+- `./skills/`
+- `.factory/skills/`
+- `.gemini/skills/`
+- `.windsurf/skills/`
+<!-- skill-discovery:end -->
 
 If no skills are found in standard locations, a recursive search is performed.
 
@@ -167,12 +163,12 @@ If no skills are found in standard locations, a recursive search is performed.
 
 Skills are generally compatible across agents since they follow a shared [Agent Skills specification](https://agentskills.io). However, some features may be agent-specific:
 
-| Feature | OpenCode | Claude Code | Codex | Cursor | Gemini CLI | Antigravity | Roo Code | Github Copilot | Amp |
-|---------|----------|-------------|-------|--------|------------|-------------|----------|----------------|-----|
+| Feature | OpenCode | Claude Code | Codex | Cursor | Antigravity | Roo Code | Github Copilot | Amp | Clawdbot |
+|---------|----------|-------------|-------|--------|-------------|----------|----------------|-----|----------|
 | Basic skills | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
 | `allowed-tools` | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
 | `context: fork` | No | Yes | No | No | No | No | No | No | No |
-| Hooks | No | Yes | No | No | Yes | No | No | No | No |
+| Hooks | No | Yes | No | No | No | No | No | No | No |
 
 ## Troubleshooting
 
@@ -203,6 +199,7 @@ Ensure you have write access to the target directory.
 - [Antigravity Skills Documentation](https://antigravity.google/docs/skills)
 - [GitHub Copilot Agent Skills](https://docs.github.com/en/copilot/concepts/agents/about-agent-skills)
 - [Roo Code Skills Documentation](https://docs.roocode.com/features/skills)
+- [Clawdbot Skills Documentation](https://docs.clawd.bot/tools/skills)
 
 ## License
 
