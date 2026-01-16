@@ -97,24 +97,9 @@ async function copyDirectory(src: string, dest: string): Promise<void> {
   const entries = await readdir(src, { withFileTypes: true });
 
   for (const entry of entries) {
-    // Sanitize entry name to prevent directory traversal
-    const sanitizedName = sanitizeName(entry.name);
-    
-    // Skip if sanitization changed the name significantly (potential attack)
-    if (sanitizedName !== entry.name && entry.name.includes('..')) {
-      console.warn(`Skipping potentially malicious file: ${entry.name}`);
-      continue;
-    }
-    
     const srcPath = join(src, entry.name);
-    const destPath = join(dest, sanitizedName);
-    
-    // Validate paths are within expected directories
-    if (!isPathSafe(src, srcPath) || !isPathSafe(dest, destPath)) {
-      console.warn(`Skipping file due to path traversal attempt: ${entry.name}`);
-      continue;
-    }
-    
+    const destPath = join(dest, entry.name);
+
     if (entry.isDirectory()) {
       await copyDirectory(srcPath, destPath);
     } else {

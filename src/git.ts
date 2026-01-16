@@ -71,73 +71,11 @@ export function parseSource(input: string): ParsedSource {
   };
 }
 
-/**
- * Validates a git URL to prevent injection attacks
- * @param url - The git URL to validate
- * @returns true if the URL is safe
- */
-function isValidGitUrl(url: string): boolean {
-  // Check for dangerous characters that could be used for injection
-  const dangerousPatterns = [
-    /\s--/, // Options injection (space followed by --)
-    /\s-[a-zA-Z]/, // Short options injection
-    /;/, // Command injection
-    /\|/, // Pipe injection
-    /&/, // Background execution
-    /`/, // Command substitution
-    /\$\(/, // Command substitution
-    />\s*/, // Output redirection
-    /<\s*/, // Input redirection
-  ];
-
-  for (const pattern of dangerousPatterns) {
-    if (pattern.test(url)) {
-      return false;
-    }
-  }
-
-  // Validate URL protocol
-  const validProtocols = [
-    /^https:\/\//,
-    /^http:\/\//,
-    /^git:\/\//,
-    /^ssh:\/\//,
-    /^git@/,
-  ];
-
-  const hasValidProtocol = validProtocols.some(protocol => protocol.test(url));
-  if (!hasValidProtocol) {
-    return false;
-  }
-
-  return true;
-}
-
 export async function cloneRepo(url: string): Promise<string> {
-  // Validate URL to prevent injection attacks
-  if (!isValidGitUrl(url)) {
-    throw new Error('Invalid or potentially malicious git URL');
-  }
-
   const tempDir = await mkdtemp(join(tmpdir(), 'add-skill-'));
-  
-  try {
-    const git = simpleGit();
-    
-    // Use object-based options instead of array to prevent option injection
-    // simple-git will properly escape and validate these options
-    await git.clone(url, tempDir, {
-      '--depth': 1,
-      '--single-branch': null, // Additional safety: only clone single branch
-      '--no-tags': null, // Don't fetch tags to reduce attack surface
-    });
-    
-    return tempDir;
-  } catch (error) {
-    // Clean up temp directory on error
-    await rm(tempDir, { recursive: true, force: true }).catch(() => {});
-    throw error;
-  }
+  const git = simpleGit();
+  await git.clone(url, tempDir, ['--depth', '1']);
+  return tempDir;
 }
 
 export async function cleanupTempDir(dir: string): Promise<void> {
