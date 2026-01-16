@@ -1,7 +1,7 @@
 {
   "name": "add-skill",
   "version": "1.0.10",
-  "description": "Install agent skills onto coding agents (OpenCode, Claude Code, Codex, Cursor)",
+  "description": "Install agent skills onto coding agents (OpenCode, Claude Code, Codex, Cursor, VS Code Copilot)",
   "type": "module",
   "bin": {
     "add-skill": "./dist/index.js"
@@ -23,6 +23,7 @@
     "codex",
     "cursor",
     "antigravity",
+    "vscode-copilot",
     "ai-agents"
   ],
   "repository": {

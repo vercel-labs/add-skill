@@ -2,7 +2,7 @@
 
 Install agent skills onto your coding agents from any git repository.
 
-Supports [OpenCode](https://opencode.ai), [Claude Code](https://claude.ai/code), [Codex](https://developers.openai.com/codex), [Cursor](https://cursor.com), and [Antigravity](https://antigravity.google).
+Supports [OpenCode](https://opencode.ai), [Claude Code](https://claude.ai/code), [Codex](https://developers.openai.com/codex), [Cursor](https://cursor.com), [Antigravity](https://antigravity.google), and [VS Code Copilot](https://code.visualstudio.com/docs/copilot/customization/agent-skills).
 
 ## Quick Start
 
@@ -47,7 +47,7 @@ npx add-skill git@github.com:vercel-labs/agent-skills.git
 | Option | Description |
 |--------|-------------|
 | `-g, --global` | Install to user directory instead of project |
-| `-a, --agent <agents...>` | Target specific agents: `opencode`, `claude-code`, `codex`, `cursor`, `antigravity` |
+| `-a, --agent <agents...>` | Target specific agents: `opencode`, `claude-code`, `codex`, `cursor`, `antigravity`, `vscode-copilot` |
 | `-s, --skill <skills...>` | Install specific skills by name |
 | `-l, --list` | List available skills without installing |
 | `-y, --yes` | Skip all confirmation prompts |
@@ -88,6 +88,7 @@ Installed in your current working directory. Commit these to share with your tea
 | Codex | `.codex/skills/<name>/` |
 | Cursor | `.cursor/skills/<name>/` |
 | Antigravity | `.agent/skills/<name>/` |
+| VS Code Copilot | `.github/skills/<name>/` |
 
 ### Global (`--global`)
 
@@ -100,6 +101,7 @@ Installed in your home directory. Available across all projects.
 | Codex | `~/.codex/skills/<name>/` |
 | Cursor | `~/.cursor/skills/<name>/` |
 | Antigravity | `~/.gemini/antigravity/skills/<name>/` |
+| VS Code Copilot | `~/.copilot/skills/<name>/` |
 
 ## Agent Detection
 
@@ -155,12 +157,12 @@ If no skills are found in standard locations, a recursive search is performed.
 
 Skills are generally compatible across agents since they follow a shared [Agent Skills specification](https://agentskills.io). However, some features may be agent-specific:
 
-| Feature | OpenCode | Claude Code | Codex | Cursor | Antigravity |
-|---------|----------|-------------|-------|--------|-------------|
-| Basic skills | Yes | Yes | Yes | Yes | Yes |
-| `allowed-tools` | Yes | Yes | Yes | Yes | Yes |
-| `context: fork` | No | Yes | No | No | No |
-| Hooks | No | Yes | No | No | No |
+| Feature | OpenCode | Claude Code | Codex | Cursor | Antigravity | VS Code Copilot |
+|---------|----------|-------------|-------|--------|-------------|------------------|
+| Basic skills | Yes | Yes | Yes | Yes | Yes | Yes |
+| `allowed-tools` | Yes | Yes | Yes | Yes | Yes | Yes |
+| `context: fork` | No | Yes | No | No | No | No |
+| Hooks | No | Yes | No | No | No | No |
 
 ## Troubleshooting
 
@@ -187,6 +189,7 @@ Ensure you have write access to the target directory.
 - [Codex Skills Documentation](https://developers.openai.com/codex/skills)
 - [Cursor Skills Documentation](https://cursor.com/docs/context/skills)
 - [Antigravity Skills Documentation](https://antigravity.google/docs/skills)
+- [VS Code Copilot Skills Documentation](https://code.visualstudio.com/docs/copilot/customization/agent-skills)
 
 ## License
 
