@@ -123,15 +123,6 @@ export const agents: Record<AgentType, AgentConfig> = {
       return existsSync(join(home, '.factory/skills'));
     },
   },
-  gemini: {
-    name: 'gemini',
-    displayName: 'Gemini CLI',
-    skillsDir: '.gemini/skills',
-    globalSkillsDir: join(home, '.gemini/skills'),
-    detectInstalled: async () => {
-      return existsSync(join(home, '.gemini'));
-    },
-  },
   windsurf: {
     name: 'windsurf',
     displayName: 'Windsurf',

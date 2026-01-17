@@ -22,6 +22,12 @@ interface Options {
   list?: boolean;
 }
 
+function normalizeAgentInput(agent: string): string {
+  // Backwards compatibility: `gemini` was an alias for `gemini-cli`.
+  if (agent === 'gemini') return 'gemini-cli';
+  return agent;
+}
+
 program
   .name('add-skill')
   .description('Install skills onto coding agents (OpenCode, Claude Code, Codex, Cursor, Antigravity, Github Copilot, Roo Code)')
@@ -154,7 +160,8 @@ let tempDir: string | null = null;
     const validAgents = Object.keys(agents);
 
     if (options.agent && options.agent.length > 0) {
-      const invalidAgents = options.agent.filter(a => !validAgents.includes(a));
+      const requestedAgents = [...new Set(options.agent.map(normalizeAgentInput))];
+      const invalidAgents = requestedAgents.filter(a => !validAgents.includes(a));
 
       if (invalidAgents.length > 0) {
         p.log.error(`Invalid agents: ${invalidAgents.join(', ')}`);
@@ -163,7 +170,7 @@ let tempDir: string | null = null;
         process.exit(1);
       }
 
-      targetAgents = options.agent as AgentType[];
+      targetAgents = requestedAgents as AgentType[];
     } else {
       spinner.start('Detecting installed agents...');
       const installedAgents = await detectInstalledAgents();
