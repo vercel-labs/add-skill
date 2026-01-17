@@ -3,7 +3,7 @@
 Install agent skills onto your coding agents from any git repository.
 
 <!-- agent-list:start -->
-Supports **Opencode**, **Claude Code**, **Codex**, **Cursor**, and [11 more](#available-agents).
+Supports **Opencode**, **Claude Code**, **Codex**, **Cursor**, and [10 more](#available-agents).
 <!-- agent-list:end -->
 
 ## Quick Start
@@ -95,7 +95,6 @@ Skills can be installed to any of these supported agents. Use `-g, --global` to 
 | GitHub Copilot | `.github/skills/` | `~/.copilot/skills/` |
 | Clawdbot | `skills/` | `~/.clawdbot/skills/` |
 | Droid | `.factory/skills/` | `~/.factory/skills/` |
-| Gemini CLI | `.gemini/skills/` | `~/.gemini/skills/` |
 | Windsurf | `.windsurf/skills/` | `~/.codeium/windsurf/skills/` |
 <!-- available-agents:end -->
 
