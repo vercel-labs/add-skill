@@ -33,6 +33,15 @@ export const agents: Record<AgentType, AgentConfig> = {
       return existsSync(join(home, '.codex'));
     },
   },
+  'kiro-cli': {
+    name: 'kiro-cli',
+    displayName: 'Kiro CLI',
+    skillsDir: '.kiro/skills',
+    globalSkillsDir: join(home, '.kiro/skills'),
+    detectInstalled: async () => {
+      return existsSync(join(home, '.kiro'));
+    },
+  },
   cursor: {
     name: 'cursor',
     displayName: 'Cursor',
