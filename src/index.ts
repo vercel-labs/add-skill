@@ -3,7 +3,8 @@
 import { program } from 'commander';
 import * as p from '@clack/prompts';
 import chalk from 'chalk';
-import { parseSource, cloneRepo, cleanupTempDir } from './git.js';
+import { parseSource } from './source-parser.js';
+import { cloneRepo, cleanupTempDir } from './git.js';
 import { discoverSkills, getSkillDisplayName } from './skills.js';
 import { installSkillForAgent, isSkillInstalled, getInstallPath } from './installer.js';
 import { detectInstalledAgents, agents } from './agents.js';
@@ -26,7 +27,7 @@ program
   .name('add-skill')
   .description('Install skills onto coding agents (OpenCode, Claude Code, Codex, Cursor, Antigravity, Github Copilot, Roo Code)')
   .version(version)
-  .argument('<source>', 'Git repo URL, GitHub shorthand (owner/repo), or direct path to skill')
+  .argument('<source>', 'Git repo URL, GitHub shorthand (owner/repo), local path (./path), or direct path to skill')
   .option('-g, --global', 'Install skill globally (user-level) instead of project-level')
   .option('-a, --agent <agents...>', 'Specify agents to install to (opencode, claude-code, codex, cursor, antigravity, gitub-copilot, roo)')
   .option('-s, --skill <skills...>', 'Specify skill names to install (skip selection prompt)')
@@ -61,21 +62,38 @@ async function main(source: string, options: Options) {
   console.log();
   p.intro(chalk.bgCyan.black(' add-skill '));
 
-let tempDir: string | null = null;
+  let tempDir: string | null = null;
 
   try {
     const spinner = p.spinner();
 
     spinner.start('Parsing source...');
     const parsed = parseSource(source);
-    spinner.stop(`Source: ${chalk.cyan(parsed.url)}${parsed.subpath ? ` (${parsed.subpath})` : ''}`);
+    spinner.stop(`Source: ${chalk.cyan(parsed.type === 'local' ? parsed.localPath! : parsed.url)}${parsed.subpath ? ` (${parsed.subpath})` : ''}`);
 
-    spinner.start('Cloning repository...');
-    tempDir = await cloneRepo(parsed.url);
-    spinner.stop('Repository cloned');
+    let skillsDir: string;
+
+    if (parsed.type === 'local') {
+      // Use local path directly, no cloning needed
+      spinner.start('Validating local path...');
+      const { existsSync } = await import('fs');
+      if (!existsSync(parsed.localPath!)) {
+        spinner.stop(chalk.red('Path not found'));
+        p.outro(chalk.red(`Local path does not exist: ${parsed.localPath}`));
+        process.exit(1);
+      }
+      skillsDir = parsed.localPath!;
+      spinner.stop('Local path validated');
+    } else {
+      // Clone repository for remote sources
+      spinner.start('Cloning repository...');
+      tempDir = await cloneRepo(parsed.url);
+      skillsDir = tempDir;
+      spinner.stop('Repository cloned');
+    }
 
     spinner.start('Discovering skills...');
-    const skills = await discoverSkills(tempDir, parsed.subpath);
+    const skills = await discoverSkills(skillsDir, parsed.subpath);
 
     if (skills.length === 0) {
       spinner.stop(chalk.red('No skills found'));

@@ -16,7 +16,8 @@ export interface AgentConfig {
 }
 
 export interface ParsedSource {
-  type: 'github' | 'gitlab' | 'git';
+  type: 'github' | 'gitlab' | 'git' | 'local';
   url: string;
   subpath?: string;
+  localPath?: string;
 }
