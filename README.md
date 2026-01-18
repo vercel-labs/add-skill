@@ -82,7 +82,7 @@ Skills can be installed to any of these supported agents. Use `-g, --global` to 
 <!-- available-agents:start -->
 | Agent | Project Path | Global Path |
 |-------|--------------|-------------|
-| OpenCode | `.opencode/skill/` | `~/.config/opencode/skill/` |
+| OpenCode | `.opencode/skills/` | `~/.config/opencode/skills/` |
 | Claude Code | `.claude/skills/` | `~/.claude/skills/` |
 | Codex | `.codex/skills/` | `~/.codex/skills/` |
 | Cursor | `.cursor/skills/` | `~/.cursor/skills/` |
@@ -141,7 +141,7 @@ The CLI searches for skills in these locations within a repository:
 - `skills/.curated/`
 - `skills/.experimental/`
 - `skills/.system/`
-- `.opencode/skill/`
+- `.opencode/skills/`
 - `.claude/skills/`
 - `.codex/skills/`
 - `.cursor/skills/`
@@ -185,6 +185,20 @@ Ensure the repository contains valid `SKILL.md` files with both `name` and `desc
 ### Permission errors
 
 Ensure you have write access to the target directory.
+
+## Telemetry
+
+This CLI collects anonymous usage data to help improve the tool. No personal information is collected.
+
+To disable telemetry, set either of these environment variables:
+
+```bash
+DISABLE_TELEMETRY=1 npx add-skill vercel-labs/agent-skills
+# or
+DO_NOT_TRACK=1 npx add-skill vercel-labs/agent-skills
+```
+
+Telemetry is also automatically disabled in CI environments.
 
 ## Related Links
 

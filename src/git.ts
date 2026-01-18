@@ -3,10 +3,13 @@ import { join, normalize, resolve, sep } from 'path';
 import { mkdtemp, rm } from 'fs/promises';
 import { tmpdir } from 'os';
 
-export async function cloneRepo(url: string): Promise<string> {
+export async function cloneRepo(url: string, ref?: string): Promise<string> {
   const tempDir = await mkdtemp(join(tmpdir(), 'add-skill-'));
   const git = simpleGit();
-  await git.clone(url, tempDir, ['--depth', '1']);
+  const cloneOptions = ref
+    ? ['--depth', '1', '--branch', ref]
+    : ['--depth', '1'];
+  await git.clone(url, tempDir, cloneOptions);
   return tempDir;
 }
 

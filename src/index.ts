@@ -69,7 +69,7 @@ async function main(source: string, options: Options) {
 
     spinner.start('Parsing source...');
     const parsed = parseSource(source);
-    spinner.stop(`Source: ${chalk.cyan(parsed.type === 'local' ? parsed.localPath! : parsed.url)}${parsed.subpath ? ` (${parsed.subpath})` : ''}`);
+    spinner.stop(`Source: ${chalk.cyan(parsed.type === 'local' ? parsed.localPath! : parsed.url)}${parsed.ref ? ` @ ${chalk.yellow(parsed.ref)}` : ''}${parsed.subpath ? ` (${parsed.subpath})` : ''}`);
 
     let skillsDir: string;
 
@@ -87,7 +87,7 @@ async function main(source: string, options: Options) {
     } else {
       // Clone repository for remote sources
       spinner.start('Cloning repository...');
-      tempDir = await cloneRepo(parsed.url);
+      tempDir = await cloneRepo(parsed.url, parsed.ref);
       skillsDir = tempDir;
       spinner.stop('Repository cloned');
     }

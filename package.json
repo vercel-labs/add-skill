@@ -13,20 +13,27 @@
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts --clean",
     "dev": "tsx src/index.ts",
-    "prepublishOnly": "npm run build",
-    "update-readme": "tsx scripts/update-readme.ts"
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "cli",
     "skills",
+    "ai-agents",
     "opencode",
     "claude-code",
     "codex",
     "cursor",
     "amp",
+    "kilo",
+    "roo",
+    "goose",
+    "gemini-cli",
     "antigravity",
-    "roo-code",
-    "ai-agents"
+    "github-copilot",
+    "clawdbot",
+    "droid",
+    "gemini",
+    "windsurf"
   ],
   "repository": {
     "type": "git",
