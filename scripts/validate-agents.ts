@@ -1,5 +1,6 @@
 #!/usr/bin/env tsx
 
+import { homedir } from 'os';
 import { agents } from '../src/agents.js';
 
 let hasErrors = false;
@@ -62,7 +63,7 @@ function checkDuplicateSkillsDirs() {
     }
     skillsDirs.get(config.skillsDir)!.push(key);
 
-    const globalPath = config.globalSkillsDir.replace(/^.*\/home\/[^/]+/, '~');
+    const globalPath = config.globalSkillsDir.replace(homedir(), '~');
     if (!globalSkillsDirs.has(globalPath)) {
       globalSkillsDirs.set(globalPath, []);
     }

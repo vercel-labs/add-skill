@@ -2,6 +2,7 @@
 
 import { readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
+import { homedir } from 'os';
 import { agents } from '../src/agents.js';
 
 const ROOT = join(import.meta.dirname, '..');
@@ -20,7 +21,7 @@ function generateAgentNames(): string {
 
 function generateAvailableAgentsTable(): string {
   const rows = Object.values(agents).map((a) => {
-    const globalPath = a.globalSkillsDir.replace(process.env.HOME || '', '~');
+    const globalPath = a.globalSkillsDir.replace(homedir(), '~');
     return `| ${a.displayName} | \`${a.skillsDir}/\` | \`${globalPath}/\` |`;
   });
   return [
