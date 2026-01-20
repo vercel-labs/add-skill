@@ -3,7 +3,7 @@
 Install agent skills onto your coding agents from any git repository.
 
 <!-- agent-list:start -->
-Supports **Opencode**, **Claude Code**, **Codex**, **Cursor**, and [11 more](#available-agents).
+Supports **Opencode**, **Claude Code**, **Codex**, **Cursor**, and [12 more](#available-agents).
 <!-- agent-list:end -->
 
 ## Quick Start
@@ -97,6 +97,7 @@ Skills can be installed to any of these supported agents. Use `-g, --global` to 
 | Clawdbot | `clawdbot` | `skills/` | `~/.clawdbot/skills/` |
 | Droid | `droid` | `.factory/skills/` | `~/.factory/skills/` |
 | Windsurf | `windsurf` | `.windsurf/skills/` | `~/.codeium/windsurf/skills/` |
+| Trae | `trae` | `.trae/skills/` | `~/.trae/skills/` |
 <!-- available-agents:end -->
 
 > [!NOTE]

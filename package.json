@@ -34,7 +34,8 @@
     "github-copilot",
     "clawdbot",
     "droid",
-    "windsurf"
+    "windsurf",
+    "trae"
   ],
   "repository": {
     "type": "git",
