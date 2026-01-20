@@ -20,4 +20,5 @@ export interface ParsedSource {
   url: string;
   subpath?: string;
   localPath?: string;
+  ref?: string;
 }

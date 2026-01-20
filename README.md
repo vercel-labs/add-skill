@@ -80,23 +80,23 @@ npx add-skill vercel-labs/agent-skills -y -g
 Skills can be installed to any of these supported agents. Use `-g, --global` to install to the global path instead of project-level.
 
 <!-- available-agents:start -->
-| Agent | Project Path | Global Path |
-|-------|--------------|-------------|
-| OpenCode | `.opencode/skill/` | `~/.config/opencode/skill/` |
-| Claude Code | `.claude/skills/` | `~/.claude/skills/` |
-| Codex | `.codex/skills/` | `~/.codex/skills/` |
-| Kiro CLI | `.kiro/skills/` | `~/.kiro/skills/` |
-| Cursor | `.cursor/skills/` | `~/.cursor/skills/` |
-| Amp | `.agents/skills/` | `~/.config/agents/skills/` |
-| Kilo Code | `.kilocode/skills/` | `~/.kilocode/skills/` |
-| Roo Code | `.roo/skills/` | `~/.roo/skills/` |
-| Goose | `.goose/skills/` | `~/.config/goose/skills/` |
-| Gemini CLI | `.gemini/skills/` | `~/.gemini/skills/` |
-| Antigravity | `.agent/skills/` | `~/.gemini/antigravity/skills/` |
-| GitHub Copilot | `.github/skills/` | `~/.copilot/skills/` |
-| Clawdbot | `skills/` | `~/.clawdbot/skills/` |
-| Droid | `.factory/skills/` | `~/.factory/skills/` |
-| Windsurf | `.windsurf/skills/` | `~/.codeium/windsurf/skills/` |
+| Agent | `--agent` | Project Path | Global Path |
+|-------|-----------|--------------|-------------|
+| OpenCode | `opencode` | `.opencode/skills/` | `~/.config/opencode/skills/` |
+| Claude Code | `claude-code` | `.claude/skills/` | `~/.claude/skills/` |
+| Codex | `codex` | `.codex/skills/` | `~/.codex/skills/` |
+| Kiro CLI | `kiro-cli` | `.kiro/skills/` | `~/.kiro/skills/` |
+| Cursor | `cursor` | `.cursor/skills/` | `~/.cursor/skills/` |
+| Amp | `amp` | `.agents/skills/` | `~/.config/agents/skills/` |
+| Kilo Code | `kilo` | `.kilocode/skills/` | `~/.kilocode/skills/` |
+| Roo Code | `roo` | `.roo/skills/` | `~/.roo/skills/` |
+| Goose | `goose` | `.goose/skills/` | `~/.config/goose/skills/` |
+| Gemini CLI | `gemini-cli` | `.gemini/skills/` | `~/.gemini/skills/` |
+| Antigravity | `antigravity` | `.agent/skills/` | `~/.gemini/antigravity/skills/` |
+| GitHub Copilot | `github-copilot` | `.github/skills/` | `~/.copilot/skills/` |
+| Clawdbot | `clawdbot` | `skills/` | `~/.clawdbot/skills/` |
+| Droid | `droid` | `.factory/skills/` | `~/.factory/skills/` |
+| Windsurf | `windsurf` | `.windsurf/skills/` | `~/.codeium/windsurf/skills/` |
 <!-- available-agents:end -->
 
 > [!NOTE]
@@ -152,7 +152,7 @@ The CLI searches for skills in these locations within a repository:
 - `skills/.curated/`
 - `skills/.experimental/`
 - `skills/.system/`
-- `.opencode/skill/`
+- `.opencode/skills/`
 - `.claude/skills/`
 - `.codex/skills/`
 - `.kiro/skills/`
@@ -197,6 +197,20 @@ Ensure the repository contains valid `SKILL.md` files with both `name` and `desc
 ### Permission errors
 
 Ensure you have write access to the target directory.
+
+## Telemetry
+
+This CLI collects anonymous usage data to help improve the tool. No personal information is collected.
+
+To disable telemetry, set either of these environment variables:
+
+```bash
+DISABLE_TELEMETRY=1 npx add-skill vercel-labs/agent-skills
+# or
+DO_NOT_TRACK=1 npx add-skill vercel-labs/agent-skills
+```
+
+Telemetry is also automatically disabled in CI environments.
 
 ## Related Links
 

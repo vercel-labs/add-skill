@@ -1,6 +1,6 @@
 {
   "name": "add-skill",
-  "version": "1.0.16",
+  "version": "1.0.20",
   "description": "Install agent skills onto coding agents (OpenCode, Claude Code, Codex, Cursor)",
   "type": "module",
   "bin": {
@@ -13,20 +13,27 @@
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts --clean",
     "dev": "tsx src/index.ts",
-    "prepublishOnly": "npm run build",
-    "update-readme": "tsx scripts/update-readme.ts"
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "cli",
+    "agent-skills",
     "skills",
+    "ai-agents",
     "opencode",
     "claude-code",
     "codex",
     "cursor",
     "amp",
+    "kilo",
+    "roo",
+    "goose",
+    "gemini-cli",
     "antigravity",
-    "roo-code",
-    "ai-agents"
+    "github-copilot",
+    "clawdbot",
+    "droid",
+    "windsurf"
   ],
   "repository": {
     "type": "git",
