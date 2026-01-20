@@ -2,6 +2,24 @@ import { isAbsolute, resolve } from 'path';
 import type { ParsedSource } from './types.js';
 
 /**
+ * Extract owner/repo from a parsed source for telemetry.
+ * Returns null for local paths or unparseable sources.
+ */
+export function getOwnerRepo(parsed: ParsedSource): string | null {
+    if (parsed.type === 'local') {
+        return null;
+    }
+
+    // Extract from git URL: https://github.com/owner/repo.git or similar
+    const match = parsed.url.match(/(?:github|gitlab)\.com\/([^/]+)\/([^/]+?)(?:\.git)?$/);
+    if (match) {
+        return `${match[1]}/${match[2]}`;
+    }
+
+    return null;
+}
+
+/**
  * Check if a string represents a local file system path
  */
 function isLocalPath(input: string): boolean {
@@ -33,15 +51,29 @@ export function parseSource(input: string): ParsedSource {
     }
 
     // GitHub URL with path: https://github.com/owner/repo/tree/branch/path/to/skill
-    const githubTreeMatch = input.match(
+    const githubTreeWithPathMatch = input.match(
         /github\.com\/([^/]+)\/([^/]+)\/tree\/([^/]+)\/(.+)/
     );
-    if (githubTreeMatch) {
-        const [, owner, repo, , subpath] = githubTreeMatch;
+    if (githubTreeWithPathMatch) {
+        const [, owner, repo, ref, subpath] = githubTreeWithPathMatch;
         return {
             type: 'github',
             url: `https://github.com/${owner}/${repo}.git`,
+            ref,
             subpath,
+        };
+    }
+
+    // GitHub URL with branch only: https://github.com/owner/repo/tree/branch
+    const githubTreeMatch = input.match(
+        /github\.com\/([^/]+)\/([^/]+)\/tree\/([^/]+)$/
+    );
+    if (githubTreeMatch) {
+        const [, owner, repo, ref] = githubTreeMatch;
+        return {
+            type: 'github',
+            url: `https://github.com/${owner}/${repo}.git`,
+            ref,
         };
     }
 
@@ -57,15 +89,29 @@ export function parseSource(input: string): ParsedSource {
     }
 
     // GitLab URL with path: https://gitlab.com/owner/repo/-/tree/branch/path
-    const gitlabTreeMatch = input.match(
+    const gitlabTreeWithPathMatch = input.match(
         /gitlab\.com\/([^/]+)\/([^/]+)\/-\/tree\/([^/]+)\/(.+)/
     );
-    if (gitlabTreeMatch) {
-        const [, owner, repo, , subpath] = gitlabTreeMatch;
+    if (gitlabTreeWithPathMatch) {
+        const [, owner, repo, ref, subpath] = gitlabTreeWithPathMatch;
         return {
             type: 'gitlab',
             url: `https://gitlab.com/${owner}/${repo}.git`,
+            ref,
             subpath,
+        };
+    }
+
+    // GitLab URL with branch only: https://gitlab.com/owner/repo/-/tree/branch
+    const gitlabTreeMatch = input.match(
+        /gitlab\.com\/([^/]+)\/([^/]+)\/-\/tree\/([^/]+)$/
+    );
+    if (gitlabTreeMatch) {
+        const [, owner, repo, ref] = gitlabTreeMatch;
+        return {
+            type: 'gitlab',
+            url: `https://gitlab.com/${owner}/${repo}.git`,
+            ref,
         };
     }
 

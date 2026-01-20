@@ -9,8 +9,8 @@ export const agents: Record<AgentType, AgentConfig> = {
   opencode: {
     name: 'opencode',
     displayName: 'OpenCode',
-    skillsDir: '.opencode/skill',
-    globalSkillsDir: join(home, '.config/opencode/skill'),
+    skillsDir: '.opencode/skills',
+    globalSkillsDir: join(home, '.config/opencode/skills'),
     detectInstalled: async () => {
       return existsSync(join(home, '.config/opencode')) || existsSync(join(home, '.claude/skills'));
     },
@@ -31,6 +31,15 @@ export const agents: Record<AgentType, AgentConfig> = {
     globalSkillsDir: join(home, '.codex/skills'),
     detectInstalled: async () => {
       return existsSync(join(home, '.codex'));
+    },
+  },
+  'kiro-cli': {
+    name: 'kiro-cli',
+    displayName: 'Kiro CLI',
+    skillsDir: '.kiro/skills',
+    globalSkillsDir: join(home, '.kiro/skills'),
+    detectInstalled: async () => {
+      return existsSync(join(home, '.kiro'));
     },
   },
   cursor: {

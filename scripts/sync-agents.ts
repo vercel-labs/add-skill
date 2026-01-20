@@ -2,10 +2,12 @@
 
 import { readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
+import { homedir } from 'os';
 import { agents } from '../src/agents.js';
 
 const ROOT = join(import.meta.dirname, '..');
 const README_PATH = join(ROOT, 'README.md');
+const PACKAGE_PATH = join(ROOT, 'package.json');
 
 function generateAgentList(): string {
   const agentList = Object.values(agents);
@@ -18,13 +20,13 @@ function generateAgentNames(): string {
 }
 
 function generateAvailableAgentsTable(): string {
-  const rows = Object.values(agents).map((a) => {
-    const globalPath = a.globalSkillsDir.replace(process.env.HOME || '', '~');
-    return `| ${a.displayName} | \`${a.skillsDir}/\` | \`${globalPath}/\` |`;
+  const rows = Object.entries(agents).map(([key, a]) => {
+    const globalPath = a.globalSkillsDir.replace(homedir(), '~');
+    return `| ${a.displayName} | \`${key}\` | \`${a.skillsDir}/\` | \`${globalPath}/\` |`;
   });
   return [
-    '| Agent | Project Path | Global Path |',
-    '|-------|--------------|-------------|',
+    '| Agent | `--agent` | Project Path | Global Path |',
+    '|-------|-----------|--------------|-------------|',
     ...rows,
   ].join('\n');
 }
@@ -42,6 +44,12 @@ function generateSkillDiscoveryPaths(): string {
     .map((p) => `- \`.${p.startsWith('.') ? p.slice(1) : '/' + p}/\``);
 
   return [...standardPaths, ...agentPaths].join('\n');
+}
+
+function generateKeywords(): string[] {
+  const baseKeywords = ['cli', 'agent-skills', 'skills', 'ai-agents'];
+  const agentKeywords = Object.keys(agents);
+  return [...baseKeywords, ...agentKeywords];
 }
 
 function replaceSection(content: string, marker: string, replacement: string, inline = false): string {
@@ -64,7 +72,12 @@ function main() {
   readme = replaceSection(readme, 'skill-discovery', generateSkillDiscoveryPaths());
 
   writeFileSync(README_PATH, readme);
-  console.log('README.md updated successfully');
+  console.log('README.md updated');
+
+  const pkg = JSON.parse(readFileSync(PACKAGE_PATH, 'utf-8'));
+  pkg.keywords = generateKeywords();
+  writeFileSync(PACKAGE_PATH, JSON.stringify(pkg, null, 2) + '\n');
+  console.log('package.json updated');
 }
 
 main();

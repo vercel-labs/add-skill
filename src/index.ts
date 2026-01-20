@@ -3,7 +3,7 @@
 import { program } from 'commander';
 import * as p from '@clack/prompts';
 import chalk from 'chalk';
-import { parseSource } from './source-parser.js';
+import { parseSource, getOwnerRepo } from './source-parser.js';
 import { cloneRepo, cleanupTempDir } from './git.js';
 import { discoverSkills, getSkillDisplayName } from './skills.js';
 import { installSkillForAgent, isSkillInstalled, getInstallPath } from './installer.js';
@@ -21,18 +21,20 @@ interface Options {
   yes?: boolean;
   skill?: string[];
   list?: boolean;
+  all?: boolean;
 }
 
 program
   .name('add-skill')
-  .description('Install skills onto coding agents (OpenCode, Claude Code, Codex, Cursor, Antigravity, Github Copilot, Roo Code)')
+  .description('Install skills onto coding agents (OpenCode, Claude Code, Codex, Kiro CLI, Cursor, Antigravity, Github Copilot, Roo Code)')
   .version(version)
   .argument('<source>', 'Git repo URL, GitHub shorthand (owner/repo), local path (./path), or direct path to skill')
   .option('-g, --global', 'Install skill globally (user-level) instead of project-level')
-  .option('-a, --agent <agents...>', 'Specify agents to install to (opencode, claude-code, codex, cursor, antigravity, gitub-copilot, roo)')
+  .option('-a, --agent <agents...>', 'Specify agents to install to (opencode, claude-code, codex, kiro-cli, cursor, antigravity, github-copilot, roo)')
   .option('-s, --skill <skills...>', 'Specify skill names to install (skip selection prompt)')
   .option('-l, --list', 'List available skills in the repository without installing')
   .option('-y, --yes', 'Skip confirmation prompts')
+  .option('--all', 'Install all skills to all agents without any prompts (implies -y -g)')
   .configureOutput({
     outputError: (str, write) => {
       if (str.includes('missing required argument')) {
@@ -59,6 +61,12 @@ program
 program.parse();
 
 async function main(source: string, options: Options) {
+  // --all implies -y and -g
+  if (options.all) {
+    options.yes = true;
+    options.global = true;
+  }
+
   console.log();
   p.intro(chalk.bgCyan.black(' skills '));
 
@@ -69,7 +77,7 @@ async function main(source: string, options: Options) {
 
     spinner.start('Parsing source...');
     const parsed = parseSource(source);
-    spinner.stop(`Source: ${chalk.cyan(parsed.type === 'local' ? parsed.localPath! : parsed.url)}${parsed.subpath ? ` (${parsed.subpath})` : ''}`);
+    spinner.stop(`Source: ${chalk.cyan(parsed.type === 'local' ? parsed.localPath! : parsed.url)}${parsed.ref ? ` @ ${chalk.yellow(parsed.ref)}` : ''}${parsed.subpath ? ` (${parsed.subpath})` : ''}`);
 
     let skillsDir: string;
 
@@ -87,7 +95,7 @@ async function main(source: string, options: Options) {
     } else {
       // Clone repository for remote sources
       spinner.start('Cloning repository...');
-      tempDir = await cloneRepo(parsed.url);
+      tempDir = await cloneRepo(parsed.url, parsed.ref);
       skillsDir = tempDir;
       spinner.stop('Repository cloned');
     }
@@ -182,6 +190,10 @@ async function main(source: string, options: Options) {
       }
 
       targetAgents = options.agent as AgentType[];
+    } else if (options.all) {
+      // --all flag: install to all agents without detection
+      targetAgents = validAgents as AgentType[];
+      p.log.info(`Installing to all ${targetAgents.length} agents`);
     } else {
       spinner.start('Detecting installed agents...');
       const installedAgents = await detectInstalledAgents();
@@ -334,22 +346,38 @@ async function main(source: string, options: Options) {
     const failed = results.filter(r => !r.success);
 
     // Track installation result
-    // Build skillFiles map: { skillName: relative path to SKILL.md }
+    // Build skillFiles map: { skillName: relative path to SKILL.md from repo root }
     const skillFiles: Record<string, string> = {};
     for (const skill of selectedSkills) {
-      // skill.path is absolute, compute relative from tempDir
-      const relativePath = skill.path.replace(tempDir + '/', '');
-      skillFiles[skill.name] = relativePath + '/SKILL.md';
+      // skill.path is absolute, compute relative from tempDir (repo root)
+      let relativePath: string;
+      if (tempDir && skill.path === tempDir) {
+        // Skill is at root level of repo
+        relativePath = 'SKILL.md';
+      } else if (tempDir && skill.path.startsWith(tempDir + '/')) {
+        // Compute path relative to repo root (tempDir), not search path
+        relativePath = skill.path.slice(tempDir.length + 1) + '/SKILL.md';
+      } else {
+        // Local path - skip telemetry for local installs
+        continue;
+      }
+      skillFiles[skill.name] = relativePath;
     }
 
-    track({
-      event: 'install',
-      source,
-      skills: selectedSkills.map(s => s.name).join(','),
-      agents: targetAgents.join(','),
-      ...(installGlobally && { global: '1' }),
-      skillFiles: JSON.stringify(skillFiles),
-    });
+    // Normalize source to owner/repo format for telemetry
+    const normalizedSource = getOwnerRepo(parsed);
+    
+    // Only track if we have a valid remote source
+    if (normalizedSource) {
+      track({
+        event: 'install',
+        source: normalizedSource,
+        skills: selectedSkills.map(s => s.name).join(','),
+        agents: targetAgents.join(','),
+        ...(installGlobally && { global: '1' }),
+        skillFiles: JSON.stringify(skillFiles),
+      });
+    }
 
     if (successful.length > 0) {
       // Group by skill name for cleaner output

@@ -1,4 +1,4 @@
-export type AgentType = 'opencode' | 'claude-code' | 'codex' | 'cursor' | 'amp' | 'kilo' | 'roo' | 'goose' | 'antigravity' | 'gemini-cli' | 'github-copilot' | 'clawdbot' | 'droid' | 'windsurf' | 'trae';
+export type AgentType = 'opencode' | 'claude-code' | 'codex' | 'kiro-cli' | 'cursor' | 'amp' | 'kilo' | 'roo' | 'goose' | 'antigravity' | 'gemini-cli' | 'github-copilot' | 'clawdbot' | 'droid' | 'trae' | 'windsurf';
 
 export interface Skill {
   name: string;
@@ -20,4 +20,5 @@ export interface ParsedSource {
   url: string;
   subpath?: string;
   localPath?: string;
+  ref?: string;
 }
