@@ -150,6 +150,15 @@ export const agents: Record<AgentType, AgentConfig> = {
       return existsSync(join(home, '.codeium/windsurf'));
     },
   },
+  qoder: {
+    name: 'qoder',
+    displayName: 'Qoder',
+    skillsDir: '.qoder/skills',
+    globalSkillsDir: join(home, '.qoder/skills'),
+    detectInstalled: async () => {
+      return existsSync(join(home, '.qoder'));
+    },
+  },
 };
 
 export async function detectInstalledAgents(): Promise<AgentType[]> {

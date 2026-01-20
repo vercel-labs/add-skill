@@ -3,7 +3,7 @@
 Install agent skills onto your coding agents from any git repository.
 
 <!-- agent-list:start -->
-Supports **Opencode**, **Claude Code**, **Codex**, **Cursor**, and [12 more](#available-agents).
+Supports **Opencode**, **Claude Code**, **Codex**, **Cursor**, and [13 more](#available-agents).
 <!-- agent-list:end -->
 
 ## Quick Start
@@ -98,6 +98,7 @@ Skills can be installed to any of these supported agents. Use `-g, --global` to 
 | Roo Code | `roo` | `.roo/skills/` | `~/.roo/skills/` |
 | Trae | `trae` | `.trae/skills/` | `~/.trae/skills/` |
 | Windsurf | `windsurf` | `.windsurf/skills/` | `~/.codeium/windsurf/skills/` |
+| Qoder | `qoder` | `.qoder/skills/` | `~/.qoder/skills/` |
 <!-- available-agents:end -->
 
 > [!NOTE]
@@ -169,6 +170,7 @@ The CLI searches for skills in these locations within a repository:
 - `.roo/skills/`
 - `.trae/skills/`
 - `.windsurf/skills/`
+- `.qoder/skills/`
 <!-- skill-discovery:end -->
 
 If no skills are found in standard locations, a recursive search is performed.
