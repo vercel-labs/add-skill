@@ -133,6 +133,16 @@ export const agents: Record<AgentType, AgentConfig> = {
       return existsSync(join(home, '.codeium/windsurf'));
     },
   },
+
+  'windsurf-next': {
+    name: 'windsurf-next',
+    displayName: 'Windsurf Next',
+    skillsDir: '.windsurf/skills',
+    globalSkillsDir: join(home, '.codeium/windsurf-next/skills'),
+    detectInstalled: async () => {
+      return existsSync(join(home, '.codeium/windsurf-next'));
+    },
+  },
 };
 
 export async function detectInstalledAgents(): Promise<AgentType[]> {
