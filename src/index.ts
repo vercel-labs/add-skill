@@ -827,7 +827,14 @@ async function main(source: string, options: Options) {
     } else {
       // Clone repository for remote sources
       spinner.start("Cloning repository...");
-      tempDir = await cloneRepo(parsed.url);
+      try {
+        tempDir = await cloneRepo(parsed.url);
+      } catch (err) {
+        spinner.stop(chalk.red("Failed to clone repository"));
+        p.outro(chalk.red(err));
+        await cleanup(tempDir);
+        process.exit(1);
+      }
       skillsDir = tempDir;
       spinner.stop("Repository cloned");
     }
