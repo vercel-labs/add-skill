@@ -14,7 +14,8 @@ export type AgentType =
   | 'opencode'
   | 'roo'
   | 'trae'
-  | 'windsurf';
+  | 'windsurf'
+  | 'neovate';
 
 export interface Skill {
   name: string;
