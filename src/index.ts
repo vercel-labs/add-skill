@@ -53,11 +53,11 @@ interface Options {
 
 program
   .name('add-skill')
-  .description('Install skills onto coding agents (OpenCode, Claude Code, Codex, Kiro CLI, Cursor, Antigravity, Github Copilot, Roo Code)')
+  .description('Install skills onto coding agents (OpenCode, Claude Code, Cline, Codex, Kiro CLI, Cursor, Antigravity, Github Copilot, Roo Code)')
   .version(version)
   .argument('<source>', 'Git repo URL, GitHub shorthand (owner/repo), local path (./path), or direct path to skill')
   .option('-g, --global', 'Install skill globally (user-level) instead of project-level')
-  .option('-a, --agent <agents...>', 'Specify agents to install to (opencode, claude-code, codex, kiro-cli, cursor, antigravity, github-copilot, roo)')
+  .option('-a, --agent <agents...>', 'Specify agents to install to (opencode, claude-code, cline, codex, kiro-cli, cursor, antigravity, github-copilot, roo)')
   .option('-s, --skill <skills...>', 'Specify skill names to install (skip selection prompt)')
   .option('-l, --list', 'List available skills in the repository without installing')
   .option('-y, --yes', 'Skip confirmation prompts')

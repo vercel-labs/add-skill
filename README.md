@@ -3,7 +3,7 @@
 Install agent skills onto your coding agents from any git repository.
 
 <!-- agent-list:start -->
-Supports **Opencode**, **Claude Code**, **Codex**, **Cursor**, and [12 more](#available-agents).
+Supports **Opencode**, **Claude Code**, **Codex**, **Cursor**, and [13 more](#available-agents).
 <!-- agent-list:end -->
 
 ## Quick Start
@@ -86,6 +86,7 @@ Skills can be installed to any of these supported agents. Use `-g, --global` to 
 | Antigravity | `antigravity` | `.agent/skills/` | `~/.gemini/antigravity/skills/` |
 | Claude Code | `claude-code` | `.claude/skills/` | `~/.claude/skills/` |
 | Clawdbot | `clawdbot` | `skills/` | `~/.clawdbot/skills/` |
+| Cline | `cline` | `.cline/skills/` | `~/.cline/skills/` |
 | Codex | `codex` | `.codex/skills/` | `~/.codex/skills/` |
 | Cursor | `cursor` | `.cursor/skills/` | `~/.cursor/skills/` |
 | Droid | `droid` | `.factory/skills/` | `~/.factory/skills/` |
@@ -156,6 +157,7 @@ The CLI searches for skills in these locations within a repository:
 - `.agents/skills/`
 - `.agent/skills/`
 - `.claude/skills/`
+- `.cline/skills/`
 - `./skills/`
 - `.codex/skills/`
 - `.cursor/skills/`
@@ -177,12 +179,12 @@ If no skills are found in standard locations, a recursive search is performed.
 
 Skills are generally compatible across agents since they follow a shared [Agent Skills specification](https://agentskills.io). However, some features may be agent-specific:
 
-| Feature | OpenCode | Claude Code | Codex | Kiro CLI | Cursor | Antigravity | Roo Code | Github Copilot | Amp | Clawdbot |
-|---------|----------|-------------|-------|----------|--------|-------------|----------|----------------|-----|----------|
-| Basic skills | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
-| `allowed-tools` | Yes | Yes | Yes | No | Yes | Yes | Yes | Yes | Yes | Yes |
-| `context: fork` | No | Yes | No | No | No | No | No | No | No | No |
-| Hooks | No | Yes | No | No | No | No | No | No | No | No |
+| Feature | OpenCode | Claude Code | Codex | Kiro CLI | Cursor | Antigravity | Roo Code | Github Copilot | Amp | Clawdbot | Cline |
+|---------|----------|-------------|-------|----------|--------|-------------|----------|----------------|-----|----------|-------|
+| Basic skills | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| `allowed-tools` | Yes | Yes | Yes | No | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| `context: fork` | No | Yes | No | No | No | No | No | No | No | No | No |
+| Hooks | No | Yes | No | No | No | No | No | No | No | No | Yes |
 
 ## Troubleshooting
 
@@ -221,6 +223,7 @@ Telemetry is also automatically disabled in CI environments.
 - [Antigravity Skills Documentation](https://antigravity.google/docs/skills)
 - [Claude Code Skills Documentation](https://code.claude.com/docs/en/skills)
 - [Clawdbot Skills Documentation](https://docs.clawd.bot/tools/skills)
+- [Cline Skills Documentation](https://docs.cline.bot/features/skills)
 - [Codex Skills Documentation](https://developers.openai.com/codex/skills)
 - [Cursor Skills Documentation](https://cursor.com/docs/context/skills)
 - [Gemini CLI Skills Documentation](https://geminicli.com/docs/cli/skills/)
