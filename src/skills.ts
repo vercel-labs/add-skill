@@ -93,6 +93,7 @@ export async function discoverSkills(basePath: string, subpath?: string): Promis
     join(searchPath, '.opencode/skills'),
     join(searchPath, '.roo/skills'),
     join(searchPath, '.trae/skills'),
+    join(searchPath, '.zencoder/skills'),
   ];
 
   for (const dir of prioritySearchDirs) {

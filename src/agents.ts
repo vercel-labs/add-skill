@@ -150,6 +150,15 @@ export const agents: Record<AgentType, AgentConfig> = {
       return existsSync(join(home, '.codeium/windsurf'));
     },
   },
+  zencoder: {
+    name: 'zencoder',
+    displayName: 'Zencoder',
+    skillsDir: '.zencoder/skills',
+    globalSkillsDir: join(home, '.zencoder/skills'),
+    detectInstalled: async () => {
+      return existsSync(join(home, '.zencoder'));
+    },
+  },
 };
 
 export async function detectInstalledAgents(): Promise<AgentType[]> {
