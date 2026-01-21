@@ -175,6 +175,10 @@ The CLI searches for skills in these locations within a repository:
 
 If no skills are found in standard locations, a recursive search is performed.
 
+### Git Submodules
+
+Repositories with git submodules are fully supported. Submodules are automatically checked out during cloning, and skills within them are discovered using the same search logic. This enables organizations to maintain a central hub repository that references team-owned skill repositories as submodules.
+
 ## Compatibility
 
 Skills are generally compatible across agents since they follow a shared [Agent Skills specification](https://agentskills.io). However, some features may be agent-specific:

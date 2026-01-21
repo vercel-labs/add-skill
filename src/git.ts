@@ -7,8 +7,8 @@ export async function cloneRepo(url: string, ref?: string): Promise<string> {
   const tempDir = await mkdtemp(join(tmpdir(), 'add-skill-'));
   const git = simpleGit();
   const cloneOptions = ref
-    ? ['--depth', '1', '--branch', ref]
-    : ['--depth', '1'];
+    ? ['--depth', '1', '--branch', ref, '--recurse-submodules', '--shallow-submodules']
+    : ['--depth', '1', '--recurse-submodules', '--shallow-submodules'];
   await git.clone(url, tempDir, cloneOptions);
   return tempDir;
 }
