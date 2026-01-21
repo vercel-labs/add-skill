@@ -53,6 +53,7 @@ npx add-skill git@github.com:vercel-labs/agent-skills.git
 | `-s, --skill <skills...>` | Install specific skills by name |
 | `-l, --list` | List available skills without installing |
 | `-y, --yes` | Skip all confirmation prompts |
+| `--no-symlink` | Copy files instead of creating symlinks (better for hot-reload support) |
 | `-V, --version` | Show version number |
 | `-h, --help` | Show help |
 

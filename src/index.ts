@@ -49,6 +49,7 @@ interface Options {
   skill?: string[];
   list?: boolean;
   all?: boolean;
+  symlink?: boolean;
 }
 
 program
@@ -62,6 +63,7 @@ program
   .option('-l, --list', 'List available skills in the repository without installing')
   .option('-y, --yes', 'Skip confirmation prompts')
   .option('--all', 'Install all skills to all agents without any prompts (implies -y -g)')
+  .option('--no-symlink', 'Copy files instead of creating symlinks (better for hot-reload support)')
   .configureOutput({
     outputError: (str, write) => {
       if (str.includes('missing required argument')) {
@@ -355,7 +357,10 @@ async function main(source: string, options: Options) {
 
     for (const skill of selectedSkills) {
       for (const agent of targetAgents) {
-        const result = await installSkillForAgent(skill, agent, { global: installGlobally });
+        const result = await installSkillForAgent(skill, agent, {
+          global: installGlobally,
+          noSymlink: options.symlink === false,
+        });
         results.push({
           skill: getSkillDisplayName(skill),
           agent: agents[agent].displayName,

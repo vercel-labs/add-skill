@@ -97,7 +97,7 @@ async function createSymlink(target: string, linkPath: string): Promise<boolean>
 export async function installSkillForAgent(
   skill: Skill,
   agentType: AgentType,
-  options: { global?: boolean; cwd?: string } = {}
+  options: { global?: boolean; cwd?: string; noSymlink?: boolean } = {}
 ): Promise<InstallResult> {
   const agent = agents[agentType];
   const isGlobal = options.global ?? false;
@@ -138,12 +138,24 @@ export async function installSkillForAgent(
     await mkdir(canonicalDir, { recursive: true });
     await copyDirectory(skill.path, canonicalDir);
 
+    // If noSymlink is requested, copy directly instead of creating symlinks
+    if (options.noSymlink) {
+      await mkdir(agentDir, { recursive: true });
+      await copyDirectory(skill.path, agentDir);
+
+      return {
+        success: true,
+        path: agentDir,
+        canonicalPath: canonicalDir,
+      };
+    }
+
     const symlinkCreated = await createSymlink(canonicalDir, agentDir);
-    
+
     if (!symlinkCreated) {
       await mkdir(agentDir, { recursive: true });
       await copyDirectory(skill.path, agentDir);
-      
+
       return {
         success: true,
         path: agentDir,
