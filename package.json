@@ -14,8 +14,13 @@
     "build": "tsup src/index.ts --format esm --dts --clean",
     "dev": "tsx src/index.ts",
     "prepublishOnly": "npm run build",
-    "format": "prettier --write 'src/**/*.ts'",
-    "format:check": "prettier --check 'src/**/*.ts'"
+    "format": "prettier --write 'src/**/*.ts' 'scripts/**/*.ts'",
+    "format:check": "prettier --check 'src/**/*.ts' 'scripts/**/*.ts'",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "src/**/*.ts": "prettier --write",
+    "scripts/**/*.ts": "prettier --write"
   },
   "keywords": [
     "cli",
@@ -58,6 +63,8 @@
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
     "prettier": "^3.8.1",
     "tsup": "^8.3.5",
     "tsx": "^4.19.2",

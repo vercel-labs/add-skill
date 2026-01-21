@@ -57,7 +57,6 @@ function checkDuplicateSkillsDirs() {
   const globalSkillsDirs = new Map<string, string[]>();
 
   for (const [key, config] of Object.entries(agents)) {
-
     if (!skillsDirs.has(config.skillsDir)) {
       skillsDirs.set(config.skillsDir, []);
     }
