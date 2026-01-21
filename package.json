@@ -53,7 +53,8 @@
     "chalk": "^5.4.1",
     "commander": "^13.1.0",
     "gray-matter": "^4.0.3",
-    "simple-git": "^3.27.0"
+    "simple-git": "^3.27.0",
+    "xdg-basedir": "^5.1.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

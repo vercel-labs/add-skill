@@ -1,18 +1,20 @@
 import { homedir } from 'os';
 import { join } from 'path';
 import { existsSync } from 'fs';
+import { xdgConfig } from 'xdg-basedir';
 import type { AgentConfig, AgentType } from './types.js';
 
 const home = homedir();
+const configHome = xdgConfig || join(home, '.config');
 
 export const agents: Record<AgentType, AgentConfig> = {
   amp: {
     name: 'amp',
     displayName: 'Amp',
     skillsDir: '.agents/skills',
-    globalSkillsDir: join(home, '.config/agents/skills'),
+    globalSkillsDir: join(configHome, 'agents/skills'),
     detectInstalled: async () => {
-      return existsSync(join(home, '.config/amp'));
+      return existsSync(join(configHome, 'amp'));
     },
   },
   antigravity: {
@@ -91,9 +93,9 @@ export const agents: Record<AgentType, AgentConfig> = {
     name: 'goose',
     displayName: 'Goose',
     skillsDir: '.goose/skills',
-    globalSkillsDir: join(home, '.config/goose/skills'),
+    globalSkillsDir: join(configHome, 'goose/skills'),
     detectInstalled: async () => {
-      return existsSync(join(home, '.config/goose'));
+      return existsSync(join(configHome, 'goose'));
     },
   },
   kilo: {
@@ -118,9 +120,9 @@ export const agents: Record<AgentType, AgentConfig> = {
     name: 'opencode',
     displayName: 'OpenCode',
     skillsDir: '.opencode/skills',
-    globalSkillsDir: join(home, '.config/opencode/skills'),
+    globalSkillsDir: join(configHome, 'opencode/skills'),
     detectInstalled: async () => {
-      return existsSync(join(home, '.config/opencode')) || existsSync(join(home, '.claude/skills'));
+      return existsSync(join(configHome, 'opencode')) || existsSync(join(home, '.claude/skills'));
     },
   },
   roo: {
