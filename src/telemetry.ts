@@ -1,6 +1,6 @@
 const TELEMETRY_URL = 'https://add-skill.vercel.sh/t';
 
-interface TelemetryData {
+interface SkillInstallData {
   event: 'install';
   source: string;
   skills: string;
@@ -8,6 +8,16 @@ interface TelemetryData {
   global?: '1';
   skillFiles?: string; // JSON stringified { skillName: relativePath }
 }
+
+interface PluginInstallData {
+  event: 'install-plugin';
+  source: string;
+  plugin: string;
+  agents: string;
+  global?: '1';
+}
+
+type TelemetryData = SkillInstallData | PluginInstallData;
 
 let cliVersion: string | null = null;
 

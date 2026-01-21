@@ -54,6 +54,7 @@ npx add-skill git@github.com:vercel-labs/agent-skills.git
 | `-l, --list` | List available skills without installing |
 | `-y, --yes` | Skip all confirmation prompts |
 | `--no-symlink` | Copy files instead of creating symlinks (better for hot-reload support) |
+| `--plugin` | Install as a plugin (copies entire repository, preserving structure) |
 | `-V, --version` | Show version number |
 | `-h, --help` | Show help |
 
@@ -74,6 +75,24 @@ npx add-skill vercel-labs/agent-skills --skill frontend-design -g -a claude-code
 
 # Install all skills from a repo
 npx add-skill vercel-labs/agent-skills -y -g
+
+# Install as a plugin (preserves entire repository structure)
+npx add-skill ZhangHanDong/rust-skills --plugin -a claude-code -g
+```
+
+### Plugin Mode
+
+Use `--plugin` to install an entire repository as a plugin, preserving the complete directory structure including `agents/`, `commands/`, `index/`, etc. This is useful for complex skill collections where skills reference other components via relative paths.
+
+```bash
+# Install rust-skills as a plugin
+npx add-skill ZhangHanDong/rust-skills --plugin -a claude-code -g
+
+# Result: ~/.claude/rust-skills/
+#   ├── skills/       (all skills)
+#   ├── agents/       (background agents)
+#   ├── commands/     (custom commands)
+#   └── ...           (other components)
 ```
 
 ## Available Agents

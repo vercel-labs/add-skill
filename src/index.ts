@@ -6,7 +6,17 @@ import chalk from 'chalk';
 import { parseSource, getOwnerRepo } from './source-parser.js';
 import { cloneRepo, cleanupTempDir } from './git.js';
 import { discoverSkills, getSkillDisplayName } from './skills.js';
-import { installSkillForAgent, isSkillInstalled, getCanonicalPath, getInstallPath } from './installer.js';
+import {
+  installSkillForAgent,
+  isSkillInstalled,
+  getCanonicalPath,
+  getInstallPath,
+  parsePluginInfo,
+  installPluginForAgent,
+  isPluginInstalled,
+  getPluginInstallPath,
+  type PluginInfo,
+} from './installer.js';
 import { homedir } from 'os';
 
 /**
@@ -50,6 +60,7 @@ interface Options {
   list?: boolean;
   all?: boolean;
   symlink?: boolean;
+  plugin?: boolean;
 }
 
 program
@@ -64,6 +75,7 @@ program
   .option('-y, --yes', 'Skip confirmation prompts')
   .option('--all', 'Install all skills to all agents without any prompts (implies -y -g)')
   .option('--no-symlink', 'Copy files instead of creating symlinks (better for hot-reload support)')
+  .option('--plugin', 'Install as a plugin (copies entire repository structure, preserving agents/, commands/, etc.)')
   .configureOutput({
     outputError: (str, write) => {
       if (str.includes('missing required argument')) {
@@ -124,6 +136,12 @@ async function main(source: string, options: Options) {
       tempDir = await cloneRepo(parsed.url, parsed.ref);
       skillsDir = tempDir;
       spinner.stop('Repository cloned');
+    }
+
+    // Handle plugin mode
+    if (options.plugin) {
+      await handlePluginInstall(skillsDir, parsed, options, spinner, tempDir);
+      return;
     }
 
     spinner.start('Discovering skills...');
@@ -467,5 +485,229 @@ async function cleanup(tempDir: string | null) {
     } catch {
       // Ignore cleanup errors
     }
+  }
+}
+
+/**
+ * Handle plugin installation mode
+ */
+async function handlePluginInstall(
+  pluginDir: string,
+  parsed: ReturnType<typeof parseSource>,
+  options: Options,
+  spinner: ReturnType<typeof p.spinner>,
+  tempDir: string | null
+) {
+  const cwd = process.cwd();
+
+  try {
+    // Parse plugin info
+    spinner.start('Parsing plugin info...');
+    const plugin = await parsePluginInfo(pluginDir);
+    spinner.stop(`Plugin: ${chalk.cyan(plugin.name)}${plugin.version ? ` v${plugin.version}` : ''}`);
+
+    if (plugin.description) {
+      p.log.message(chalk.dim(plugin.description));
+    }
+
+    // Select target agents
+    let targetAgents: AgentType[];
+    const validAgents = Object.keys(agents);
+
+    if (options.agent && options.agent.length > 0) {
+      const invalidAgents = options.agent.filter(a => !validAgents.includes(a));
+
+      if (invalidAgents.length > 0) {
+        p.log.error(`Invalid agents: ${invalidAgents.join(', ')}`);
+        p.log.info(`Valid agents: ${validAgents.join(', ')}`);
+        await cleanup(tempDir);
+        process.exit(1);
+      }
+
+      targetAgents = options.agent as AgentType[];
+    } else if (options.all) {
+      targetAgents = validAgents as AgentType[];
+      p.log.info(`Installing to all ${targetAgents.length} agents`);
+    } else {
+      spinner.start('Detecting installed agents...');
+      const installedAgents = await detectInstalledAgents();
+      spinner.stop(`Detected ${installedAgents.length} agent${installedAgents.length !== 1 ? 's' : ''}`);
+
+      if (installedAgents.length === 0) {
+        if (options.yes) {
+          targetAgents = validAgents as AgentType[];
+          p.log.info('Installing to all agents (none detected)');
+        } else {
+          p.log.warn('No coding agents detected. You can still install the plugin.');
+
+          const allAgentChoices = Object.entries(agents).map(([key, config]) => ({
+            value: key as AgentType,
+            label: config.displayName,
+          }));
+
+          const selected = await p.multiselect({
+            message: 'Select agents to install plugin to',
+            options: allAgentChoices,
+            required: true,
+            initialValues: Object.keys(agents) as AgentType[],
+          });
+
+          if (p.isCancel(selected)) {
+            p.cancel('Installation cancelled');
+            await cleanup(tempDir);
+            process.exit(0);
+          }
+
+          targetAgents = selected as AgentType[];
+        }
+      } else if (installedAgents.length === 1 || options.yes) {
+        targetAgents = installedAgents;
+        if (installedAgents.length === 1) {
+          const firstAgent = installedAgents[0]!;
+          p.log.info(`Installing to: ${chalk.cyan(agents[firstAgent].displayName)}`);
+        } else {
+          p.log.info(`Installing to: ${installedAgents.map(a => chalk.cyan(agents[a].displayName)).join(', ')}`);
+        }
+      } else {
+        const agentChoices = installedAgents.map(a => ({
+          value: a,
+          label: agents[a].displayName,
+        }));
+
+        const selected = await p.multiselect({
+          message: 'Select agents to install plugin to',
+          options: agentChoices,
+          required: true,
+          initialValues: installedAgents,
+        });
+
+        if (p.isCancel(selected)) {
+          p.cancel('Installation cancelled');
+          await cleanup(tempDir);
+          process.exit(0);
+        }
+
+        targetAgents = selected as AgentType[];
+      }
+    }
+
+    // Determine installation scope
+    let installGlobally = options.global ?? false;
+
+    if (options.global === undefined && !options.yes) {
+      const scope = await p.select({
+        message: 'Installation scope',
+        options: [
+          { value: true, label: 'Global (Recommended)', hint: 'Install in home directory (available across all projects)' },
+          { value: false, label: 'Project', hint: 'Install in current directory (committed with your project)' },
+        ],
+      });
+
+      if (p.isCancel(scope)) {
+        p.cancel('Installation cancelled');
+        await cleanup(tempDir);
+        process.exit(0);
+      }
+
+      installGlobally = scope as boolean;
+    }
+
+    // Check for existing installations
+    const overwriteStatus = new Map<string, boolean>();
+    for (const agent of targetAgents) {
+      overwriteStatus.set(agent, await isPluginInstalled(plugin.name, agent, { global: installGlobally }));
+    }
+
+    const hasOverwrites = Array.from(overwriteStatus.values()).some(v => v);
+    const overwriteAgents = targetAgents
+      .filter(a => overwriteStatus.get(a))
+      .map(a => agents[a].displayName);
+
+    // Show installation summary
+    const summaryLines: string[] = [];
+    for (const agent of targetAgents) {
+      const installPath = getPluginInstallPath(plugin.name, agent, { global: installGlobally, cwd });
+      const shortPath = shortenPath(installPath, cwd);
+      summaryLines.push(`${chalk.cyan(shortPath)} ${chalk.dim('→')} ${agents[agent].displayName}`);
+    }
+
+    if (hasOverwrites) {
+      summaryLines.push('');
+      summaryLines.push(`${chalk.yellow('Will overwrite:')} ${formatList(overwriteAgents)}`);
+    }
+
+    console.log();
+    p.note(summaryLines.join('\n'), `Plugin: ${plugin.name}`);
+
+    // Confirm installation
+    if (!options.yes) {
+      const confirmed = await p.confirm({ message: 'Proceed with installation?' });
+
+      if (p.isCancel(confirmed) || !confirmed) {
+        p.cancel('Installation cancelled');
+        await cleanup(tempDir);
+        process.exit(0);
+      }
+    }
+
+    // Install plugin
+    spinner.start('Installing plugin...');
+
+    const results: { agent: string; success: boolean; path: string; error?: string }[] = [];
+
+    for (const agent of targetAgents) {
+      const result = await installPluginForAgent(plugin, agent, { global: installGlobally, cwd });
+      results.push({
+        agent: agents[agent].displayName,
+        ...result,
+      });
+    }
+
+    spinner.stop('Installation complete');
+
+    // Show results
+    console.log();
+    const successful = results.filter(r => r.success);
+    const failed = results.filter(r => !r.success);
+
+    if (successful.length > 0) {
+      const resultLines: string[] = [];
+      for (const r of successful) {
+        const shortPath = shortenPath(r.path, cwd);
+        resultLines.push(`${chalk.green('✓')} ${shortPath} ${chalk.dim('→')} ${r.agent}`);
+      }
+
+      const title = chalk.green(`Installed plugin to ${successful.length} agent${successful.length !== 1 ? 's' : ''}`);
+      p.note(resultLines.join('\n'), title);
+    }
+
+    if (failed.length > 0) {
+      console.log();
+      p.log.error(chalk.red(`Failed to install to ${failed.length} agent${failed.length !== 1 ? 's' : ''}`));
+      for (const r of failed) {
+        p.log.message(`  ${chalk.red('✗')} ${r.agent}: ${chalk.dim(r.error)}`);
+      }
+    }
+
+    // Track telemetry
+    const normalizedSource = getOwnerRepo(parsed);
+    if (normalizedSource) {
+      track({
+        event: 'install-plugin',
+        source: normalizedSource,
+        plugin: plugin.name,
+        agents: targetAgents.join(','),
+        ...(installGlobally && { global: '1' }),
+      });
+    }
+
+    console.log();
+    p.outro(chalk.green('Done!'));
+  } catch (error) {
+    p.log.error(error instanceof Error ? error.message : 'Unknown error occurred');
+    p.outro(chalk.red('Plugin installation failed'));
+    process.exit(1);
+  } finally {
+    await cleanup(tempDir);
   }
 }
