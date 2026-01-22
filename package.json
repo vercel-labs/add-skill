@@ -1,6 +1,6 @@
 {
   "name": "add-skill",
-  "version": "1.0.22",
+  "version": "1.0.23",
   "description": "Install agent skills onto coding agents (OpenCode, Claude Code, Codex, Cursor)",
   "type": "module",
   "bin": {
@@ -35,7 +35,8 @@
     "opencode",
     "roo",
     "trae",
-    "windsurf"
+    "windsurf",
+    "neovate"
   ],
   "repository": {
     "type": "git",

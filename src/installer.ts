@@ -1,16 +1,19 @@
-import { mkdir, cp, access, readdir, symlink, lstat, rm, readlink } from 'fs/promises';
+import { mkdir, cp, access, readdir, symlink, lstat, rm, readlink, writeFile } from 'fs/promises';
 import { join, basename, normalize, resolve, sep, relative } from 'path';
 import { homedir, platform } from 'os';
-import type { Skill, AgentType } from './types.js';
+import type { Skill, AgentType, MintlifySkill, RemoteSkill } from './types.js';
 import { agents } from './agents.js';
 
 const AGENTS_DIR = '.agents';
 const SKILLS_SUBDIR = 'skills';
 
+export type InstallMode = 'symlink' | 'copy';
+
 interface InstallResult {
   success: boolean;
   path: string;
   canonicalPath?: string;
+  mode: InstallMode;
   symlinkFailed?: boolean;
   error?: string;
 }
@@ -77,8 +80,17 @@ async function createSymlink(target: string, linkPath: string): Promise<boolean>
       } else {
         await rm(linkPath, { recursive: true });
       }
-    } catch {
-      // Doesn't exist
+    } catch (err: unknown) {
+      // ELOOP = circular symlink, ENOENT = doesn't exist
+      // For ELOOP, try to remove the broken symlink
+      if (err && typeof err === 'object' && 'code' in err && err.code === 'ELOOP') {
+        try {
+          await rm(linkPath, { force: true });
+        } catch {
+          // If we can't remove it, symlink creation will fail and trigger copy fallback
+        }
+      }
+      // For ENOENT or other errors, continue to symlink creation
     }
 
     const linkDir = join(linkPath, '..');
@@ -97,7 +109,7 @@ async function createSymlink(target: string, linkPath: string): Promise<boolean>
 export async function installSkillForAgent(
   skill: Skill,
   agentType: AgentType,
-  options: { global?: boolean; cwd?: string } = {}
+  options: { global?: boolean; cwd?: string; mode?: InstallMode } = {}
 ): Promise<InstallResult> {
   const agent = agents[agentType];
   const isGlobal = options.global ?? false;
@@ -117,11 +129,14 @@ export async function installSkillForAgent(
     : join(cwd, agent.skillsDir);
   const agentDir = join(agentBase, skillName);
   
+  const installMode = options.mode ?? 'symlink';
+  
   // Validate paths
   if (!isPathSafe(canonicalBase, canonicalDir)) {
     return {
       success: false,
       path: agentDir,
+      mode: installMode,
       error: 'Invalid skill name: potential path traversal detected',
     };
   }
@@ -130,17 +145,37 @@ export async function installSkillForAgent(
     return {
       success: false,
       path: agentDir,
+      mode: installMode,
       error: 'Invalid skill name: potential path traversal detected',
     };
   }
 
   try {
+    // For copy mode, skip canonical directory and copy directly to agent location
+    if (installMode === 'copy') {
+      await mkdir(agentDir, { recursive: true });
+      await copyDirectory(skill.path, agentDir);
+      
+      return {
+        success: true,
+        path: agentDir,
+        mode: 'copy',
+      };
+    }
+    
+    // Symlink mode: copy to canonical location and symlink to agent location
     await mkdir(canonicalDir, { recursive: true });
     await copyDirectory(skill.path, canonicalDir);
 
     const symlinkCreated = await createSymlink(canonicalDir, agentDir);
     
     if (!symlinkCreated) {
+      // Clean up any existing broken symlink before copying
+      try {
+        await rm(agentDir, { recursive: true, force: true });
+      } catch {
+        // Ignore cleanup errors
+      }
       await mkdir(agentDir, { recursive: true });
       await copyDirectory(skill.path, agentDir);
       
@@ -148,6 +183,7 @@ export async function installSkillForAgent(
         success: true,
         path: agentDir,
         canonicalPath: canonicalDir,
+        mode: 'symlink',
         symlinkFailed: true,
       };
     }
@@ -156,11 +192,13 @@ export async function installSkillForAgent(
       success: true,
       path: agentDir,
       canonicalPath: canonicalDir,
+      mode: 'symlink',
     };
   } catch (error) {
     return {
       success: false,
       path: agentDir,
+      mode: installMode,
       error: error instanceof Error ? error.message : 'Unknown error',
     };
   }
@@ -262,4 +300,215 @@ export function getCanonicalPath(
   }
   
   return canonicalPath;
+}
+
+/**
+ * Install a Mintlify skill from a direct URL
+ * The skill name is derived from the mintlify-proj frontmatter
+ * Supports symlink mode (writes to canonical location and symlinks to agent dirs)
+ * or copy mode (writes directly to each agent dir).
+ * @deprecated Use installRemoteSkillForAgent instead
+ */
+export async function installMintlifySkillForAgent(
+  skill: MintlifySkill,
+  agentType: AgentType,
+  options: { global?: boolean; cwd?: string; mode?: InstallMode } = {},
+): Promise<InstallResult> {
+  const agent = agents[agentType];
+  const isGlobal = options.global ?? false;
+  const cwd = options.cwd || process.cwd();
+  const installMode = options.mode ?? 'symlink';
+
+  // Use mintlify-proj as the skill directory name (e.g., "bun.com")
+  const skillName = sanitizeName(skill.mintlifySite);
+
+  // Canonical location: .agents/skills/<skill-name>
+  const canonicalBase = getCanonicalSkillsDir(isGlobal, cwd);
+  const canonicalDir = join(canonicalBase, skillName);
+
+  // Agent-specific location (for symlink)
+  const agentBase = isGlobal
+    ? agent.globalSkillsDir
+    : join(cwd, agent.skillsDir);
+  const agentDir = join(agentBase, skillName);
+
+  // Validate paths
+  if (!isPathSafe(canonicalBase, canonicalDir)) {
+    return {
+      success: false,
+      path: agentDir,
+      mode: installMode,
+      error: "Invalid skill name: potential path traversal detected",
+    };
+  }
+
+  if (!isPathSafe(agentBase, agentDir)) {
+    return {
+      success: false,
+      path: agentDir,
+      mode: installMode,
+      error: "Invalid skill name: potential path traversal detected",
+    };
+  }
+
+  try {
+    // For copy mode, write directly to agent location
+    if (installMode === 'copy') {
+      await mkdir(agentDir, { recursive: true });
+      const skillMdPath = join(agentDir, "SKILL.md");
+      await writeFile(skillMdPath, skill.content, "utf-8");
+
+      return {
+        success: true,
+        path: agentDir,
+        mode: 'copy',
+      };
+    }
+
+    // Symlink mode: write to canonical location and symlink to agent location
+    await mkdir(canonicalDir, { recursive: true });
+    const skillMdPath = join(canonicalDir, "SKILL.md");
+    await writeFile(skillMdPath, skill.content, "utf-8");
+
+    const symlinkCreated = await createSymlink(canonicalDir, agentDir);
+
+    if (!symlinkCreated) {
+      // Symlink failed, fall back to copy
+      try {
+        await rm(agentDir, { recursive: true, force: true });
+      } catch {
+        // Ignore cleanup errors
+      }
+      await mkdir(agentDir, { recursive: true });
+      const agentSkillMdPath = join(agentDir, "SKILL.md");
+      await writeFile(agentSkillMdPath, skill.content, "utf-8");
+
+      return {
+        success: true,
+        path: agentDir,
+        canonicalPath: canonicalDir,
+        mode: 'symlink',
+        symlinkFailed: true,
+      };
+    }
+
+    return {
+      success: true,
+      path: agentDir,
+      canonicalPath: canonicalDir,
+      mode: 'symlink',
+    };
+  } catch (error) {
+    return {
+      success: false,
+      path: agentDir,
+      mode: installMode,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+/**
+ * Install a remote skill from any host provider.
+ * The skill directory name is derived from the installName field.
+ * Supports symlink mode (writes to canonical location and symlinks to agent dirs)
+ * or copy mode (writes directly to each agent dir).
+ */
+export async function installRemoteSkillForAgent(
+  skill: RemoteSkill,
+  agentType: AgentType,
+  options: { global?: boolean; cwd?: string; mode?: InstallMode } = {},
+): Promise<InstallResult> {
+  const agent = agents[agentType];
+  const isGlobal = options.global ?? false;
+  const cwd = options.cwd || process.cwd();
+  const installMode = options.mode ?? 'symlink';
+
+  // Use installName as the skill directory name
+  const skillName = sanitizeName(skill.installName);
+
+  // Canonical location: .agents/skills/<skill-name>
+  const canonicalBase = getCanonicalSkillsDir(isGlobal, cwd);
+  const canonicalDir = join(canonicalBase, skillName);
+
+  // Agent-specific location (for symlink)
+  const agentBase = isGlobal
+    ? agent.globalSkillsDir
+    : join(cwd, agent.skillsDir);
+  const agentDir = join(agentBase, skillName);
+
+  // Validate paths
+  if (!isPathSafe(canonicalBase, canonicalDir)) {
+    return {
+      success: false,
+      path: agentDir,
+      mode: installMode,
+      error: "Invalid skill name: potential path traversal detected",
+    };
+  }
+
+  if (!isPathSafe(agentBase, agentDir)) {
+    return {
+      success: false,
+      path: agentDir,
+      mode: installMode,
+      error: "Invalid skill name: potential path traversal detected",
+    };
+  }
+
+  try {
+    // For copy mode, write directly to agent location
+    if (installMode === 'copy') {
+      await mkdir(agentDir, { recursive: true });
+      const skillMdPath = join(agentDir, "SKILL.md");
+      await writeFile(skillMdPath, skill.content, "utf-8");
+
+      return {
+        success: true,
+        path: agentDir,
+        mode: 'copy',
+      };
+    }
+
+    // Symlink mode: write to canonical location and symlink to agent location
+    await mkdir(canonicalDir, { recursive: true });
+    const skillMdPath = join(canonicalDir, "SKILL.md");
+    await writeFile(skillMdPath, skill.content, "utf-8");
+
+    const symlinkCreated = await createSymlink(canonicalDir, agentDir);
+
+    if (!symlinkCreated) {
+      // Symlink failed, fall back to copy
+      try {
+        await rm(agentDir, { recursive: true, force: true });
+      } catch {
+        // Ignore cleanup errors
+      }
+      await mkdir(agentDir, { recursive: true });
+      const agentSkillMdPath = join(agentDir, "SKILL.md");
+      await writeFile(agentSkillMdPath, skill.content, "utf-8");
+
+      return {
+        success: true,
+        path: agentDir,
+        canonicalPath: canonicalDir,
+        mode: 'symlink',
+        symlinkFailed: true,
+      };
+    }
+
+    return {
+      success: true,
+      path: agentDir,
+      canonicalPath: canonicalDir,
+      mode: 'symlink',
+    };
+  } catch (error) {
+    return {
+      success: false,
+      path: agentDir,
+      mode: installMode,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
 }

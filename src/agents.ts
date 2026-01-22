@@ -150,6 +150,15 @@ export const agents: Record<AgentType, AgentConfig> = {
       return existsSync(join(home, '.codeium/windsurf'));
     },
   },
+  neovate: {
+    name: 'neovate',
+    displayName: 'Neovate',
+    skillsDir: '.neovate/skills',
+    globalSkillsDir: join(home, '.neovate/skills'),
+    detectInstalled: async () => {
+      return existsSync(join(home, '.neovate'));
+    },
+  },
 };
 
 export async function detectInstalledAgents(): Promise<AgentType[]> {
