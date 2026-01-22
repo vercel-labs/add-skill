@@ -1,4 +1,4 @@
-import type { Skill } from "../types.js";
+import type { Skill } from '../types.js';
 
 /**
  * Represents a parsed skill from a remote host.

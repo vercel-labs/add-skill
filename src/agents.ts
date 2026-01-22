@@ -21,7 +21,9 @@ export const agents: Record<AgentType, AgentConfig> = {
     skillsDir: '.agent/skills',
     globalSkillsDir: join(home, '.gemini/antigravity/skills'),
     detectInstalled: async () => {
-      return existsSync(join(process.cwd(), '.agent')) || existsSync(join(home, '.gemini/antigravity'));
+      return (
+        existsSync(join(process.cwd(), '.agent')) || existsSync(join(home, '.gemini/antigravity'))
+      );
     },
   },
   'claude-code': {
@@ -148,6 +150,15 @@ export const agents: Record<AgentType, AgentConfig> = {
     globalSkillsDir: join(home, '.codeium/windsurf/skills'),
     detectInstalled: async () => {
       return existsSync(join(home, '.codeium/windsurf'));
+    },
+  },
+  neovate: {
+    name: 'neovate',
+    displayName: 'Neovate',
+    skillsDir: '.neovate/skills',
+    globalSkillsDir: join(home, '.neovate/skills'),
+    detectInstalled: async () => {
+      return existsSync(join(home, '.neovate'));
     },
   },
 };

@@ -1,28 +1,28 @@
-import matter from "gray-matter";
-import type { HostProvider, ProviderMatch, RemoteSkill } from "./types.js";
+import matter from 'gray-matter';
+import type { HostProvider, ProviderMatch, RemoteSkill } from './types.js';
 
 /**
  * HuggingFace Spaces skills provider.
- * 
+ *
  * HuggingFace skills are hosted in HuggingFace Spaces repositories.
- * 
+ *
  * URL formats supported:
  * - https://huggingface.co/spaces/{owner}/{repo}/blob/main/SKILL.md (web view)
  * - https://huggingface.co/spaces/{owner}/{repo}/raw/main/SKILL.md (raw content)
- * 
+ *
  * The source identifier is "huggingface/{owner}/{repo}".
  * The install name defaults to the repo name, but can be overridden with
  * frontmatter `metadata.install-name`.
  */
 export class HuggingFaceProvider implements HostProvider {
-  readonly id = "huggingface";
-  readonly displayName = "HuggingFace";
+  readonly id = 'huggingface';
+  readonly displayName = 'HuggingFace';
 
-  private readonly HOST = "huggingface.co";
+  private readonly HOST = 'huggingface.co';
 
   match(url: string): ProviderMatch {
     // Must be a valid HTTP(S) URL
-    if (!url.startsWith("http://") && !url.startsWith("https://")) {
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
       return { matches: false };
     }
 
@@ -37,12 +37,12 @@ export class HuggingFaceProvider implements HostProvider {
     }
 
     // Must end with SKILL.md (case insensitive)
-    if (!url.toLowerCase().endsWith("/skill.md")) {
+    if (!url.toLowerCase().endsWith('/skill.md')) {
       return { matches: false };
     }
 
     // Must be a spaces URL
-    if (!url.includes("/spaces/")) {
+    if (!url.includes('/spaces/')) {
       return { matches: false };
     }
 
@@ -54,7 +54,7 @@ export class HuggingFaceProvider implements HostProvider {
       // Convert to raw URL
       const rawUrl = this.toRawUrl(url);
       const response = await fetch(rawUrl);
-      
+
       if (!response.ok) {
         return null;
       }
@@ -74,7 +74,7 @@ export class HuggingFaceProvider implements HostProvider {
       }
 
       // Use metadata.install-name if provided, otherwise use repo name
-      const installName = data.metadata?.["install-name"] || parsed.repo;
+      const installName = data.metadata?.['install-name'] || parsed.repo;
 
       return {
         name: data.name,
@@ -93,13 +93,13 @@ export class HuggingFaceProvider implements HostProvider {
     // Convert blob URL to raw URL
     // https://huggingface.co/spaces/owner/repo/blob/main/SKILL.md
     // -> https://huggingface.co/spaces/owner/repo/raw/main/SKILL.md
-    return url.replace("/blob/", "/raw/");
+    return url.replace('/blob/', '/raw/');
   }
 
   getSourceIdentifier(url: string): string {
     const parsed = this.parseUrl(url);
     if (!parsed) {
-      return "huggingface/unknown";
+      return 'huggingface/unknown';
     }
     return `huggingface/${parsed.owner}/${parsed.repo}`;
   }
