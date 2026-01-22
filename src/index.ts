@@ -65,7 +65,7 @@ interface Options {
 program
   .name('add-skill')
   .description(
-    'Install skills onto coding agents (OpenCode, Claude Code, Command Code, Codex, Cursor, Antigravity, Github Copilot, Roo Code)'
+    'Install skills onto coding agents (OpenCode, Claude Code, Cline, Codex, Cursor, and more)'
   )
   .version(version)
   .argument(
@@ -75,7 +75,7 @@ program
   .option('-g, --global', 'Install skill globally (user-level) instead of project-level')
   .option(
     '-a, --agent <agents...>',
-    'Specify agents to install to (opencode, claude-code, command-code, codex, cursor, antigravity, github-copilot, roo)'
+    'Specify agents to install to (opencode, openhands, claude-code, cline, codex, cursor, and more)'
   )
   .option('-s, --skill <skills...>', 'Specify skill names to install (skip selection prompt)')
   .option('-l, --list', 'List available skills in the repository without installing')

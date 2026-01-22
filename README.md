@@ -3,7 +3,7 @@
 Install agent skills onto your coding agents from any git repository.
 
 <!-- agent-list:start -->
-Supports **Opencode**, **Claude Code**, **Codex**, **Cursor**, and [14 more](#available-agents).
+Supports **Opencode**, **Claude Code**, **Codex**, **Cursor**, and [19 more](#available-agents).
 <!-- agent-list:end -->
 
 ## Quick Start
@@ -17,6 +17,7 @@ npx add-skill vercel-labs/agent-skills
 Agent skills are reusable instruction sets that extend your coding agent's capabilities. They're defined in `SKILL.md` files with YAML frontmatter containing a `name` and `description`.
 
 Skills let agents perform specialized tasks like:
+
 - Generating release notes from git history
 - Creating PRs following your team's conventions
 - Integrating with external tools (Linear, Notion, etc.)
@@ -46,15 +47,15 @@ npx add-skill git@github.com:vercel-labs/agent-skills.git
 
 ### Options
 
-| Option | Description |
-|--------|-------------|
-| `-g, --global` | Install to user directory instead of project |
+| Option                    | Description                                                                                                                                        |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `-g, --global`            | Install to user directory instead of project                                                                                                       |
 | `-a, --agent <agents...>` | <!-- agent-names:start -->Target specific agents (e.g., `claude-code`, `codex`). See [Available Agents](#available-agents)<!-- agent-names:end --> |
-| `-s, --skill <skills...>` | Install specific skills by name |
-| `-l, --list` | List available skills without installing |
-| `-y, --yes` | Skip all confirmation prompts |
-| `-V, --version` | Show version number |
-| `-h, --help` | Show help |
+| `-s, --skill <skills...>` | Install specific skills by name                                                                                                                    |
+| `-l, --list`              | List available skills without installing                                                                                                           |
+| `-y, --yes`               | Skip all confirmation prompts                                                                                                                      |
+| `-V, --version`           | Show version number                                                                                                                                |
+| `-h, --help`              | Show help                                                                                                                                          |
 
 ### Examples
 
@@ -86,6 +87,7 @@ Skills can be installed to any of these supported agents. Use `-g, --global` to 
 | Antigravity | `antigravity` | `.agent/skills/` | `~/.gemini/antigravity/skills/` |
 | Claude Code | `claude-code` | `.claude/skills/` | `~/.claude/skills/` |
 | Clawdbot | `clawdbot` | `skills/` | `~/.clawdbot/skills/` |
+| Cline | `cline` | `.cline/skills/` | `~/.cline/skills/` |
 | Codex | `codex` | `.codex/skills/` | `~/.codex/skills/` |
 | Command Code | `command-code` | `.commandcode/skills/` | `~/.commandcode/skills/` |
 | Cursor | `cursor` | `.cursor/skills/` | `~/.cursor/skills/` |
@@ -96,19 +98,22 @@ Skills can be installed to any of these supported agents. Use `-g, --global` to 
 | Kilo Code | `kilo` | `.kilocode/skills/` | `~/.kilocode/skills/` |
 | Kiro CLI | `kiro-cli` | `.kiro/skills/` | `~/.kiro/skills/` |
 | OpenCode | `opencode` | `.opencode/skills/` | `~/.config/opencode/skills/` |
+| OpenHands | `openhands` | `.openhands/skills/` | `~/.openhands/skills/` |
+| Pi | `pi` | `.pi/skills/` | `~/.pi/agent/skills/` |
+| Qoder | `qoder` | `.qoder/skills/` | `~/.qoder/skills/` |
 | Roo Code | `roo` | `.roo/skills/` | `~/.roo/skills/` |
 | Trae | `trae` | `.trae/skills/` | `~/.trae/skills/` |
 | Windsurf | `windsurf` | `.windsurf/skills/` | `~/.codeium/windsurf/skills/` |
+| Zencoder | `zencoder` | `.zencoder/skills/` | `~/.zencoder/skills/` |
 | Neovate | `neovate` | `.neovate/skills/` | `~/.neovate/skills/` |
 <!-- available-agents:end -->
 
 > [!NOTE]
 > **Kiro CLI users:** After installing skills, you need to manually add them to your custom agent's `resources` in `.kiro/agents/<agent>.json`:
+>
 > ```json
 > {
->   "resources": [
->     "skill://.kiro/skills/**/SKILL.md"
->   ]
+>   "resources": ["skill://.kiro/skills/**/SKILL.md"]
 > }
 > ```
 
@@ -159,6 +164,7 @@ The CLI searches for skills in these locations within a repository:
 - `.agent/skills/`
 - `.claude/skills/`
 - `./skills/`
+- `.cline/skills/`
 - `.codex/skills/`
 - `.commandcode/skills/`
 - `.cursor/skills/`
@@ -169,9 +175,13 @@ The CLI searches for skills in these locations within a repository:
 - `.kilocode/skills/`
 - `.kiro/skills/`
 - `.opencode/skills/`
+- `.openhands/skills/`
+- `.pi/skills/`
+- `.qoder/skills/`
 - `.roo/skills/`
 - `.trae/skills/`
 - `.windsurf/skills/`
+- `.zencoder/skills/`
 - `.neovate/skills/`
 <!-- skill-discovery:end -->
 
@@ -181,12 +191,12 @@ If no skills are found in standard locations, a recursive search is performed.
 
 Skills are generally compatible across agents since they follow a shared [Agent Skills specification](https://agentskills.io). However, some features may be agent-specific:
 
-| Feature | OpenCode | Claude Code | Codex | Command Code | Kiro CLI | Cursor | Antigravity | Roo Code | Github Copilot | Amp | Clawdbot | Neovate |
-|---------|----------|-------------|-------|--------------|----------|--------|-------------|----------|----------------|-----|----------|---------|
-| Basic skills | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
-| `allowed-tools` | Yes | Yes | Yes | Yes | No | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
-| `context: fork` | No | Yes | No | No | No | No | No | No | No | No | No | No |
-| Hooks | No | Yes | No | No | No | No | No | No | No | No | No | No |
+| Feature         | OpenCode | OpenHands | Claude Code | Cline | Codex | Command Code | Kiro CLI | Cursor | Antigravity | Roo Code | Github Copilot | Amp | Clawdbot | Neovate | Pi  | Qoder | Zencoder |
+| --------------- | -------- | --------- | ----------- | ----- | ----- | ------------ | -------- | ------ | ----------- | -------- | -------------- | --- | -------- | ------- | --- | ----- | -------- |
+| Basic skills    | Yes      | Yes       | Yes         | Yes   | Yes   | Yes          | Yes      | Yes    | Yes         | Yes      | Yes            | Yes | Yes      | Yes     | Yes | Yes   | Yes      |
+| `allowed-tools` | Yes      | Yes       | Yes         | Yes   | Yes   | Yes          | No       | Yes    | Yes         | Yes      | Yes            | Yes | Yes      | Yes     | Yes | Yes   | No       |
+| `context: fork` | No       | No        | Yes         | No    | No    | No           | No       | No     | No          | No       | No             | No  | No       | No      | No  | No    | No       |
+| Hooks           | No       | No        | Yes         | Yes   | No    | No           | No       | No     | No          | No       | No             | No  | No       | No      | No  | No    | No       |
 
 ## Troubleshooting
 
@@ -225,6 +235,7 @@ Telemetry is also automatically disabled in CI environments.
 - [Antigravity Skills Documentation](https://antigravity.google/docs/skills)
 - [Claude Code Skills Documentation](https://code.claude.com/docs/en/skills)
 - [Clawdbot Skills Documentation](https://docs.clawd.bot/tools/skills)
+- [Cline Skills Documentation](https://docs.cline.bot/features/skills)
 - [Codex Skills Documentation](https://developers.openai.com/codex/skills)
 - [Command Code Skills Documentation](https://commandcode.ai/docs/skills)
 - [Cursor Skills Documentation](https://cursor.com/docs/context/skills)
@@ -232,6 +243,9 @@ Telemetry is also automatically disabled in CI environments.
 - [GitHub Copilot Agent Skills](https://docs.github.com/en/copilot/concepts/agents/about-agent-skills)
 - [Kiro CLI Skills Documentation](https://kiro.dev/docs/cli/custom-agents/configuration-reference/#skill-resources)
 - [OpenCode Skills Documentation](https://opencode.ai/docs/skills)
+- [OpenHands Skills Documentation](https://docs.openhands.ai/modules/usage/how-to/using-skills)
+- [Pi Skills Documentation](https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/docs/skills.md)
+- [Qoder Skills Documentation](https://docs.qoder.com/cli/Skills)
 - [Roo Code Skills Documentation](https://docs.roocode.com/features/skills)
 - [Trae Skills Documentation](https://docs.trae.ai/ide/skills)
 - [Vercel Agent Skills Repository](https://github.com/vercel-labs/agent-skills)
