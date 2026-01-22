@@ -94,7 +94,7 @@ Skills can be installed to any of these supported agents. Use `-g, --global` to 
 | Goose | `goose` | `.goose/skills/` | `~/.config/goose/skills/` |
 | Kilo Code | `kilo` | `.kilocode/skills/` | `~/.kilocode/skills/` |
 | Kiro CLI | `kiro-cli` | `.kiro/skills/` | `~/.kiro/skills/` |
-| OpenCode | `opencode` | `.opencode/skills/` | `~/.config/opencode/skills/` |
+| OpenCode | `opencode` | `.opencode/skill/` | `~/.config/opencode/skill/` |
 | Roo Code | `roo` | `.roo/skills/` | `~/.roo/skills/` |
 | Trae | `trae` | `.trae/skills/` | `~/.trae/skills/` |
 | Windsurf | `windsurf` | `.windsurf/skills/` | `~/.codeium/windsurf/skills/` |
@@ -166,7 +166,7 @@ The CLI searches for skills in these locations within a repository:
 - `.goose/skills/`
 - `.kilocode/skills/`
 - `.kiro/skills/`
-- `.opencode/skills/`
+- `.opencode/skill/`
 - `.roo/skills/`
 - `.trae/skills/`
 - `.windsurf/skills/`

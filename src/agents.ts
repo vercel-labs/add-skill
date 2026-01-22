@@ -117,8 +117,8 @@ export const agents: Record<AgentType, AgentConfig> = {
   opencode: {
     name: 'opencode',
     displayName: 'OpenCode',
-    skillsDir: '.opencode/skills',
-    globalSkillsDir: join(home, '.config/opencode/skills'),
+    skillsDir: '.opencode/skill',
+    globalSkillsDir: join(home, '.config/opencode/skill'),
     detectInstalled: async () => {
       return existsSync(join(home, '.config/opencode')) || existsSync(join(home, '.claude/skills'));
     },
