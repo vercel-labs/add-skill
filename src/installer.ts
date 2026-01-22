@@ -153,6 +153,8 @@ export async function installSkillForAgent(
   try {
     // For copy mode, skip canonical directory and copy directly to agent location
     if (installMode === 'copy') {
+      // Clean existing skill directory to ensure renamed/deleted files are removed
+      await rm(agentDir, { recursive: true, force: true });
       await mkdir(agentDir, { recursive: true });
       await copyDirectory(skill.path, agentDir);
       
@@ -164,6 +166,8 @@ export async function installSkillForAgent(
     }
     
     // Symlink mode: copy to canonical location and symlink to agent location
+    // Clean existing skill directory to ensure renamed/deleted files are removed
+    await rm(canonicalDir, { recursive: true, force: true });
     await mkdir(canonicalDir, { recursive: true });
     await copyDirectory(skill.path, canonicalDir);
 
@@ -354,6 +358,8 @@ export async function installMintlifySkillForAgent(
   try {
     // For copy mode, write directly to agent location
     if (installMode === 'copy') {
+      // Clean existing skill directory to ensure renamed/deleted files are removed
+      await rm(agentDir, { recursive: true, force: true });
       await mkdir(agentDir, { recursive: true });
       const skillMdPath = join(agentDir, "SKILL.md");
       await writeFile(skillMdPath, skill.content, "utf-8");
@@ -366,6 +372,8 @@ export async function installMintlifySkillForAgent(
     }
 
     // Symlink mode: write to canonical location and symlink to agent location
+    // Clean existing skill directory to ensure renamed/deleted files are removed
+    await rm(canonicalDir, { recursive: true, force: true });
     await mkdir(canonicalDir, { recursive: true });
     const skillMdPath = join(canonicalDir, "SKILL.md");
     await writeFile(skillMdPath, skill.content, "utf-8");
@@ -459,6 +467,8 @@ export async function installRemoteSkillForAgent(
   try {
     // For copy mode, write directly to agent location
     if (installMode === 'copy') {
+      // Clean existing skill directory to ensure renamed/deleted files are removed
+      await rm(agentDir, { recursive: true, force: true });
       await mkdir(agentDir, { recursive: true });
       const skillMdPath = join(agentDir, "SKILL.md");
       await writeFile(skillMdPath, skill.content, "utf-8");
@@ -471,6 +481,8 @@ export async function installRemoteSkillForAgent(
     }
 
     // Symlink mode: write to canonical location and symlink to agent location
+    // Clean existing skill directory to ensure renamed/deleted files are removed
+    await rm(canonicalDir, { recursive: true, force: true });
     await mkdir(canonicalDir, { recursive: true });
     const skillMdPath = join(canonicalDir, "SKILL.md");
     await writeFile(skillMdPath, skill.content, "utf-8");
