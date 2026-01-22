@@ -84,6 +84,7 @@ export async function discoverSkills(basePath: string, subpath?: string): Promis
     join(searchPath, '.agent/skills'),
     join(searchPath, '.agents/skills'),
     join(searchPath, '.claude/skills'),
+    join(searchPath, '.cline/skills'),
     join(searchPath, '.codex/skills'),
     join(searchPath, '.commandcode/skills'),
     join(searchPath, '.cursor/skills'),
@@ -91,9 +92,15 @@ export async function discoverSkills(basePath: string, subpath?: string): Promis
     join(searchPath, '.goose/skills'),
     join(searchPath, '.kilocode/skills'),
     join(searchPath, '.kiro/skills'),
+    join(searchPath, '.neovate/skills'),
     join(searchPath, '.opencode/skills'),
+    join(searchPath, '.openhands/skills'),
+    join(searchPath, '.pi/skills'),
+    join(searchPath, '.qoder/skills'),
     join(searchPath, '.roo/skills'),
     join(searchPath, '.trae/skills'),
+    join(searchPath, '.windsurf/skills'),
+    join(searchPath, '.zencoder/skills'),
   ];
 
   for (const dir of prioritySearchDirs) {

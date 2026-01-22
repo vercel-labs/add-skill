@@ -3,6 +3,7 @@ export type AgentType =
   | 'antigravity'
   | 'claude-code'
   | 'clawdbot'
+  | 'cline'
   | 'codex'
   | 'command-code'
   | 'cursor'
@@ -12,11 +13,15 @@ export type AgentType =
   | 'goose'
   | 'kilo'
   | 'kiro-cli'
+  | 'neovate'
   | 'opencode'
+  | 'openhands'
+  | 'pi'
+  | 'qoder'
   | 'roo'
   | 'trae'
   | 'windsurf'
-  | 'neovate';
+  | 'zencoder';
 
 export interface Skill {
   name: string;

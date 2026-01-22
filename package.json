@@ -16,7 +16,8 @@
     "prepublishOnly": "npm run build",
     "format": "prettier --write 'src/**/*.ts' 'scripts/**/*.ts'",
     "format:check": "prettier --check 'src/**/*.ts' 'scripts/**/*.ts'",
-    "prepare": "husky"
+    "prepare": "husky",
+    "test": "echo 'No tests yet'"
   },
   "lint-staged": {
     "src/**/*.ts": "prettier --write",
@@ -31,6 +32,7 @@
     "antigravity",
     "claude-code",
     "clawdbot",
+    "cline",
     "codex",
     "command-code",
     "cursor",
@@ -41,9 +43,13 @@
     "kilo",
     "kiro-cli",
     "opencode",
+    "openhands",
+    "pi",
+    "qoder",
     "roo",
     "trae",
     "windsurf",
+    "zencoder",
     "neovate"
   ],
   "repository": {

@@ -44,6 +44,15 @@ export const agents: Record<AgentType, AgentConfig> = {
       return existsSync(join(home, '.clawdbot'));
     },
   },
+  cline: {
+    name: 'cline',
+    displayName: 'Cline',
+    skillsDir: '.cline/skills',
+    globalSkillsDir: join(home, '.cline/skills'),
+    detectInstalled: async () => {
+      return existsSync(join(home, '.cline'));
+    },
+  },
   codex: {
     name: 'codex',
     displayName: 'Codex',
@@ -134,6 +143,33 @@ export const agents: Record<AgentType, AgentConfig> = {
       return existsSync(join(home, '.config/opencode')) || existsSync(join(home, '.claude/skills'));
     },
   },
+  openhands: {
+    name: 'openhands',
+    displayName: 'OpenHands',
+    skillsDir: '.openhands/skills',
+    globalSkillsDir: join(home, '.openhands/skills'),
+    detectInstalled: async () => {
+      return existsSync(join(home, '.openhands'));
+    },
+  },
+  pi: {
+    name: 'pi',
+    displayName: 'Pi',
+    skillsDir: '.pi/skills',
+    globalSkillsDir: join(home, '.pi/agent/skills'),
+    detectInstalled: async () => {
+      return existsSync(join(home, '.pi/agent'));
+    },
+  },
+  qoder: {
+    name: 'qoder',
+    displayName: 'Qoder',
+    skillsDir: '.qoder/skills',
+    globalSkillsDir: join(home, '.qoder/skills'),
+    detectInstalled: async () => {
+      return existsSync(join(home, '.qoder'));
+    },
+  },
   roo: {
     name: 'roo',
     displayName: 'Roo Code',
@@ -159,6 +195,15 @@ export const agents: Record<AgentType, AgentConfig> = {
     globalSkillsDir: join(home, '.codeium/windsurf/skills'),
     detectInstalled: async () => {
       return existsSync(join(home, '.codeium/windsurf'));
+    },
+  },
+  zencoder: {
+    name: 'zencoder',
+    displayName: 'Zencoder',
+    skillsDir: '.zencoder/skills',
+    globalSkillsDir: join(home, '.zencoder/skills'),
+    detectInstalled: async () => {
+      return existsSync(join(home, '.zencoder'));
     },
   },
   neovate: {
