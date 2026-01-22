@@ -17,6 +17,7 @@ import {
 } from './installer.js';
 import { fetchMintlifySkill } from './mintlify.js';
 import { findProvider } from './providers/index.js';
+import { addSkillToLock } from './skill-lock.js';
 import { discoverSkills, getSkillDisplayName } from './skills.js';
 import { getOwnerRepo, parseSource } from './source-parser.js';
 import { setVersion, track } from './telemetry.js';
@@ -63,7 +64,7 @@ interface Options {
 program
   .name('add-skill')
   .description(
-    'Install skills onto coding agents (OpenCode, Claude Code, Codex, Cursor, Antigravity, Github Copilot, Roo Code)'
+    'Install skills onto coding agents (OpenCode, Claude Code, Command Code, Codex, Cursor, Antigravity, Github Copilot, Roo Code)'
   )
   .version(version)
   .argument(
@@ -73,7 +74,7 @@ program
   .option('-g, --global', 'Install skill globally (user-level) instead of project-level')
   .option(
     '-a, --agent <agents...>',
-    'Specify agents to install to (opencode, claude-code, codex, cursor, antigravity, gitub-copilot, roo)'
+    'Specify agents to install to (opencode, claude-code, command-code, codex, cursor, antigravity, github-copilot, roo)'
   )
   .option('-s, --skill <skills...>', 'Specify skill names to install (skip selection prompt)')
   .option('-l, --list', 'List available skills in the repository without installing')
@@ -395,6 +396,19 @@ async function handleRemoteSkill(
     sourceType: remoteSkill.providerId,
   });
 
+  // Add to skill lock file for update tracking (only for global installs)
+  if (successful.length > 0 && installGlobally) {
+    try {
+      await addSkillToLock(remoteSkill.installName, {
+        source: remoteSkill.sourceIdentifier,
+        sourceType: remoteSkill.providerId,
+        sourceUrl: url,
+      });
+    } catch {
+      // Don't fail installation if lock file update fails
+    }
+  }
+
   if (successful.length > 0) {
     const resultLines: string[] = [];
     const firstResult = successful[0]!;
@@ -715,6 +729,19 @@ async function handleDirectUrlSkillLegacy(
     skillFiles: JSON.stringify({ [mintlifySkill.mintlifySite]: url }),
     sourceType: 'mintlify',
   });
+
+  // Add to skill lock file for update tracking (only for global installs)
+  if (successful.length > 0 && installGlobally) {
+    try {
+      await addSkillToLock(mintlifySkill.mintlifySite, {
+        source: `mintlify/${mintlifySkill.mintlifySite}`,
+        sourceType: 'mintlify',
+        sourceUrl: url,
+      });
+    } catch {
+      // Don't fail installation if lock file update fails
+    }
+  }
 
   if (successful.length > 0) {
     const resultLines: string[] = [];
@@ -1163,6 +1190,26 @@ async function main(source: string, options: Options) {
         ...(installGlobally && { global: '1' }),
         skillFiles: JSON.stringify(skillFiles),
       });
+    }
+
+    // Add to skill lock file for update tracking (only for global installs)
+    if (successful.length > 0 && installGlobally && normalizedSource) {
+      const successfulSkillNames = new Set(successful.map((r) => r.skill));
+      for (const skill of selectedSkills) {
+        const skillDisplayName = getSkillDisplayName(skill);
+        if (successfulSkillNames.has(skillDisplayName)) {
+          try {
+            await addSkillToLock(skill.name, {
+              source: normalizedSource,
+              sourceType: parsed.type,
+              sourceUrl: parsed.url,
+              skillPath: skillFiles[skill.name],
+            });
+          } catch {
+            // Don't fail installation if lock file update fails
+          }
+        }
+      }
     }
 
     if (successful.length > 0) {
