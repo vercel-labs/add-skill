@@ -13,7 +13,7 @@
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts --clean",
     "dev": "tsx src/index.ts",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "pnpm run build"
   },
   "keywords": [
     "cli",
@@ -61,6 +61,7 @@
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   },
+  "packageManager": "pnpm@10.28.1",
   "engines": {
     "node": ">=18"
   }
