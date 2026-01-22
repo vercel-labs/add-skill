@@ -1,28 +1,27 @@
 #!/usr/bin/env node
 
-import { program } from 'commander';
 import * as p from '@clack/prompts';
 import chalk from 'chalk';
-import { parseSource, getOwnerRepo } from './source-parser.js';
-import { cloneRepo, cleanupTempDir } from './git.js';
-import { discoverSkills, getSkillDisplayName } from './skills.js';
+import { program } from 'commander';
+import { homedir } from 'os';
+import packageJson from '../package.json' with { type: 'json' };
+import { agents, detectInstalledAgents } from './agents.js';
+import { cleanupTempDir, cloneRepo } from './git.js';
 import {
-  installSkillForAgent,
-  isSkillInstalled,
   getCanonicalPath,
-  getInstallPath,
   installMintlifySkillForAgent,
   installRemoteSkillForAgent,
+  installSkillForAgent,
+  isSkillInstalled,
   type InstallMode,
 } from './installer.js';
-import { homedir } from 'os';
-import { detectInstalledAgents, agents } from './agents.js';
-import { track, setVersion } from './telemetry.js';
 import { fetchMintlifySkill } from './mintlify.js';
 import { findProvider } from './providers/index.js';
 import { addSkillToLock } from './skill-lock.js';
-import type { Skill, AgentType, MintlifySkill, RemoteSkill } from './types.js';
-import packageJson from '../package.json' with { type: 'json' };
+import { discoverSkills, getSkillDisplayName } from './skills.js';
+import { getOwnerRepo, parseSource } from './source-parser.js';
+import { setVersion, track } from './telemetry.js';
+import type { AgentType, RemoteSkill, Skill } from './types.js';
 
 /**
  * Shortens a path for display: replaces homedir with ~ and cwd with .
@@ -847,7 +846,14 @@ async function main(source: string, options: Options) {
     } else {
       // Clone repository for remote sources
       spinner.start('Cloning repository...');
-      tempDir = await cloneRepo(parsed.url);
+      try {
+        tempDir = await cloneRepo(parsed.url);
+      } catch (err) {
+        spinner.stop(chalk.red('Failed to clone repository'));
+        p.outro(chalk.red(err));
+        await cleanup(tempDir);
+        process.exit(1);
+      }
       skillsDir = tempDir;
       spinner.stop('Repository cloned');
     }
