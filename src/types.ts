@@ -4,6 +4,7 @@ export type AgentType =
   | 'claude-code'
   | 'clawdbot'
   | 'codex'
+  | 'command-code'
   | 'cursor'
   | 'droid'
   | 'gemini-cli'
