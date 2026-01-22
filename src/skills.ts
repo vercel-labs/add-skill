@@ -24,7 +24,7 @@ async function hasSkillMd(dir: string): Promise<boolean> {
   }
 }
 
-async function parseSkillMd(
+export async function parseSkillMd(
   skillMdPath: string,
   options?: { includeInternal?: boolean }
 ): Promise<Skill | null> {

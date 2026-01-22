@@ -1,9 +1,10 @@
-import { mkdir, cp, access, readdir, symlink, lstat, rm, readlink, writeFile } from 'fs/promises';
+import { mkdir, cp, access, readdir, symlink, lstat, rm, readlink, writeFile, stat } from 'fs/promises';
 import { join, basename, normalize, resolve, sep, relative, dirname } from 'path';
 import { homedir, platform } from 'os';
 import type { Skill, AgentType, MintlifySkill, RemoteSkill } from './types.ts';
 import type { WellKnownSkill } from './providers/wellknown.ts';
 import { agents } from './agents.ts';
+import { parseSkillMd } from './skills.ts';
 
 const AGENTS_DIR = '.agents';
 const SKILLS_SUBDIR = 'skills';
@@ -665,4 +666,159 @@ export async function installWellKnownSkillForAgent(
       error: error instanceof Error ? error.message : 'Unknown error',
     };
   }
+}
+
+export interface InstalledSkill {
+  name: string;
+  description: string;
+  path: string;
+  canonicalPath: string;
+  scope: 'project' | 'global';
+  agents: AgentType[];
+}
+
+/**
+ * Lists all installed skills from canonical locations
+ * @param options - Options for listing skills
+ * @returns Array of installed skills with metadata
+ */
+export async function listInstalledSkills(
+  options: {
+    global?: boolean;
+    cwd?: string;
+    agentFilter?: AgentType[];
+  } = {}
+): Promise<InstalledSkill[]> {
+  const cwd = options.cwd || process.cwd();
+  const installedSkills: InstalledSkill[] = [];
+  const scopes: Array<{ global: boolean; path: string }> = [];
+
+  // Determine which scopes to scan
+  if (options.global === undefined) {
+    // Scan both project and global
+    scopes.push({ global: false, path: getCanonicalSkillsDir(false, cwd) });
+    scopes.push({ global: true, path: getCanonicalSkillsDir(true, cwd) });
+  } else {
+    // Scan only specified scope
+    scopes.push({ global: options.global, path: getCanonicalSkillsDir(options.global, cwd) });
+  }
+
+  for (const scope of scopes) {
+    try {
+      const entries = await readdir(scope.path, { withFileTypes: true });
+
+      for (const entry of entries) {
+        if (!entry.isDirectory()) {
+          continue;
+        }
+
+        const skillDir = join(scope.path, entry.name);
+        const skillMdPath = join(skillDir, 'SKILL.md');
+
+        // Check if SKILL.md exists
+        try {
+          await stat(skillMdPath);
+        } catch {
+          // SKILL.md doesn't exist, skip this directory
+          continue;
+        }
+
+        // Parse the skill
+        const skill = await parseSkillMd(skillMdPath);
+        if (!skill) {
+          continue;
+        }
+
+        // Find which agents have this skill installed
+        // Use multiple strategies to handle mismatches between canonical and agent directories
+        const sanitizedSkillName = sanitizeName(skill.name);
+        const installedAgents: AgentType[] = [];
+        // Check all agents if no filter, otherwise only check filtered agents
+        const agentsToCheck = options.agentFilter || Object.keys(agents) as AgentType[];
+
+        for (const agentType of agentsToCheck) {
+          const agent = agents[agentType];
+          const agentBase = scope.global
+            ? agent.globalSkillsDir
+            : join(cwd, agent.skillsDir);
+
+          let found = false;
+
+          // Strategy 1: Try exact directory name matches (fast path)
+          const possibleNames = [
+            entry.name,
+            sanitizedSkillName,
+            skill.name.toLowerCase().replace(/\s+/g, '-').replace(/[\/\\:\0]/g, ''),
+          ];
+          const uniqueNames = Array.from(new Set(possibleNames));
+
+          for (const possibleName of uniqueNames) {
+            const agentSkillDir = join(agentBase, possibleName);
+
+            if (!isPathSafe(agentBase, agentSkillDir)) {
+              continue;
+            }
+
+            try {
+              await access(agentSkillDir);
+              found = true;
+              break;
+            } catch {
+              // Try next name
+            }
+          }
+
+          // Strategy 2: If not found, scan all directories and check SKILL.md files
+          // This handles cases where directory names don't match (e.g., "git-review" vs "Git Review Before Commit")
+          if (!found) {
+            try {
+              const agentEntries = await readdir(agentBase, { withFileTypes: true });
+              for (const agentEntry of agentEntries) {
+                if (!agentEntry.isDirectory()) {
+                  continue;
+                }
+
+                const candidateDir = join(agentBase, agentEntry.name);
+                if (!isPathSafe(agentBase, candidateDir)) {
+                  continue;
+                }
+
+                try {
+                  const candidateSkillMd = join(candidateDir, 'SKILL.md');
+                  await stat(candidateSkillMd);
+                  const candidateSkill = await parseSkillMd(candidateSkillMd);
+                  if (candidateSkill && candidateSkill.name === skill.name) {
+                    found = true;
+                    break;
+                  }
+                } catch {
+                  // Not a valid skill directory or SKILL.md doesn't exist
+                }
+              }
+            } catch {
+              // Agent base directory doesn't exist
+            }
+          }
+
+          if (found) {
+            installedAgents.push(agentType);
+          }
+        }
+
+        // Always include the skill, showing which agents have it installed
+        installedSkills.push({
+          name: skill.name,
+          description: skill.description,
+          path: skillDir,
+          canonicalPath: skillDir,
+          scope: scope.global ? 'global' : 'project',
+          agents: installedAgents,
+        });
+      }
+    } catch {
+      // Directory doesn't exist, skip
+    }
+  }
+
+  return installedSkills;
 }
