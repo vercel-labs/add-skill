@@ -7,6 +7,13 @@ interface TelemetryData {
   agents: string;
   global?: '1';
   skillFiles?: string; // JSON stringified { skillName: relativePath }
+  /**
+   * Source type for different hosts:
+   * - 'github': GitHub repository (default, uses raw.githubusercontent.com)
+   * - 'raw': Direct URL to SKILL.md (generic raw URL)
+   * - Provider IDs like 'mintlify', 'huggingface', etc.
+   */
+  sourceType?: string;
 }
 
 let cliVersion: string | null = null;

@@ -35,8 +35,43 @@ function isLocalPath(input: string): boolean {
 }
 
 /**
+ * Check if a URL is a direct link to a skill.md file.
+ * Supports various hosts: Mintlify docs, HuggingFace Spaces, etc.
+ * e.g., https://docs.bun.com/docs/skill.md
+ * e.g., https://huggingface.co/spaces/owner/repo/blob/main/SKILL.md
+ * 
+ * Note: GitHub and GitLab URLs are excluded as they have their own handling
+ * for cloning repositories.
+ */
+function isDirectSkillUrl(input: string): boolean {
+    if (!input.startsWith('http://') && !input.startsWith('https://')) {
+        return false;
+    }
+    
+    // Must end with skill.md (case insensitive)
+    if (!input.toLowerCase().endsWith('/skill.md')) {
+        return false;
+    }
+    
+    // Exclude GitHub and GitLab repository URLs - they have their own handling
+    // (but allow raw.githubusercontent.com if someone wants to use it directly)
+    if (input.includes('github.com/') && !input.includes('raw.githubusercontent.com')) {
+        // Check if it's a blob/raw URL to SKILL.md (these should be handled by providers)
+        // vs a tree/repo URL (these should be cloned)
+        if (!input.includes('/blob/') && !input.includes('/raw/')) {
+            return false;
+        }
+    }
+    if (input.includes('gitlab.com/') && !input.includes('/-/raw/')) {
+        return false;
+    }
+    
+    return true;
+}
+
+/**
  * Parse a source string into a structured format
- * Supports: local paths, GitHub URLs, GitLab URLs, GitHub shorthand, and direct git URLs
+ * Supports: local paths, GitHub URLs, GitLab URLs, GitHub shorthand, direct skill.md URLs, and direct git URLs
  */
 export function parseSource(input: string): ParsedSource {
     // Local path: absolute, relative, or current directory
@@ -47,6 +82,14 @@ export function parseSource(input: string): ParsedSource {
             type: 'local',
             url: resolvedPath, // Store resolved path in url for consistency
             localPath: resolvedPath,
+        };
+    }
+
+    // Direct skill.md URL (non-GitHub/GitLab): https://docs.bun.com/docs/skill.md
+    if (isDirectSkillUrl(input)) {
+        return {
+            type: 'direct-url',
+            url: input,
         };
     }
 
