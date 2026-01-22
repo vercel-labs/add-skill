@@ -4,6 +4,7 @@ import { existsSync } from 'fs';
 import type { AgentConfig, AgentType } from './types.js';
 
 const home = homedir();
+const codexHome = process.env.CODEX_HOME?.trim() || join(home, '.codex');
 
 export const agents: Record<AgentType, AgentConfig> = {
   amp: {
@@ -57,9 +58,9 @@ export const agents: Record<AgentType, AgentConfig> = {
     name: 'codex',
     displayName: 'Codex',
     skillsDir: '.codex/skills',
-    globalSkillsDir: join(home, '.codex/skills'),
+    globalSkillsDir: join(codexHome, 'skills'),
     detectInstalled: async () => {
-      return existsSync(join(home, '.codex'));
+      return existsSync(codexHome) || existsSync('/etc/codex');
     },
   },
   'command-code': {
