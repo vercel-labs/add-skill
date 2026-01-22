@@ -44,6 +44,15 @@ export const agents: Record<AgentType, AgentConfig> = {
       return existsSync(join(home, '.clawdbot'));
     },
   },
+  cline: {
+    name: 'cline',
+    displayName: 'Cline',
+    skillsDir: '.cline/skills',
+    globalSkillsDir: join(home, '.cline/skills'),
+    detectInstalled: async () => {
+      return existsSync(join(home, '.cline'));
+    },
+  },
   codex: {
     name: 'codex',
     displayName: 'Codex',
