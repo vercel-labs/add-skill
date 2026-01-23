@@ -3,7 +3,7 @@
 Install agent skills onto your coding agents from any git repository.
 
 <!-- agent-list:start -->
-Supports **Opencode**, **Claude Code**, **Codex**, **Cursor**, and [19 more](#available-agents).
+Supports **Opencode**, **Claude Code**, **Codex**, **Cursor**, and [21 more](#available-agents).
 <!-- agent-list:end -->
 
 ## Quick Start
