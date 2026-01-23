@@ -140,7 +140,7 @@ export const agents: Record<AgentType, AgentConfig> = {
     skillsDir: '.kode/skills',
     globalSkillsDir: join(home, '.kode/skills'),
     detectInstalled: async () => {
-      return existsSync(join(home, '.kode')) || existsSync(join(home, '.kode.json'));
+      return existsSync(join(home, '.kode'));
     },
   },
   opencode: {
