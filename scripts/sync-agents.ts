@@ -40,8 +40,9 @@ function generateSkillDiscoveryPaths(): string {
     '- `skills/.system/`',
   ];
 
-  const agentPaths = [...new Set(Object.values(agents).map((a) => a.skillsDir))]
-    .map((p) => `- \`.${p.startsWith('.') ? p.slice(1) : '/' + p}/\``);
+  const agentPaths = [...new Set(Object.values(agents).map((a) => a.skillsDir))].map(
+    (p) => `- \`.${p.startsWith('.') ? p.slice(1) : '/' + p}/\``
+  );
 
   return [...standardPaths, ...agentPaths].join('\n');
 }
@@ -52,11 +53,13 @@ function generateKeywords(): string[] {
   return [...baseKeywords, ...agentKeywords];
 }
 
-function replaceSection(content: string, marker: string, replacement: string, inline = false): string {
-  const regex = new RegExp(
-    `(<!-- ${marker}:start -->)[\\s\\S]*?(<!-- ${marker}:end -->)`,
-    'g'
-  );
+function replaceSection(
+  content: string,
+  marker: string,
+  replacement: string,
+  inline = false
+): string {
+  const regex = new RegExp(`(<!-- ${marker}:start -->)[\\s\\S]*?(<!-- ${marker}:end -->)`, 'g');
   if (inline) {
     return content.replace(regex, `$1${replacement}$2`);
   }

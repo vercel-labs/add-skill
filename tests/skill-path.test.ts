@@ -2,7 +2,7 @@
 
 /**
  * Unit tests for skill path calculation in telemetry.
- * 
+ *
  * These tests verify that the relativePath calculation for skillFiles
  * correctly produces paths relative to the repo root, not the search path.
  *

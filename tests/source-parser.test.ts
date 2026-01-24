@@ -11,7 +11,7 @@
  */
 
 import assert from 'node:assert';
-import { parseSource, getOwnerRepo } from '../src/source-parser.js';
+import { getOwnerRepo, parseSource } from '../src/source-parser.js';
 
 let passed = 0;
 let failed = 0;
