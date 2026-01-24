@@ -1,28 +1,21 @@
 # skills
 
-The open agent skills ecosystem.
+The CLI for the open agent skills ecosystem.
 
 <!-- agent-list:start -->
+<<<<<<< HEAD
 Supports **Opencode**, **Claude Code**, **Codex**, **Cursor**, and [23 more](#available-agents).
 <!-- agent-list:end -->
+=======
+>>>>>>> 0154608 (README)
 
-## Quick Start
+Supports **Opencode**, **Claude Code**, **Codex**, **Cursor**, and [19 more](#supported-agents).
+
+<!-- agent-list:end -->
 
 ```bash
 npx skills add vercel-labs/agent-skills
 ```
-
-
-## Commands
-
-| Command | Description |
-|---------|-------------|
-| `skills` | Show banner with available commands |
-| `skills init [name]` | Create a new SKILL.md template |
-| `skills add <package>` | Install skills from git repos, URLs, or local paths |
-| `skills check` | Check for available skill updates |
-| `skills update` | Update all skills to latest versions |
-| `skills generate-lock` | Match installed skills to sources via API |
 
 ## What are Agent Skills?
 
@@ -34,24 +27,47 @@ Skills let agents perform specialized tasks like:
 - Creating PRs following your team's conventions
 - Integrating with external tools (Linear, Notion, etc.)
 
-## Usage
+Discover skills at **[skills.sh](https://skills.sh)**
 
-### Initialize a New Skill
+## Commands
+
+| Command                    | Description                                           |
+| -------------------------- | ----------------------------------------------------- |
+| `npx skills`               | Show banner with available commands                   |
+| `npx skills find [query]`  | Search for skills interactively or by keyword         |
+| `npx skills add <source>`  | Install skills from git repos, URLs, or local paths   |
+| `npx skills check`         | Check for available skill updates                     |
+| `npx skills update`        | Update all installed skills to latest versions        |
+| `npx skills init [name]`   | Create a new SKILL.md template                        |
+| `npx skills generate-lock` | Match installed skills to sources for update tracking |
+
+## `skills find`
+
+Search for skills interactively or by keyword.
 
 ```bash
-# Create SKILL.md in current directory
-npx skills init
+# Interactive search (fzf-style)
+npx skills find
 
-# Create a new skill in a subdirectory
-npx skills init my-skill
+# Search by keyword
+npx skills find typescript
+
+# Search by phrase
+npx skills find "react testing"
 ```
 
-### Add Skills
+**Interactive mode:** Type to search, use arrow keys to navigate, press Enter to install the selected skill.
 
-The `<source>` argument accepts multiple formats:
+**Non-interactive mode:** Pass a query to list matching skills with install commands.
+
+## `skills add`
+
+Install skills from various sources.
+
+### Source Formats
 
 ```bash
-# GitHub shorthand
+# GitHub shorthand (owner/repo)
 npx skills add vercel-labs/agent-skills
 
 # Full GitHub URL
@@ -70,40 +86,16 @@ npx skills add git@github.com:vercel-labs/agent-skills.git
 npx skills add ./my-local-skills
 ```
 
-### Add Options
+### Options
 
 | Option                    | Description                                                                                                                                        |
 | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `-g, --global`            | Install to user directory instead of project                                                                                                       |
-| `-a, --agent <agents...>` | <!-- agent-names:start -->Target specific agents (e.g., `claude-code`, `codex`). See [Available Agents](#available-agents)<!-- agent-names:end --> |
+| `-a, --agent <agents...>` | <!-- agent-names:start -->Target specific agents (e.g., `claude-code`, `codex`). See [Supported Agents](#supported-agents)<!-- agent-names:end --> |
 | `-s, --skill <skills...>` | Install specific skills by name                                                                                                                    |
 | `-l, --list`              | List available skills without installing                                                                                                           |
 | `-y, --yes`               | Skip all confirmation prompts                                                                                                                      |
-| `--all`                   | Install all skills to all agents without any prompts                                                                                               |
-
-### Check for Updates
-
-```bash
-# Check if any installed skills have updates available
-npx skills check
-```
-
-### Update Skills
-
-```bash
-# Update all skills to their latest versions
-npx skills update
-```
-
-### Generate Lock File
-
-```bash
-# Match installed skills to their sources (for tracking updates)
-npx skills generate-lock
-
-# Preview without writing
-npx skills generate-lock --dry-run
-```
+| `--all`                   | Install all skills to all agents without prompts                                                                                                   |
 
 ### Examples
 
@@ -111,7 +103,7 @@ npx skills generate-lock --dry-run
 # List skills in a repository
 npx skills add vercel-labs/agent-skills --list
 
-# Install multiple specific skills
+# Install specific skills
 npx skills add vercel-labs/agent-skills --skill frontend-design --skill skill-creator
 
 # Install to specific agents
@@ -124,9 +116,75 @@ npx skills add vercel-labs/agent-skills --skill frontend-design -g -a claude-cod
 npx skills add vercel-labs/agent-skills --all
 ```
 
-## Available Agents
+## `skills check`
 
-Skills can be installed to any of these supported agents. Use `-g, --global` to install to the global path instead of project-level.
+Check if any installed skills have updates available.
+
+```bash
+npx skills check
+```
+
+Compares your installed skills against their sources and reports which ones have newer versions.
+
+## `skills update`
+
+Update all installed skills to their latest versions.
+
+```bash
+npx skills update
+```
+
+Automatically re-installs any skills that have updates available.
+
+## `skills init`
+
+Create a new skill template.
+
+```bash
+# Create SKILL.md in current directory
+npx skills init
+
+# Create a new skill in a subdirectory
+npx skills init my-skill
+```
+
+Generates a `SKILL.md` template with the required frontmatter structure.
+
+## `skills generate-lock`
+
+Match installed skills to their sources for update tracking.
+
+```bash
+# Generate lock file
+npx skills generate-lock
+
+# Preview without writing
+npx skills generate-lock --dry-run
+```
+
+Useful when you've installed skills manually or from before the lock file system was introduced.
+
+## Installation Scope
+
+Skills can be installed at two scopes:
+
+| Scope       | Flag      | Location            | Use Case                                      |
+| ----------- | --------- | ------------------- | --------------------------------------------- |
+| **Project** | (default) | `./<agent>/skills/` | Committed with your project, shared with team |
+| **Global**  | `-g`      | `~/<agent>/skills/` | Available across all projects                 |
+
+## Installation Methods
+
+When installing skills interactively, you can choose:
+
+| Method                    | Description                                                                                 |
+| ------------------------- | ------------------------------------------------------------------------------------------- |
+| **Symlink** (Recommended) | Creates symlinks from each agent to a canonical copy. Single source of truth, easy updates. |
+| **Copy**                  | Creates independent copies for each agent. Use when symlinks aren't supported.              |
+
+## Supported Agents
+
+Skills can be installed to any of these agents:
 
 <!-- available-agents:start -->
 | Agent | `--agent` | Project Path | Global Path |
@@ -169,7 +227,7 @@ Skills can be installed to any of these supported agents. Use `-g, --global` to 
 > }
 > ```
 
-## Agent Detection
+### Agent Detection
 
 The CLI automatically detects which coding agents you have installed by checking for their configuration directories. If none are detected, you'll be prompted to select which agents to install to.
 
@@ -207,6 +265,7 @@ Describe the scenarios where this skill should be used.
 The CLI searches for skills in these locations within a repository:
 
 <!-- skill-discovery:start -->
+
 - Root directory (if it contains `SKILL.md`)
 - `skills/`
 - `skills/.curated/`
@@ -287,6 +346,7 @@ Telemetry is also automatically disabled in CI environments.
 ## Related Links
 
 - [Agent Skills Specification](https://agentskills.io)
+- [Skills Directory](https://skills.sh)
 - [Amp Skills Documentation](https://ampcode.com/manual#agent-skills)
 - [Antigravity Skills Documentation](https://antigravity.google/docs/skills)
 - [Claude Code Skills Documentation](https://code.claude.com/docs/en/skills)
