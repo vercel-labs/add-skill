@@ -13,56 +13,11 @@ Supports **Opencode**, **Claude Code**, **Codex**, **Cursor**, and [19 more](#su
 
 <!-- agent-list:end -->
 
+## Install a Skill
+
 ```bash
 npx skills add vercel-labs/agent-skills
 ```
-
-## What are Agent Skills?
-
-Agent skills are reusable instruction sets that extend your coding agent's capabilities. They're defined in `SKILL.md` files with YAML frontmatter containing a `name` and `description`.
-
-Skills let agents perform specialized tasks like:
-
-- Generating release notes from git history
-- Creating PRs following your team's conventions
-- Integrating with external tools (Linear, Notion, etc.)
-
-Discover skills at **[skills.sh](https://skills.sh)**
-
-## Commands
-
-| Command                    | Description                                           |
-| -------------------------- | ----------------------------------------------------- |
-| `npx skills`               | Show banner with available commands                   |
-| `npx skills find [query]`  | Search for skills interactively or by keyword         |
-| `npx skills add <source>`  | Install skills from git repos, URLs, or local paths   |
-| `npx skills check`         | Check for available skill updates                     |
-| `npx skills update`        | Update all installed skills to latest versions        |
-| `npx skills init [name]`   | Create a new SKILL.md template                        |
-| `npx skills generate-lock` | Match installed skills to sources for update tracking |
-
-## `skills find`
-
-Search for skills interactively or by keyword.
-
-```bash
-# Interactive search (fzf-style)
-npx skills find
-
-# Search by keyword
-npx skills find typescript
-
-# Search by phrase
-npx skills find "react testing"
-```
-
-**Interactive mode:** Type to search, use arrow keys to navigate, press Enter to install the selected skill.
-
-**Non-interactive mode:** Pass a query to list matching skills with install commands.
-
-## `skills add`
-
-Install skills from various sources.
 
 ### Source Formats
 
@@ -116,29 +71,55 @@ npx skills add vercel-labs/agent-skills --skill frontend-design -g -a claude-cod
 npx skills add vercel-labs/agent-skills --all
 ```
 
-## `skills check`
+### Installation Scope
 
-Check if any installed skills have updates available.
+| Scope       | Flag      | Location            | Use Case                                      |
+| ----------- | --------- | ------------------- | --------------------------------------------- |
+| **Project** | (default) | `./<agent>/skills/` | Committed with your project, shared with team |
+| **Global**  | `-g`      | `~/<agent>/skills/` | Available across all projects                 |
+
+### Installation Methods
+
+When installing interactively, you can choose:
+
+| Method                    | Description                                                                                 |
+| ------------------------- | ------------------------------------------------------------------------------------------- |
+| **Symlink** (Recommended) | Creates symlinks from each agent to a canonical copy. Single source of truth, easy updates. |
+| **Copy**                  | Creates independent copies for each agent. Use when symlinks aren't supported.              |
+
+## Other Commands
+
+| Command                    | Description                                           |
+| -------------------------- | ----------------------------------------------------- |
+| `npx skills find [query]`  | Search for skills interactively or by keyword         |
+| `npx skills check`         | Check for available skill updates                     |
+| `npx skills update`        | Update all installed skills to latest versions        |
+| `npx skills init [name]`   | Create a new SKILL.md template                        |
+| `npx skills generate-lock` | Match installed skills to sources for update tracking |
+
+### `skills find`
+
+Search for skills interactively or by keyword.
 
 ```bash
-npx skills check
+# Interactive search (fzf-style)
+npx skills find
+
+# Search by keyword
+npx skills find typescript
 ```
 
-Compares your installed skills against their sources and reports which ones have newer versions.
-
-## `skills update`
-
-Update all installed skills to their latest versions.
+### `skills check` / `skills update`
 
 ```bash
+# Check if any installed skills have updates
+npx skills check
+
+# Update all skills to latest versions
 npx skills update
 ```
 
-Automatically re-installs any skills that have updates available.
-
-## `skills init`
-
-Create a new skill template.
+### `skills init`
 
 ```bash
 # Create SKILL.md in current directory
@@ -148,39 +129,27 @@ npx skills init
 npx skills init my-skill
 ```
 
-Generates a `SKILL.md` template with the required frontmatter structure.
-
-## `skills generate-lock`
-
-Match installed skills to their sources for update tracking.
+### `skills generate-lock`
 
 ```bash
-# Generate lock file
+# Match installed skills to sources for update tracking
 npx skills generate-lock
 
 # Preview without writing
 npx skills generate-lock --dry-run
 ```
 
-Useful when you've installed skills manually or from before the lock file system was introduced.
+## What are Agent Skills?
 
-## Installation Scope
+Agent skills are reusable instruction sets that extend your coding agent's capabilities. They're defined in `SKILL.md` files with YAML frontmatter containing a `name` and `description`.
 
-Skills can be installed at two scopes:
+Skills let agents perform specialized tasks like:
 
-| Scope       | Flag      | Location            | Use Case                                      |
-| ----------- | --------- | ------------------- | --------------------------------------------- |
-| **Project** | (default) | `./<agent>/skills/` | Committed with your project, shared with team |
-| **Global**  | `-g`      | `~/<agent>/skills/` | Available across all projects                 |
+- Generating release notes from git history
+- Creating PRs following your team's conventions
+- Integrating with external tools (Linear, Notion, etc.)
 
-## Installation Methods
-
-When installing skills interactively, you can choose:
-
-| Method                    | Description                                                                                 |
-| ------------------------- | ------------------------------------------------------------------------------------------- |
-| **Symlink** (Recommended) | Creates symlinks from each agent to a canonical copy. Single source of truth, easy updates. |
-| **Copy**                  | Creates independent copies for each agent. Use when symlinks aren't supported.              |
+Discover skills at **[skills.sh](https://skills.sh)**
 
 ## Supported Agents
 
@@ -219,7 +188,7 @@ Skills can be installed to any of these agents:
 <!-- available-agents:end -->
 
 > [!NOTE]
-> **Kiro CLI users:** After installing skills, you need to manually add them to your custom agent's `resources` in `.kiro/agents/<agent>.json`:
+> **Kiro CLI users:** After installing skills, manually add them to your custom agent's `resources` in `.kiro/agents/<agent>.json`:
 >
 > ```json
 > {
@@ -227,9 +196,7 @@ Skills can be installed to any of these agents:
 > }
 > ```
 
-### Agent Detection
-
-The CLI automatically detects which coding agents you have installed by checking for their configuration directories. If none are detected, you'll be prompted to select which agents to install to.
+The CLI automatically detects which coding agents you have installed. If none are detected, you'll be prompted to select which agents to install to.
 
 ## Creating Skills
 
@@ -333,7 +300,7 @@ Ensure you have write access to the target directory.
 
 This CLI collects anonymous usage data to help improve the tool. No personal information is collected.
 
-To disable telemetry, set either of these environment variables:
+To disable telemetry:
 
 ```bash
 DISABLE_TELEMETRY=1 npx skills add vercel-labs/agent-skills
@@ -341,7 +308,7 @@ DISABLE_TELEMETRY=1 npx skills add vercel-labs/agent-skills
 DO_NOT_TRACK=1 npx skills add vercel-labs/agent-skills
 ```
 
-Telemetry is also automatically disabled in CI environments.
+Telemetry is automatically disabled in CI environments.
 
 ## Related Links
 
