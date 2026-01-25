@@ -50,6 +50,21 @@ function formatList(items: string[], maxShow: number = 5): string {
   return `${shown.join(', ')} +${remaining} more`;
 }
 
+/**
+ * Wrapper around p.multiselect that adds a hint for keyboard usage
+ */
+function multiselect<Option extends { value: unknown; label: string; hint?: string }>(opts: {
+  message: string;
+  options: Option[];
+  initialValues?: Option['value'][];
+  required?: boolean;
+}) {
+  return p.multiselect({
+    ...opts,
+    message: `${opts.message} ${chalk.dim('(space to toggle)')}`,
+  }) as Promise<Option['value'][] | symbol>;
+}
+
 const version = packageJson.version;
 setVersion(version);
 
@@ -208,7 +223,7 @@ async function handleRemoteSkill(
           label: config.displayName,
         }));
 
-        const selected = await p.multiselect({
+        const selected = await multiselect({
           message: 'Select agents to install skills to',
           options: allAgentChoices,
           required: true,
@@ -239,7 +254,7 @@ async function handleRemoteSkill(
         hint: `${options.global ? agents[a].globalSkillsDir : agents[a].skillsDir}`,
       }));
 
-      const selected = await p.multiselect({
+      const selected = await multiselect({
         message: 'Select agents to install skills to',
         options: agentChoices,
         required: true,
@@ -550,7 +565,7 @@ async function handleDirectUrlSkillLegacy(
           label: config.displayName,
         }));
 
-        const selected = await p.multiselect({
+        const selected = await multiselect({
           message: 'Select agents to install skills to',
           options: allAgentChoices,
           required: true,
@@ -581,7 +596,7 @@ async function handleDirectUrlSkillLegacy(
         hint: `${options.global ? agents[a].globalSkillsDir : agents[a].skillsDir}`,
       }));
 
-      const selected = await p.multiselect({
+      const selected = await multiselect({
         message: 'Select agents to install skills to',
         options: agentChoices,
         required: true,
@@ -929,7 +944,7 @@ async function main(source: string, options: Options) {
         hint: s.description.length > 60 ? s.description.slice(0, 57) + '...' : s.description,
       }));
 
-      const selected = await p.multiselect({
+      const selected = await multiselect({
         message: 'Select skills to install',
         options: skillChoices,
         required: true,
@@ -980,7 +995,7 @@ async function main(source: string, options: Options) {
             label: config.displayName,
           }));
 
-          const selected = await p.multiselect({
+          const selected = await multiselect({
             message: 'Select agents to install skills to',
             options: allAgentChoices,
             required: true,
@@ -1012,7 +1027,7 @@ async function main(source: string, options: Options) {
           hint: `${options.global ? agents[a].globalSkillsDir : agents[a].skillsDir}`,
         }));
 
-        const selected = await p.multiselect({
+        const selected = await multiselect({
           message: 'Select agents to install skills to',
           options: agentChoices,
           required: true,
