@@ -3,7 +3,7 @@
 Install agent skills onto your coding agents from any git repository.
 
 <!-- agent-list:start -->
-Supports **Opencode**, **Claude Code**, **Codex**, **Cursor**, and [21 more](#available-agents).
+Supports **Opencode**, **Claude Code**, **Codex**, **Cursor**, and [22 more](#available-agents).
 <!-- agent-list:end -->
 
 ## Quick Start
@@ -90,6 +90,7 @@ Skills can be installed to any of these supported agents. Use `-g, --global` to 
 | Cline | `cline` | `.cline/skills/` | `~/.cline/skills/` |
 | Codex | `codex` | `.codex/skills/` | `~/.codex/skills/` |
 | Command Code | `command-code` | `.commandcode/skills/` | `~/.commandcode/skills/` |
+| Continue | `continue` | `.continue/skills/` | `~/.continue/skills/` |
 | Cursor | `cursor` | `.cursor/skills/` | `~/.cursor/skills/` |
 | Droid | `droid` | `.factory/skills/` | `~/.factory/skills/` |
 | Gemini CLI | `gemini-cli` | `.gemini/skills/` | `~/.gemini/skills/` |
@@ -169,6 +170,7 @@ The CLI searches for skills in these locations within a repository:
 - `.cline/skills/`
 - `.codex/skills/`
 - `.commandcode/skills/`
+- `.continue/skills/`
 - `.cursor/skills/`
 - `.factory/skills/`
 - `.gemini/skills/`

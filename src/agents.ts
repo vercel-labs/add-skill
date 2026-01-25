@@ -71,6 +71,15 @@ export const agents: Record<AgentType, AgentConfig> = {
       return existsSync(join(home, '.commandcode'));
     },
   },
+  continue: {
+    name: 'continue',
+    displayName: 'Continue',
+    skillsDir: '.continue/skills',
+    globalSkillsDir: join(home, '.continue/skills'),
+    detectInstalled: async () => {
+      return existsSync(join(home, '.continue'));
+    },
+  },
   cursor: {
     name: 'cursor',
     displayName: 'Cursor',

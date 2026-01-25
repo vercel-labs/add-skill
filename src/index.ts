@@ -210,7 +210,7 @@ async function handleRemoteSkill(
 
         const selected = await p.multiselect({
           message: 'Select agents to install skills to',
-          options: allAgentChoices,
+          options: allAgentChoices as unknown as p.Option<AgentType>[],
           required: true,
           initialValues: Object.keys(agents) as AgentType[],
         });
@@ -241,7 +241,7 @@ async function handleRemoteSkill(
 
       const selected = await p.multiselect({
         message: 'Select agents to install skills to',
-        options: agentChoices,
+        options: agentChoices as unknown as p.Option<AgentType>[],
         required: true,
         initialValues: installedAgents,
       });
@@ -552,7 +552,7 @@ async function handleDirectUrlSkillLegacy(
 
         const selected = await p.multiselect({
           message: 'Select agents to install skills to',
-          options: allAgentChoices,
+          options: allAgentChoices as unknown as p.Option<AgentType>[],
           required: true,
           initialValues: Object.keys(agents) as AgentType[],
         });
@@ -583,7 +583,7 @@ async function handleDirectUrlSkillLegacy(
 
       const selected = await p.multiselect({
         message: 'Select agents to install skills to',
-        options: agentChoices,
+        options: agentChoices as unknown as p.Option<AgentType>[],
         required: true,
         initialValues: installedAgents,
       });
@@ -982,7 +982,7 @@ async function main(source: string, options: Options) {
 
           const selected = await p.multiselect({
             message: 'Select agents to install skills to',
-            options: allAgentChoices,
+            options: allAgentChoices as unknown as p.Option<AgentType>[],
             required: true,
             initialValues: Object.keys(agents) as AgentType[],
           });
@@ -1014,7 +1014,7 @@ async function main(source: string, options: Options) {
 
         const selected = await p.multiselect({
           message: 'Select agents to install skills to',
-          options: agentChoices,
+          options: agentChoices as unknown as p.Option<AgentType>[],
           required: true,
           initialValues: installedAgents,
         });
