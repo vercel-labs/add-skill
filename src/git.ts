@@ -5,7 +5,10 @@ import { tmpdir } from 'os';
 
 export async function cloneRepo(url: string, ref?: string): Promise<string> {
   const tempDir = await mkdtemp(join(tmpdir(), 'add-skill-'));
-  const git = simpleGit();
+  const git = simpleGit({
+    // Allow stdio inherit so SSH passphrase prompts work correctly
+    spawnOptions: { stdio: 'inherit' },
+  });
   const cloneOptions = ref ? ['--depth', '1', '--branch', ref] : ['--depth', '1'];
   await git.clone(url, tempDir, cloneOptions);
   return tempDir;

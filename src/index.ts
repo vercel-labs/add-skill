@@ -872,10 +872,11 @@ async function main(source: string, options: Options) {
       spinner.stop('Local path validated');
     } else {
       // Clone repository for remote sources
-      spinner.start('Cloning repository...');
+      // Don't use spinner - it interferes with SSH passphrase prompts
+      spinner.stop("Cloning repository...");
       tempDir = await cloneRepo(parsed.url);
       skillsDir = tempDir;
-      spinner.stop('Repository cloned');
+      p.log.info("Repository cloned");
     }
 
     spinner.start('Discovering skills...');
