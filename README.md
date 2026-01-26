@@ -3,8 +3,7 @@
 The CLI for the open agent skills ecosystem.
 
 <!-- agent-list:start -->
-<<<<<<< HEAD
-Supports **Opencode**, **Claude Code**, **Codex**, **Cursor**, and [23 more](#available-agents).
+Supports **Opencode**, **Claude Code**, **Codex**, **Cursor**, and [24 more](#available-agents).
 <!-- agent-list:end -->
 =======
 >>>>>>> 0154608 (README)
@@ -46,7 +45,7 @@ npx skills add ./my-local-skills
 | Option                    | Description                                                                                                                                        |
 | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `-g, --global`            | Install to user directory instead of project                                                                                                       |
-| `-a, --agent <agents...>` | <!-- agent-names:start -->Target specific agents (e.g., `claude-code`, `codex`). See [Supported Agents](#supported-agents)<!-- agent-names:end --> |
+| `-a, --agent <agents...>` | <!-- agent-names:start -->Target specific agents (e.g., `claude-code`, `codex`). See [Available Agents](#available-agents)<!-- agent-names:end --> |
 | `-s, --skill <skills...>` | Install specific skills by name                                                                                                                    |
 | `-l, --list`              | List available skills without installing                                                                                                           |
 | `-y, --yes`               | Skip all confirmation prompts                                                                                                                      |
@@ -233,7 +232,6 @@ Describe the scenarios where this skill should be used.
 The CLI searches for skills in these locations within a repository:
 
 <!-- skill-discovery:start -->
-
 - Root directory (if it contains `SKILL.md`)
 - `skills/`
 - `skills/.curated/`
