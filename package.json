@@ -1,6 +1,6 @@
 {
   "name": "skills",
-  "version": "1.0.31-snapshot.2",
+  "version": "1.1.0",
   "description": "The open agent skills ecosystem",
   "type": "module",
   "bin": {
