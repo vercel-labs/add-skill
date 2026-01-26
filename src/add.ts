@@ -649,7 +649,11 @@ async function handleDirectUrlSkillLegacy(
   let installGlobally = options.global ?? false;
 
   if (options.path) {
-    // Custom path mode - skip scope prompt
+    // Custom path mode - global flag does not apply
+    if (options.global) {
+      p.log.warn('--global is ignored when --path is specified; installing to the custom path only.');
+    }
+    installGlobally = false;
   } else if (options.global === undefined && !options.yes) {
     const scope = await p.select({
       message: 'Installation scope',
