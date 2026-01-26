@@ -61,14 +61,16 @@ function formatList(items: string[], maxShow: number = 5): string {
  */
 function multiselect<Value>(opts: {
   message: string;
-  options: p.Option<Value>[];
+  options: Array<{ value: Value; label: string; hint?: string }>;
   initialValues?: Value[];
   required?: boolean;
 }) {
   return p.multiselect({
     ...opts,
+    // Cast is safe: our options always have labels, which satisfies p.Option requirements
+    options: opts.options as p.Option<Value>[],
     message: `${opts.message} ${chalk.dim('(space to toggle)')}`,
-  });
+  }) as Promise<Value[] | symbol>;
 }
 
 const version = packageJson.version;
