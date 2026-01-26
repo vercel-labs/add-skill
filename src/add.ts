@@ -820,10 +820,9 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
     process.exit(1);
   }
 
-  // --all implies -y and -g
+  // --all implies -y (skip prompts and select all)
   if (options.all) {
     options.yes = true;
-    options.global = true;
   }
 
   console.log();
