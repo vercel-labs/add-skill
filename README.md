@@ -321,7 +321,7 @@ Telemetry is automatically disabled in CI environments.
 - [Cursor Skills Documentation](https://cursor.com/docs/context/skills)
 - [Gemini CLI Skills Documentation](https://geminicli.com/docs/cli/skills/)
 - [GitHub Copilot Agent Skills](https://docs.github.com/en/copilot/concepts/agents/about-agent-skills)
-- [Kimi CLI Skills Documentation](https://moonshotai.github.io/kimi-cli/en/customization/skills.html)
+- [Kimi Code CLI Skills Documentation](https://moonshotai.github.io/kimi-cli/en/customization/skills.html)
 - [Kiro CLI Skills Documentation](https://kiro.dev/docs/cli/custom-agents/configuration-reference/#skill-resources)
 - [OpenCode Skills Documentation](https://opencode.ai/docs/skills)
 - [Qwen Code Skills Documentation](https://qwenlm.github.io/qwen-code-docs/en/users/features/skills/)

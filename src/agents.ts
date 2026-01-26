@@ -146,7 +146,7 @@ export const agents: Record<AgentType, AgentConfig> = {
   },
   'kimi-cli': {
     name: 'kimi-cli',
-    displayName: 'Kimi CLI',
+    displayName: 'Kimi Code CLI',
     skillsDir: '.agents/skills',
     globalSkillsDir: join(home, '.config/agents/skills'),
     detectInstalled: async () => {
