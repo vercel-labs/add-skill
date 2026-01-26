@@ -82,13 +82,14 @@ When installing interactively, you can choose:
 
 ## Other Commands
 
-| Command                    | Description                                           |
-| -------------------------- | ----------------------------------------------------- |
-| `npx skills find [query]`  | Search for skills interactively or by keyword         |
-| `npx skills check`         | Check for available skill updates                     |
-| `npx skills update`        | Update all installed skills to latest versions        |
-| `npx skills init [name]`   | Create a new SKILL.md template                        |
-| `npx skills generate-lock` | Match installed skills to sources for update tracking |
+| Command                      | Description                                             |
+| ---------------------------- | ------------------------------------------------------- |
+| `npx skills find [query]`    | Search for skills interactively or by keyword           |
+| `npx skills remove [skills]` | Remove installed skills from agents                     |
+| `npx skills check`           | Check for available skill updates                       |
+| `npx skills update`          | Update all installed skills to latest versions          |
+| `npx skills init [name]`     | Create a new SKILL.md template                          |
+| `npx skills generate-lock`   | Match installed skills to sources for update tracking   |
 
 ### `skills find`
 
@@ -131,6 +132,40 @@ npx skills generate-lock
 # Preview without writing
 npx skills generate-lock --dry-run
 ```
+
+### `skills remove`
+
+Remove installed skills from agents.
+
+```bash
+# Remove interactively (select from installed skills)
+npx skills remove
+
+# Remove specific skill by name
+npx skills remove web-design-guidelines
+
+# Remove multiple skills
+npx skills remove frontend-design web-design-guidelines
+
+# Remove from global scope
+npx skills remove --global web-design-guidelines
+
+# Remove from specific agents only
+npx skills remove --agent claude-code cursor my-skill
+
+# Remove all installed skills without confirmation
+npx skills remove --all -y
+
+# Use 'rm' alias
+npx skills rm my-skill
+```
+
+| Option              | Description                                          |
+| ------------------- | ---------------------------------------------------- |
+| `-g, --global`      | Remove from global scope (~/) instead of project      |
+| `-a, --agent`       | Remove from specific agents only                     |
+| `-y, --yes`         | Skip confirmation prompts                            |
+| `--all`             | Remove all installed skills                          |
 
 ## What are Agent Skills?
 
