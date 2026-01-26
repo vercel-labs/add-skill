@@ -241,6 +241,7 @@ Telemetry is also automatically disabled in CI environments.
 - [Agent Skills Specification](https://agentskills.io)
 - [Amp Skills Documentation](https://ampcode.com/manual#agent-skills)
 - [Antigravity Skills Documentation](https://antigravity.google/docs/skills)
+- [Factory AI / Droid Skills Documentation](https://docs.factory.ai/cli/configuration/skills)
 - [Claude Code Skills Documentation](https://code.claude.com/docs/en/skills)
 - [Clawdbot Skills Documentation](https://docs.clawd.bot/tools/skills)
 - [Cline Skills Documentation](https://docs.cline.bot/features/skills)
