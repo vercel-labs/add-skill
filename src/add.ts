@@ -3,7 +3,7 @@ import chalk from 'chalk';
 import { existsSync } from 'fs';
 import { homedir } from 'os';
 import { parseSource, getOwnerRepo } from './source-parser.js';
-import { cloneRepo, cleanupTempDir } from './git.js';
+import { cloneRepo, cleanupTempDir, GitCloneError } from './git.js';
 import { discoverSkills, getSkillDisplayName } from './skills.js';
 import {
   installSkillForAgent,
@@ -1260,7 +1260,15 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
     console.log();
     p.outro(chalk.green('Done!'));
   } catch (error) {
-    p.log.error(error instanceof Error ? error.message : 'Unknown error occurred');
+    if (error instanceof GitCloneError) {
+      p.log.error(chalk.red('Failed to clone repository'));
+      // Print each line of the error message separately for better formatting
+      for (const line of error.message.split('\n')) {
+        p.log.message(chalk.dim(line));
+      }
+    } else {
+      p.log.error(error instanceof Error ? error.message : 'Unknown error occurred');
+    }
     p.outro(chalk.red('Installation failed'));
     process.exit(1);
   } finally {
