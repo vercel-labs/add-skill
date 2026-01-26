@@ -4,6 +4,7 @@ export type AgentType =
   | 'claude-code'
   | 'clawdbot'
   | 'cline'
+  | 'codebuddy'
   | 'codex'
   | 'command-code'
   | 'continue'

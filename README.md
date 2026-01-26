@@ -3,7 +3,7 @@
 Install agent skills onto your coding agents from any git repository.
 
 <!-- agent-list:start -->
-Supports **Opencode**, **Claude Code**, **Codex**, **Cursor**, and [23 more](#available-agents).
+Supports **Opencode**, **Claude Code**, **Codex**, **Cursor**, and [24 more](#available-agents).
 <!-- agent-list:end -->
 
 ## Quick Start
@@ -88,6 +88,7 @@ Skills can be installed to any of these supported agents. Use `-g, --global` to 
 | Claude Code | `claude-code` | `.claude/skills/` | `~/.claude/skills/` |
 | Clawdbot | `clawdbot` | `skills/` | `~/.clawdbot/skills/` |
 | Cline | `cline` | `.cline/skills/` | `~/.cline/skills/` |
+| CodeBuddy | `codebuddy` | `.codebuddy/skills/` | `~/.codebuddy/skills/` |
 | Codex | `codex` | `.codex/skills/` | `~/.codex/skills/` |
 | Command Code | `command-code` | `.commandcode/skills/` | `~/.commandcode/skills/` |
 | Continue | `continue` | `.continue/skills/` | `~/.continue/skills/` |
@@ -169,6 +170,7 @@ The CLI searches for skills in these locations within a repository:
 - `.claude/skills/`
 - `./skills/`
 - `.cline/skills/`
+- `.codebuddy/skills/`
 - `.codex/skills/`
 - `.commandcode/skills/`
 - `.continue/skills/`
