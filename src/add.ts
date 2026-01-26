@@ -272,7 +272,11 @@ async function handleRemoteSkill(
   let installGlobally = options.global ?? false;
 
   if (options.path) {
-    // Custom path mode - skip scope prompt
+    // Custom path mode - never treated as global; skip scope prompt
+    if (options.global) {
+      p.log.warn('Ignoring --global because --path was provided; custom path installs are not global.');
+    }
+    installGlobally = false;
   } else if (options.global === undefined && !options.yes) {
     const scope = await p.select({
       message: 'Installation scope',
