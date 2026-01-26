@@ -16,6 +16,7 @@ export type AgentType =
   | 'kilo'
   | 'kiro-cli'
   | 'mcpjam'
+  | 'mux'
   | 'neovate'
   | 'opencode'
   | 'openhands'

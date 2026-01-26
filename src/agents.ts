@@ -162,6 +162,15 @@ export const agents: Record<AgentType, AgentConfig> = {
       return existsSync(join(home, '.mcpjam'));
     },
   },
+  mux: {
+    name: 'mux',
+    displayName: 'Mux',
+    skillsDir: '.mux/skills',
+    globalSkillsDir: join(home, '.mux/skills'),
+    detectInstalled: async () => {
+      return existsSync(join(home, '.mux'));
+    },
+  },
   opencode: {
     name: 'opencode',
     displayName: 'OpenCode',

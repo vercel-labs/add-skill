@@ -3,7 +3,7 @@
 Install agent skills onto your coding agents from any git repository.
 
 <!-- agent-list:start -->
-Supports **Opencode**, **Claude Code**, **Codex**, **Cursor**, and [23 more](#available-agents).
+Supports **Opencode**, **Claude Code**, **Codex**, **Cursor**, and [24 more](#available-agents).
 <!-- agent-list:end -->
 
 ## Quick Start
@@ -100,6 +100,7 @@ Skills can be installed to any of these supported agents. Use `-g, --global` to 
 | Kilo Code | `kilo` | `.kilocode/skills/` | `~/.kilocode/skills/` |
 | Kiro CLI | `kiro-cli` | `.kiro/skills/` | `~/.kiro/skills/` |
 | MCPJam | `mcpjam` | `.mcpjam/skills/` | `~/.mcpjam/skills/` |
+| Mux | `mux` | `.mux/skills/` | `~/.mux/skills/` |
 | OpenCode | `opencode` | `.opencode/skills/` | `~/.config/opencode/skills/` |
 | OpenHands | `openhands` | `.openhands/skills/` | `~/.openhands/skills/` |
 | Pi | `pi` | `.pi/skills/` | `~/.pi/agent/skills/` |
@@ -181,6 +182,7 @@ The CLI searches for skills in these locations within a repository:
 - `.kilocode/skills/`
 - `.kiro/skills/`
 - `.mcpjam/skills/`
+- `.mux/skills/`
 - `.opencode/skills/`
 - `.openhands/skills/`
 - `.pi/skills/`
