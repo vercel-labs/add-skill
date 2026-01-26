@@ -1,29 +1,33 @@
-#!/usr/bin/env node
-
-import { program, Command } from 'commander';
 import * as p from '@clack/prompts';
 import chalk from 'chalk';
-import type { RemoveOptions } from './commands/remove.js';
+import { existsSync } from 'fs';
+import { homedir } from 'os';
 import { parseSource, getOwnerRepo } from './source-parser.js';
-import { cloneRepo, cleanupTempDir } from './git.js';
+import { cloneRepo, cleanupTempDir, GitCloneError } from './git.js';
 import { discoverSkills, getSkillDisplayName } from './skills.js';
 import {
   installSkillForAgent,
   isSkillInstalled,
-  getCanonicalPath,
   getInstallPath,
-  installMintlifySkillForAgent,
+  getCanonicalPath,
   installRemoteSkillForAgent,
   type InstallMode,
 } from './installer.js';
-import { homedir } from 'os';
 import { detectInstalledAgents, agents } from './agents.js';
 import { track, setVersion } from './telemetry.js';
-import { fetchMintlifySkill } from './mintlify.js';
 import { findProvider } from './providers/index.js';
-import { addSkillToLock, fetchSkillFolderHash } from './skill-lock.js';
-import type { Skill, AgentType, MintlifySkill, RemoteSkill } from './types.js';
-import packageJson from '../package.json' with { type: 'json' };
+import { fetchMintlifySkill } from './mintlify.js';
+import {
+  addSkillToLock,
+  fetchSkillFolderHash,
+  isPromptDismissed,
+  dismissPrompt,
+} from './skill-lock.js';
+import type { Skill, AgentType, RemoteSkill } from './types.js';
+import packageJson from '../package.json' assert { type: 'json' };
+export function initTelemetry(version: string): void {
+  setVersion(version);
+}
 
 /**
  * Shortens a path for display: replaces homedir with ~ and cwd with .
@@ -52,24 +56,77 @@ function formatList(items: string[], maxShow: number = 5): string {
 }
 
 /**
- * Wrapper around p.multiselect that adds a hint for keyboard usage
+ * Wrapper around p.multiselect that adds a hint for keyboard usage.
+ * Accepts options with required labels (matching our usage pattern).
  */
-function multiselect<Option extends { value: unknown; label: string; hint?: string }>(opts: {
+function multiselect<Value>(opts: {
   message: string;
-  options: Option[];
-  initialValues?: Option['value'][];
+  options: Array<{ value: Value; label: string; hint?: string }>;
+  initialValues?: Value[];
   required?: boolean;
 }) {
   return p.multiselect({
     ...opts,
+    // Cast is safe: our options always have labels, which satisfies p.Option requirements
+    options: opts.options as p.Option<Value>[],
     message: `${opts.message} ${chalk.dim('(space to toggle)')}`,
-  }) as Promise<Option['value'][] | symbol>;
+  }) as Promise<Value[] | symbol>;
+}
+
+/**
+ * Two-step agent selection: first ask "all agents" or "select specific",
+ * then show the multiselect only if user wants to select specific agents.
+ */
+async function selectAgentsInteractive(
+  availableAgents: AgentType[],
+  options: { global?: boolean }
+): Promise<AgentType[] | symbol> {
+  // First step: ask if user wants all agents or to select specific ones
+  const installChoice = await p.select({
+    message: 'Install to',
+    options: [
+      {
+        value: 'all',
+        label: 'All agents (Recommended)',
+        hint: `Install to all ${availableAgents.length} detected agents`,
+      },
+      {
+        value: 'select',
+        label: 'Select specific agents',
+        hint: 'Choose which agents to install to',
+      },
+    ],
+  });
+
+  if (p.isCancel(installChoice)) {
+    return installChoice;
+  }
+
+  if (installChoice === 'all') {
+    return availableAgents;
+  }
+
+  // Second step: show multiselect for specific agent selection
+  const agentChoices = availableAgents.map((a) => ({
+    value: a,
+    label: agents[a].displayName,
+    hint: `${options.global ? agents[a].globalSkillsDir : agents[a].skillsDir}`,
+  }));
+
+  const selected = await multiselect({
+    message: 'Select agents to install skills to',
+    options: agentChoices,
+    required: true,
+    initialValues: [], // Start with none selected for easier picking
+  });
+
+  return selected as AgentType[] | symbol;
 }
 
 const version = packageJson.version;
 setVersion(version);
 
-interface Options {
+export interface AddOptions {
   global?: boolean;
   agent?: string[];
   yes?: boolean;
@@ -78,75 +135,6 @@ interface Options {
   all?: boolean;
 }
 
-program
-  .name('add-skill')
-  .description(
-    'Install skills onto coding agents (OpenCode, Claude Code, Cline, Codex, Cursor, and more)'
-  )
-  .version(version);
-
-program
-  .command('remove [skills...]')
-  .alias('rm')
-  .description('Remove installed skills from agents')
-  .option('-g, --global', 'Remove from global scope')
-  .option('-a, --agent <agents...>', 'Remove from specific agents')
-  .option('--all', 'Remove all installed skills')
-  .option('-y, --yes', 'Skip confirmation prompts')
-  .action(async (skills: string[], _options: RemoveOptions, command: Command) => {
-    const { removeCommand } = await import('./commands/remove.js');
-    await removeCommand(skills, command.optsWithGlobals());
-  });
-
-program
-  .argument(
-    '<source>',
-    'Git repo URL, GitHub shorthand (owner/repo), local path (./path), or direct path to skill'
-  )
-  .option('-g, --global', 'Install skill globally (user-level) instead of project-level')
-  .option(
-    '-a, --agent <agents...>',
-    'Specify agents to install to (opencode, openhands, claude-code, cline, codex, cursor, and more)'
-  )
-  .option('-s, --skill <skills...>', 'Specify skill names to install (skip selection prompt)')
-  .option('-l, --list', 'List available skills in the repository without installing')
-  .option('-y, --yes', 'Skip confirmation prompts')
-  .option('--all', 'Install all skills to all agents without any prompts (implies -y -g)')
-  .configureOutput({
-    outputError: (str, write) => {
-      if (str.includes('missing required argument')) {
-        console.log();
-        console.log(
-          chalk.bgRed.white.bold(' ERROR ') + ' ' + chalk.red('Missing required argument: source')
-        );
-        console.log();
-        console.log(chalk.dim('  Usage:'));
-        console.log(
-          `    ${chalk.cyan('npx add-skill')} ${chalk.yellow('<source>')} ${chalk.dim('[options]')}`
-        );
-        console.log();
-        console.log(chalk.dim('  Example:'));
-        console.log(
-          `    ${chalk.cyan('npx add-skill')} ${chalk.yellow('vercel-labs/agent-skills')}`
-        );
-        console.log();
-        console.log(
-          chalk.dim('  Run') +
-            ` ${chalk.cyan('npx add-skill --help')} ` +
-            chalk.dim('for more information.')
-        );
-        console.log();
-      } else {
-        write(str);
-      }
-    },
-  })
-  .action(async (source: string, options: Options) => {
-    await main(source, options);
-  });
-
-program.parse();
-
 /**
  * Handle remote skill installation from any supported host provider.
  * This is the generic handler for direct URL skills (Mintlify, HuggingFace, etc.)
@@ -154,15 +142,16 @@ program.parse();
 async function handleRemoteSkill(
   source: string,
   url: string,
-  options: Options,
+  options: AddOptions,
   spinner: ReturnType<typeof p.spinner>
-) {
+): Promise<void> {
   // Find a provider that can handle this URL
   const provider = findProvider(url);
 
   if (!provider) {
     // Fall back to legacy Mintlify handling for backwards compatibility
-    return handleDirectUrlSkillLegacy(source, url, options, spinner);
+    await handleDirectUrlSkillLegacy(source, url, options, spinner);
+    return;
   }
 
   spinner.start(`Fetching skill.md from ${provider.displayName}...`);
@@ -234,9 +223,7 @@ async function handleRemoteSkill(
       } else {
         p.log.warn('No coding agents detected. You can still install skills.');
 
-        const allAgentChoices: Array<{ value: AgentType; label: string }> = Object.entries(
-          agents
-        ).map(([key, config]) => ({
+        const allAgentChoices = Object.entries(agents).map(([key, config]) => ({
           value: key as AgentType,
           label: config.displayName,
         }));
@@ -266,19 +253,7 @@ async function handleRemoteSkill(
         );
       }
     } else {
-      const agentChoices: Array<{ value: AgentType; label: string; hint: string }> =
-        installedAgents.map((a) => ({
-          value: a,
-          label: agents[a].displayName,
-          hint: `${options.global ? agents[a].globalSkillsDir : agents[a].skillsDir}`,
-        }));
-
-      const selected = await multiselect({
-        message: 'Select agents to install skills to',
-        options: agentChoices,
-        required: true,
-        initialValues: installedAgents,
-      });
+      const selected = await selectAgentsInteractive(installedAgents, { global: options.global });
 
       if (p.isCancel(selected)) {
         p.cancel('Installation cancelled');
@@ -509,6 +484,9 @@ async function handleRemoteSkill(
 
   console.log();
   p.outro(chalk.green('Done!'));
+
+  // Prompt for find-skills after successful install
+  await promptForFindSkills();
 }
 
 /**
@@ -518,9 +496,9 @@ async function handleRemoteSkill(
 async function handleDirectUrlSkillLegacy(
   source: string,
   url: string,
-  options: Options,
+  options: AddOptions,
   spinner: ReturnType<typeof p.spinner>
-) {
+): Promise<void> {
   spinner.start('Fetching skill.md...');
   const mintlifySkill = await fetchMintlifySkill(url);
 
@@ -534,18 +512,28 @@ async function handleDirectUrlSkillLegacy(
     process.exit(1);
   }
 
-  spinner.stop(`Found skill: ${chalk.cyan(mintlifySkill.mintlifySite)}`);
+  // Convert to RemoteSkill and use the new handler
+  const remoteSkill: RemoteSkill = {
+    name: mintlifySkill.name,
+    description: mintlifySkill.description,
+    content: mintlifySkill.content,
+    installName: mintlifySkill.mintlifySite,
+    sourceUrl: mintlifySkill.sourceUrl,
+    providerId: 'mintlify',
+    sourceIdentifier: 'mintlify/com',
+  };
 
-  p.log.info(`Skill: ${chalk.cyan(mintlifySkill.name)}`);
-  p.log.message(chalk.dim(mintlifySkill.description));
-  p.log.message(chalk.dim(`Source: mintlify/skills`));
+  spinner.stop(`Found skill: ${chalk.cyan(remoteSkill.installName)}`);
+
+  p.log.info(`Skill: ${chalk.cyan(remoteSkill.name)}`);
+  p.log.message(chalk.dim(remoteSkill.description));
 
   if (options.list) {
     console.log();
     p.log.step(chalk.bold('Skill Details'));
-    p.log.message(`  ${chalk.cyan('Name:')} ${mintlifySkill.name}`);
-    p.log.message(`  ${chalk.cyan('Site:')} ${mintlifySkill.mintlifySite}`);
-    p.log.message(`  ${chalk.cyan('Description:')} ${mintlifySkill.description}`);
+    p.log.message(`  ${chalk.cyan('Name:')} ${remoteSkill.name}`);
+    p.log.message(`  ${chalk.cyan('Site:')} ${remoteSkill.installName}`);
+    p.log.message(`  ${chalk.cyan('Description:')} ${remoteSkill.description}`);
     console.log();
     p.outro('Run without --list to install');
     process.exit(0);
@@ -579,9 +567,7 @@ async function handleDirectUrlSkillLegacy(
       } else {
         p.log.warn('No coding agents detected. You can still install skills.');
 
-        const allAgentChoices: Array<{ value: AgentType; label: string }> = Object.entries(
-          agents
-        ).map(([key, config]) => ({
+        const allAgentChoices = Object.entries(agents).map(([key, config]) => ({
           value: key as AgentType,
           label: config.displayName,
         }));
@@ -611,19 +597,7 @@ async function handleDirectUrlSkillLegacy(
         );
       }
     } else {
-      const agentChoices: Array<{ value: AgentType; label: string; hint: string }> =
-        installedAgents.map((a) => ({
-          value: a,
-          label: agents[a].displayName,
-          hint: `${options.global ? agents[a].globalSkillsDir : agents[a].skillsDir}`,
-        }));
-
-      const selected = await multiselect({
-        message: 'Select agents to install skills to',
-        options: agentChoices,
-        required: true,
-        initialValues: installedAgents,
-      });
+      const selected = await selectAgentsInteractive(installedAgents, { global: options.global });
 
       if (p.isCancel(selected)) {
         p.cancel('Installation cancelled');
@@ -661,30 +635,8 @@ async function handleDirectUrlSkillLegacy(
     installGlobally = scope as boolean;
   }
 
-  // Prompt for install mode (symlink vs copy)
-  let installMode: InstallMode = 'symlink';
-
-  if (!options.yes) {
-    const modeChoice = await p.select({
-      message: 'Installation method',
-      options: [
-        {
-          value: 'symlink',
-          label: 'Symlink (Recommended)',
-          hint: 'Single source of truth, easy updates',
-        },
-        { value: 'copy', label: 'Copy to all agents', hint: 'Independent copies for each agent' },
-      ],
-    });
-
-    if (p.isCancel(modeChoice)) {
-      p.cancel('Installation cancelled');
-      process.exit(0);
-    }
-
-    installMode = modeChoice as InstallMode;
-  }
-
+  // Use symlink mode by default for direct URL skills
+  const installMode: InstallMode = 'symlink';
   const cwd = process.cwd();
 
   // Check for overwrites
@@ -692,7 +644,7 @@ async function handleDirectUrlSkillLegacy(
   for (const agent of targetAgents) {
     overwriteStatus.set(
       agent,
-      await isSkillInstalled(mintlifySkill.mintlifySite, agent, {
+      await isSkillInstalled(remoteSkill.installName, agent, {
         global: installGlobally,
       })
     );
@@ -701,16 +653,10 @@ async function handleDirectUrlSkillLegacy(
   // Build installation summary
   const summaryLines: string[] = [];
   const agentNames = targetAgents.map((a) => agents[a].displayName);
-
-  if (installMode === 'symlink') {
-    const canonicalPath = getCanonicalPath(mintlifySkill.mintlifySite, { global: installGlobally });
-    const shortCanonical = shortenPath(canonicalPath, cwd);
-    summaryLines.push(`${chalk.cyan(shortCanonical)}`);
-    summaryLines.push(`  ${chalk.dim('symlink →')} ${formatList(agentNames)}`);
-  } else {
-    summaryLines.push(`${chalk.cyan(mintlifySkill.mintlifySite)}`);
-    summaryLines.push(`  ${chalk.dim('copy →')} ${formatList(agentNames)}`);
-  }
+  const canonicalPath = getCanonicalPath(remoteSkill.installName, { global: installGlobally });
+  const shortCanonical = shortenPath(canonicalPath, cwd);
+  summaryLines.push(`${chalk.cyan(shortCanonical)}`);
+  summaryLines.push(`  ${chalk.dim('symlink →')} ${formatList(agentNames)}`);
 
   const overwriteAgents = targetAgents
     .filter((a) => overwriteStatus.get(a))
@@ -748,12 +694,12 @@ async function handleDirectUrlSkillLegacy(
   }[] = [];
 
   for (const agent of targetAgents) {
-    const result = await installMintlifySkillForAgent(mintlifySkill, agent, {
+    const result = await installRemoteSkillForAgent(remoteSkill, agent, {
       global: installGlobally,
       mode: installMode,
     });
     results.push({
-      skill: mintlifySkill.mintlifySite,
+      skill: remoteSkill.installName,
       agent: agents[agent].displayName,
       ...result,
     });
@@ -765,14 +711,14 @@ async function handleDirectUrlSkillLegacy(
   const successful = results.filter((r) => r.success);
   const failed = results.filter((r) => !r.success);
 
-  // Track installation - use mintlify/skills as source
+  // Track installation
   track({
     event: 'install',
-    source: 'mintlify/skills',
-    skills: mintlifySkill.mintlifySite,
+    source: 'mintlify/com',
+    skills: remoteSkill.installName,
     agents: targetAgents.join(','),
     ...(installGlobally && { global: '1' }),
-    skillFiles: JSON.stringify({ [mintlifySkill.mintlifySite]: url }),
+    skillFiles: JSON.stringify({ [remoteSkill.installName]: url }),
     sourceType: 'mintlify',
   });
 
@@ -781,8 +727,8 @@ async function handleDirectUrlSkillLegacy(
     try {
       // skillFolderHash will be populated by telemetry server
       // Mintlify skills are single-file, so folder hash = content hash on server
-      await addSkillToLock(mintlifySkill.mintlifySite, {
-        source: `mintlify/${mintlifySkill.mintlifySite}`,
+      await addSkillToLock(remoteSkill.installName, {
+        source: `mintlify/${remoteSkill.installName}`,
         sourceType: 'mintlify',
         sourceUrl: url,
         skillFolderHash: '', // Populated by server
@@ -796,31 +742,20 @@ async function handleDirectUrlSkillLegacy(
     const resultLines: string[] = [];
     const firstResult = successful[0]!;
 
-    if (firstResult.mode === 'copy') {
-      resultLines.push(
-        `${chalk.green('✓')} ${mintlifySkill.mintlifySite} ${chalk.dim('(copied)')}`
-      );
-      for (const r of successful) {
-        const shortPath = shortenPath(r.path, cwd);
-        resultLines.push(`  ${chalk.dim('→')} ${shortPath}`);
-      }
+    if (firstResult.canonicalPath) {
+      const shortPath = shortenPath(firstResult.canonicalPath, cwd);
+      resultLines.push(`${chalk.green('✓')} ${shortPath}`);
     } else {
-      // Symlink mode
-      if (firstResult.canonicalPath) {
-        const shortPath = shortenPath(firstResult.canonicalPath, cwd);
-        resultLines.push(`${chalk.green('✓')} ${shortPath}`);
-      } else {
-        resultLines.push(`${chalk.green('✓')} ${mintlifySkill.mintlifySite}`);
-      }
-      const symlinked = successful.filter((r) => !r.symlinkFailed).map((r) => r.agent);
-      const copied = successful.filter((r) => r.symlinkFailed).map((r) => r.agent);
+      resultLines.push(`${chalk.green('✓')} ${remoteSkill.installName}`);
+    }
+    const symlinked = successful.filter((r) => !r.symlinkFailed).map((r) => r.agent);
+    const copied = successful.filter((r) => r.symlinkFailed).map((r) => r.agent);
 
-      if (symlinked.length > 0) {
-        resultLines.push(`  ${chalk.dim('symlink →')} ${formatList(symlinked)}`);
-      }
-      if (copied.length > 0) {
-        resultLines.push(`  ${chalk.yellow('copied →')} ${formatList(copied)}`);
-      }
+    if (symlinked.length > 0) {
+      resultLines.push(`  ${chalk.dim('symlink →')} ${formatList(symlinked)}`);
+    }
+    if (copied.length > 0) {
+      resultLines.push(`  ${chalk.yellow('copied →')} ${formatList(copied)}`);
     }
 
     const title = chalk.green(
@@ -851,9 +786,41 @@ async function handleDirectUrlSkillLegacy(
 
   console.log();
   p.outro(chalk.green('Done!'));
+
+  // Prompt for find-skills after successful install
+  await promptForFindSkills();
 }
 
-async function main(source: string, options: Options) {
+export async function runAdd(args: string[], options: AddOptions = {}): Promise<void> {
+  const source = args[0];
+  let installTipShown = false;
+
+  const showInstallTip = (): void => {
+    if (installTipShown) return;
+    p.log.message(
+      chalk.dim('Tip: use the --yes (-y) and --global (-g) flags to install without prompts.')
+    );
+    installTipShown = true;
+  };
+
+  if (!source) {
+    console.log();
+    console.log(
+      chalk.bgRed.white.bold(' ERROR ') + ' ' + chalk.red('Missing required argument: source')
+    );
+    console.log();
+    console.log(chalk.dim('  Usage:'));
+    console.log(
+      `    ${chalk.cyan('npx skills add')} ${chalk.yellow('<source>')} ${chalk.dim('[options]')}`
+    );
+    console.log();
+    console.log(chalk.dim('  Example:'));
+    console.log(`    ${chalk.cyan('npx skills add')} ${chalk.yellow('vercel-labs/agent-skills')}`);
+    console.log();
+    process.exit(1);
+  }
+
+  // --all implies -y and -g
   if (options.all) {
     options.yes = true;
     options.global = true;
@@ -861,6 +828,10 @@ async function main(source: string, options: Options) {
 
   console.log();
   p.intro(chalk.bgCyan.black(' skills '));
+
+  if (!process.stdin.isTTY) {
+    showInstallTip();
+  }
 
   let tempDir: string | null = null;
 
@@ -870,7 +841,7 @@ async function main(source: string, options: Options) {
     spinner.start('Parsing source...');
     const parsed = parseSource(source);
     spinner.stop(
-      `Source: ${chalk.cyan(parsed.type === 'local' ? parsed.localPath! : parsed.url)}${parsed.subpath ? ` (${parsed.subpath})` : ''}`
+      `Source: ${parsed.type === 'local' ? parsed.localPath! : parsed.url}${parsed.ref ? ` @ ${chalk.yellow(parsed.ref)}` : ''}${parsed.subpath ? ` (${parsed.subpath})` : ''}`
     );
 
     // Handle direct URL skills (Mintlify, HuggingFace, etc.) via provider system
@@ -884,7 +855,6 @@ async function main(source: string, options: Options) {
     if (parsed.type === 'local') {
       // Use local path directly, no cloning needed
       spinner.start('Validating local path...');
-      const { existsSync } = await import('fs');
       if (!existsSync(parsed.localPath!)) {
         spinner.stop(chalk.red('Path not found'));
         p.outro(chalk.red(`Local path does not exist: ${parsed.localPath}`));
@@ -895,7 +865,7 @@ async function main(source: string, options: Options) {
     } else {
       // Clone repository for remote sources
       spinner.start('Cloning repository...');
-      tempDir = await cloneRepo(parsed.url);
+      tempDir = await cloneRepo(parsed.url, parsed.ref);
       skillsDir = tempDir;
       spinner.stop('Repository cloned');
     }
@@ -996,6 +966,7 @@ async function main(source: string, options: Options) {
 
       targetAgents = options.agent as AgentType[];
     } else if (options.all) {
+      // --all flag: install to all agents without detection
       targetAgents = validAgents as AgentType[];
       p.log.info(`Installing to all ${targetAgents.length} agents`);
     } else {
@@ -1012,9 +983,7 @@ async function main(source: string, options: Options) {
         } else {
           p.log.warn('No coding agents detected. You can still install skills.');
 
-          const allAgentChoices: Array<{ value: AgentType; label: string }> = Object.entries(
-            agents
-          ).map(([key, config]) => ({
+          const allAgentChoices = Object.entries(agents).map(([key, config]) => ({
             value: key as AgentType,
             label: config.displayName,
           }));
@@ -1045,19 +1014,7 @@ async function main(source: string, options: Options) {
           );
         }
       } else {
-        const agentChoices: Array<{ value: AgentType; label: string; hint: string }> =
-          installedAgents.map((a) => ({
-            value: a,
-            label: agents[a].displayName,
-            hint: `${options.global ? agents[a].globalSkillsDir : agents[a].skillsDir}`,
-          }));
-
-        const selected = await multiselect({
-          message: 'Select agents to install skills to',
-          options: agentChoices,
-          required: true,
-          initialValues: installedAgents,
-        });
+        const selected = await selectAgentsInteractive(installedAgents, { global: options.global });
 
         if (p.isCancel(selected)) {
           p.cancel('Installation cancelled');
@@ -1123,7 +1080,12 @@ async function main(source: string, options: Options) {
     }
 
     const cwd = process.cwd();
+
+    // Build installation summary
     const summaryLines: string[] = [];
+    const agentNames = targetAgents.map((a) => agents[a].displayName);
+
+    // Check if any skill will be overwritten
     const overwriteStatus = new Map<string, Map<string, boolean>>();
     for (const skill of selectedSkills) {
       const agentStatus = new Map<string, boolean>();
@@ -1135,11 +1097,6 @@ async function main(source: string, options: Options) {
       }
       overwriteStatus.set(skill.name, agentStatus);
     }
-
-    const agentNames = targetAgents.map((a) => agents[a].displayName);
-    const hasOverwrites = Array.from(overwriteStatus.values()).some((agentMap) =>
-      Array.from(agentMap.values()).some((v) => v)
-    );
 
     for (const skill of selectedSkills) {
       if (summaryLines.length > 0) summaryLines.push('');
@@ -1168,9 +1125,7 @@ async function main(source: string, options: Options) {
     p.note(summaryLines.join('\n'), 'Installation Summary');
 
     if (!options.yes) {
-      const confirmed = await p.confirm({
-        message: 'Proceed with installation?',
-      });
+      const confirmed = await p.confirm({ message: 'Proceed with installation?' });
 
       if (p.isCancel(confirmed) || !confirmed) {
         p.cancel('Installation cancelled');
@@ -1212,20 +1167,29 @@ async function main(source: string, options: Options) {
     const successful = results.filter((r) => r.success);
     const failed = results.filter((r) => !r.success);
 
+    // Track installation result
+    // Build skillFiles map: { skillName: relative path to SKILL.md from repo root }
     const skillFiles: Record<string, string> = {};
     for (const skill of selectedSkills) {
+      // skill.path is absolute, compute relative from tempDir (repo root)
       let relativePath: string;
       if (tempDir && skill.path === tempDir) {
+        // Skill is at root level of repo
         relativePath = 'SKILL.md';
       } else if (tempDir && skill.path.startsWith(tempDir + '/')) {
+        // Compute path relative to repo root (tempDir), not search path
         relativePath = skill.path.slice(tempDir.length + 1) + '/SKILL.md';
       } else {
+        // Local path - skip telemetry for local installs
         continue;
       }
       skillFiles[skill.name] = relativePath;
     }
 
+    // Normalize source to owner/repo format for telemetry
     const normalizedSource = getOwnerRepo(parsed);
+
+    // Only track if we have a valid remote source
     if (normalizedSource) {
       track({
         event: 'install',
@@ -1295,6 +1259,8 @@ async function main(source: string, options: Options) {
           if (firstResult.canonicalPath) {
             const shortPath = shortenPath(firstResult.canonicalPath, cwd);
             resultLines.push(`${chalk.green('✓')} ${shortPath}`);
+          } else {
+            resultLines.push(`${chalk.green('✓')} ${skillName}`);
           }
           const symlinked = skillResults.filter((r) => !r.symlinkFailed).map((r) => r.agent);
           const copied = skillResults.filter((r) => r.symlinkFailed).map((r) => r.agent);
@@ -1334,8 +1300,20 @@ async function main(source: string, options: Options) {
 
     console.log();
     p.outro(chalk.green('Done!'));
+
+    // Prompt for find-skills after successful install
+    await promptForFindSkills();
   } catch (error) {
-    p.log.error(error instanceof Error ? error.message : 'Unknown error occurred');
+    if (error instanceof GitCloneError) {
+      p.log.error(chalk.red('Failed to clone repository'));
+      // Print each line of the error message separately for better formatting
+      for (const line of error.message.split('\n')) {
+        p.log.message(chalk.dim(line));
+      }
+    } else {
+      p.log.error(error instanceof Error ? error.message : 'Unknown error occurred');
+    }
+    showInstallTip();
     p.outro(chalk.red('Installation failed'));
     process.exit(1);
   } finally {
@@ -1351,4 +1329,114 @@ async function cleanup(tempDir: string | null) {
       // Ignore cleanup errors
     }
   }
+}
+
+/**
+ * Prompt user to install the find-skills skill after their first installation.
+ * This helps users discover skills via their coding agent.
+ * The prompt is only shown once - if dismissed, it's stored in the lock file.
+ */
+async function promptForFindSkills(): Promise<void> {
+  // Skip if already dismissed or not in interactive mode
+  if (!process.stdin.isTTY) return;
+
+  try {
+    const dismissed = await isPromptDismissed('findSkillsPrompt');
+    if (dismissed) return;
+
+    // Check if find-skills is already installed
+    const findSkillsInstalled = await isSkillInstalled('find-skills', 'claude-code', {
+      global: true,
+    });
+    if (findSkillsInstalled) {
+      // Mark as dismissed so we don't check again
+      await dismissPrompt('findSkillsPrompt');
+      return;
+    }
+
+    console.log();
+    p.log.message(chalk.dim("One-time prompt - you won't be asked again if you dismiss."));
+    const install = await p.confirm({
+      message: `Install the ${chalk.cyan('find-skills')} skill? It helps your agent discover and suggest skills.`,
+    });
+
+    if (p.isCancel(install)) {
+      await dismissPrompt('findSkillsPrompt');
+      return;
+    }
+
+    if (install) {
+      // Install find-skills globally to all agents
+      // Mark as dismissed first to prevent recursive prompts
+      await dismissPrompt('findSkillsPrompt');
+
+      console.log();
+      p.log.step('Installing find-skills skill...');
+
+      try {
+        // Call runAdd directly instead of spawning subprocess
+        await runAdd(['vercel-labs/skills'], {
+          skill: ['find-skills'],
+          global: true,
+          yes: true,
+          all: true,
+        });
+      } catch {
+        p.log.warn('Failed to install find-skills. You can try again with:');
+        p.log.message(chalk.dim('  npx skills add vercel-labs/skills@find-skills -g -y --all'));
+      }
+    } else {
+      // User declined - dismiss the prompt
+      await dismissPrompt('findSkillsPrompt');
+      p.log.message(
+        chalk.dim('You can install it later with: npx skills add vercel-labs/skills@find-skills')
+      );
+    }
+  } catch {
+    // Don't fail the main installation if prompt fails
+  }
+}
+
+// Parse command line options from args array
+export function parseAddOptions(args: string[]): { source: string[]; options: AddOptions } {
+  const options: AddOptions = {};
+  const source: string[] = [];
+
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+
+    if (arg === '-g' || arg === '--global') {
+      options.global = true;
+    } else if (arg === '-y' || arg === '--yes') {
+      options.yes = true;
+    } else if (arg === '-l' || arg === '--list') {
+      options.list = true;
+    } else if (arg === '--all') {
+      options.all = true;
+    } else if (arg === '-a' || arg === '--agent') {
+      options.agent = options.agent || [];
+      i++;
+      let nextArg = args[i];
+      while (i < args.length && nextArg && !nextArg.startsWith('-')) {
+        options.agent.push(nextArg);
+        i++;
+        nextArg = args[i];
+      }
+      i--; // Back up one since the loop will increment
+    } else if (arg === '-s' || arg === '--skill') {
+      options.skill = options.skill || [];
+      i++;
+      let nextArg = args[i];
+      while (i < args.length && nextArg && !nextArg.startsWith('-')) {
+        options.skill.push(nextArg);
+        i++;
+        nextArg = args[i];
+      }
+      i--; // Back up one since the loop will increment
+    } else if (arg && !arg.startsWith('-')) {
+      source.push(arg);
+    }
+  }
+
+  return { source, options };
 }

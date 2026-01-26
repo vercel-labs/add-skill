@@ -1,19 +1,135 @@
-# add-skill
+# skills
 
-Install agent skills onto your coding agents from any git repository.
+The CLI for the open agent skills ecosystem.
 
 <!-- agent-list:start -->
 Supports **Opencode**, **Claude Code**, **Codex**, **Cursor**, and [23 more](#available-agents).
 <!-- agent-list:end -->
 
-## Quick Start
+## Install a Skill
 
 ```bash
-# Install skills
-npx add-skill vercel-labs/agent-skills
+npx skills add vercel-labs/agent-skills
+```
 
-# Remove skills
-npx add-skill remove
+### Source Formats
+
+```bash
+# GitHub shorthand (owner/repo)
+npx skills add vercel-labs/agent-skills
+
+# Full GitHub URL
+npx skills add https://github.com/vercel-labs/agent-skills
+
+# Direct path to a skill in a repo
+npx skills add https://github.com/vercel-labs/agent-skills/tree/main/skills/frontend-design
+
+# GitLab URL
+npx skills add https://gitlab.com/org/repo
+
+# Any git URL
+npx skills add git@github.com:vercel-labs/agent-skills.git
+
+# Local path
+npx skills add ./my-local-skills
+```
+
+### Options
+
+| Option                    | Description                                                                                                                                        |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `-g, --global`            | Install to user directory instead of project                                                                                                       |
+| `-a, --agent <agents...>` | <!-- agent-names:start -->Target specific agents (e.g., `claude-code`, `codex`). See [Supported Agents](#supported-agents)<!-- agent-names:end --> |
+| `-s, --skill <skills...>` | Install specific skills by name                                                                                                                    |
+| `-l, --list`              | List available skills without installing                                                                                                           |
+| `-y, --yes`               | Skip all confirmation prompts                                                                                                                      |
+| `--all`                   | Install all skills to all agents without prompts                                                                                                   |
+
+### Examples
+
+```bash
+# List skills in a repository
+npx skills add vercel-labs/agent-skills --list
+
+# Install specific skills
+npx skills add vercel-labs/agent-skills --skill frontend-design --skill skill-creator
+
+# Install to specific agents
+npx skills add vercel-labs/agent-skills -a claude-code -a opencode
+
+# Non-interactive installation (CI/CD friendly)
+npx skills add vercel-labs/agent-skills --skill frontend-design -g -a claude-code -y
+
+# Install all skills from a repo to all agents
+npx skills add vercel-labs/agent-skills --all
+```
+
+### Installation Scope
+
+| Scope       | Flag      | Location            | Use Case                                      |
+| ----------- | --------- | ------------------- | --------------------------------------------- |
+| **Project** | (default) | `./<agent>/skills/` | Committed with your project, shared with team |
+| **Global**  | `-g`      | `~/<agent>/skills/` | Available across all projects                 |
+
+### Installation Methods
+
+When installing interactively, you can choose:
+
+| Method                    | Description                                                                                 |
+| ------------------------- | ------------------------------------------------------------------------------------------- |
+| **Symlink** (Recommended) | Creates symlinks from each agent to a canonical copy. Single source of truth, easy updates. |
+| **Copy**                  | Creates independent copies for each agent. Use when symlinks aren't supported.              |
+
+## Other Commands
+
+| Command                    | Description                                           |
+| -------------------------- | ----------------------------------------------------- |
+| `npx skills find [query]`  | Search for skills interactively or by keyword         |
+| `npx skills check`         | Check for available skill updates                     |
+| `npx skills update`        | Update all installed skills to latest versions        |
+| `npx skills init [name]`   | Create a new SKILL.md template                        |
+| `npx skills generate-lock` | Match installed skills to sources for update tracking |
+
+### `skills find`
+
+Search for skills interactively or by keyword.
+
+```bash
+# Interactive search (fzf-style)
+npx skills find
+
+# Search by keyword
+npx skills find typescript
+```
+
+### `skills check` / `skills update`
+
+```bash
+# Check if any installed skills have updates
+npx skills check
+
+# Update all skills to latest versions
+npx skills update
+```
+
+### `skills init`
+
+```bash
+# Create SKILL.md in current directory
+npx skills init
+
+# Create a new skill in a subdirectory
+npx skills init my-skill
+```
+
+### `skills generate-lock`
+
+```bash
+# Match installed skills to sources for update tracking
+npx skills generate-lock
+
+# Preview without writing
+npx skills generate-lock --dry-run
 ```
 
 ## What are Agent Skills?
@@ -26,99 +142,11 @@ Skills let agents perform specialized tasks like:
 - Creating PRs following your team's conventions
 - Integrating with external tools (Linear, Notion, etc.)
 
-## Usage
+Discover skills at **[skills.sh](https://skills.sh)**
 
-### Installing Skills
+## Supported Agents
 
-The `<source>` argument accepts multiple formats:
-
-```bash
-# GitHub shorthand
-npx add-skill vercel-labs/agent-skills
-
-# Full GitHub URL
-npx add-skill https://github.com/vercel-labs/agent-skills
-
-# Direct path to a skill in a repo
-npx add-skill https://github.com/vercel-labs/agent-skills/tree/main/skills/frontend-design
-
-# GitLab URL
-npx add-skill https://gitlab.com/org/repo
-
-# Any git URL
-npx add-skill git@github.com:vercel-labs/agent-skills.git
-```
-
-### Removing Skills
-
-You can remove skills interactively or by specifying their names. The removal command is context-aware:
-
-```bash
-# Scan only LOCAL skills (project-level)
-npx add-skill remove
-
-# Scan ONLY global skills
-npx add-skill remove --global
-
-# Use 'rm' alias
-npx add-skill rm
-
-# Remove specific skills by name
-npx add-skill remove web-design-guidelines frontend-design
-
-# Remove specific global skills
-npx add-skill remove --global web-design-guidelines
-
-# Remove all installed skills in the current scope without confirmation
-npx add-skill remove --all --yes
-```
-
-### Options
-
-| Option                    | Description                                                                                                                                        |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `-g, --global`            | Install to user directory instead of project                                                                                                       |
-| `-a, --agent <agents...>` | <!-- agent-names:start -->Target specific agents (e.g., `claude-code`, `codex`). See [Available Agents](#available-agents)<!-- agent-names:end --> |
-| `-s, --skill <skills...>` | Install specific skills by name                                                                                                                    |
-| `-l, --list`              | List available skills without installing                                                                                                           |
-| `-y, --yes`               | Skip all confirmation prompts                                                                                                                      |
-| `-V, --version`           | Show version number                                                                                                                                |
-| `-h, --help`              | Show help                                                                                                                                          |
-
-### Examples
-
-```bash
-# List skills in a repository
-npx add-skill vercel-labs/agent-skills --list
-
-# Install multiple specific skills
-npx add-skill vercel-labs/agent-skills --skill frontend-design --skill skill-creator
-
-# Install to specific agents
-npx add-skill vercel-labs/agent-skills -a claude-code -a opencode
-
-# Non-interactive installation (CI/CD friendly)
-npx add-skill vercel-labs/agent-skills --skill frontend-design -g -a claude-code -y
-
-# Install all skills from a repo
-npx add-skill vercel-labs/agent-skills -y -g
-
-# Remove skills interactively
-npx add-skill remove
-
-# Remove using rm alias
-npx add-skill rm web-design-guidelines
-
-# Remove global skills
-npx add-skill remove --global web-design-guidelines
-
-# Remove all skills without confirmation
-npx add-skill remove --all -y
-```
-
-## Available Agents
-
-Skills can be installed to any of these supported agents. Use `-g, --global` to install to the global path instead of project-level.
+Skills can be installed to any of these agents:
 
 <!-- available-agents:start -->
 | Agent | `--agent` | Project Path | Global Path |
@@ -153,7 +181,7 @@ Skills can be installed to any of these supported agents. Use `-g, --global` to 
 <!-- available-agents:end -->
 
 > [!NOTE]
-> **Kiro CLI users:** After installing skills, you need to manually add them to your custom agent's `resources` in `.kiro/agents/<agent>.json`:
+> **Kiro CLI users:** After installing skills, manually add them to your custom agent's `resources` in `.kiro/agents/<agent>.json`:
 >
 > ```json
 > {
@@ -161,9 +189,7 @@ Skills can be installed to any of these supported agents. Use `-g, --global` to 
 > }
 > ```
 
-## Agent Detection
-
-The CLI automatically detects which coding agents you have installed by checking for their configuration directories. If none are detected, you'll be prompted to select which agents to install to.
+The CLI automatically detects which coding agents you have installed. If none are detected, you'll be prompted to select which agents to install to.
 
 ## Creating Skills
 
@@ -199,6 +225,7 @@ Describe the scenarios where this skill should be used.
 The CLI searches for skills in these locations within a repository:
 
 <!-- skill-discovery:start -->
+
 - Root directory (if it contains `SKILL.md`)
 - `skills/`
 - `skills/.curated/`
@@ -266,19 +293,20 @@ Ensure you have write access to the target directory.
 
 This CLI collects anonymous usage data to help improve the tool. No personal information is collected.
 
-To disable telemetry, set either of these environment variables:
+To disable telemetry:
 
 ```bash
-DISABLE_TELEMETRY=1 npx add-skill vercel-labs/agent-skills
+DISABLE_TELEMETRY=1 npx skills add vercel-labs/agent-skills
 # or
-DO_NOT_TRACK=1 npx add-skill vercel-labs/agent-skills
+DO_NOT_TRACK=1 npx skills add vercel-labs/agent-skills
 ```
 
-Telemetry is also automatically disabled in CI environments.
+Telemetry is automatically disabled in CI environments.
 
 ## Related Links
 
 - [Agent Skills Specification](https://agentskills.io)
+- [Skills Directory](https://skills.sh)
 - [Amp Skills Documentation](https://ampcode.com/manual#agent-skills)
 - [Antigravity Skills Documentation](https://antigravity.google/docs/skills)
 - [Claude Code Skills Documentation](https://code.claude.com/docs/en/skills)

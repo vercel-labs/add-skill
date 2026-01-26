@@ -1,215 +1,200 @@
-#!/usr/bin/env tsx
-
 /**
  * Unit tests for source-parser.ts
  *
  * These tests verify the URL parsing logic - they don't make network requests
  * or clone repositories. They ensure that given a URL string, the parser
  * correctly extracts type, url, ref (branch), and subpath.
- *
- * Run with: npx tsx tests/source-parser.test.ts
  */
 
-import assert from 'node:assert';
-import { getOwnerRepo, parseSource } from '../src/source-parser.js';
+import { describe, it, expect } from 'vitest';
+import { parseSource, getOwnerRepo } from '../src/source-parser.js';
 
-let passed = 0;
-let failed = 0;
+describe('parseSource', () => {
+  describe('GitHub URL tests', () => {
+    it('GitHub URL - basic repo', () => {
+      const result = parseSource('https://github.com/owner/repo');
+      expect(result.type).toBe('github');
+      expect(result.url).toBe('https://github.com/owner/repo.git');
+      expect(result.ref).toBeUndefined();
+      expect(result.subpath).toBeUndefined();
+    });
 
-function test(name: string, fn: () => void) {
-  try {
-    fn();
-    console.log(`✓ ${name}`);
-    passed++;
-  } catch (err) {
-    console.log(`✗ ${name}`);
-    console.error(`  ${(err as Error).message}`);
-    failed++;
-  }
-}
+    it('GitHub URL - with .git suffix', () => {
+      const result = parseSource('https://github.com/owner/repo.git');
+      expect(result.type).toBe('github');
+      expect(result.url).toBe('https://github.com/owner/repo.git');
+    });
 
-// GitHub URL tests
-test('GitHub URL - basic repo', () => {
-  const result = parseSource('https://github.com/owner/repo');
-  assert.strictEqual(result.type, 'github');
-  assert.strictEqual(result.url, 'https://github.com/owner/repo.git');
-  assert.strictEqual(result.ref, undefined);
-  assert.strictEqual(result.subpath, undefined);
+    it('GitHub URL - tree with branch only', () => {
+      const result = parseSource('https://github.com/owner/repo/tree/feature-branch');
+      expect(result.type).toBe('github');
+      expect(result.url).toBe('https://github.com/owner/repo.git');
+      expect(result.ref).toBe('feature-branch');
+      expect(result.subpath).toBeUndefined();
+    });
+
+    it('GitHub URL - tree with branch and path', () => {
+      const result = parseSource('https://github.com/owner/repo/tree/main/skills/my-skill');
+      expect(result.type).toBe('github');
+      expect(result.url).toBe('https://github.com/owner/repo.git');
+      expect(result.ref).toBe('main');
+      expect(result.subpath).toBe('skills/my-skill');
+    });
+
+    // Note: Branch names with slashes (e.g., feature/my-feature) are ambiguous.
+    // The parser treats the first segment as branch and rest as path.
+    // This matches GitHub's URL structure behavior.
+    it('GitHub URL - tree with slash in path (ambiguous branch)', () => {
+      const result = parseSource('https://github.com/owner/repo/tree/feature/my-feature');
+      expect(result.type).toBe('github');
+      expect(result.url).toBe('https://github.com/owner/repo.git');
+      expect(result.ref).toBe('feature');
+      expect(result.subpath).toBe('my-feature');
+    });
+  });
+
+  describe('GitLab URL tests', () => {
+    it('GitLab URL - basic repo', () => {
+      const result = parseSource('https://gitlab.com/owner/repo');
+      expect(result.type).toBe('gitlab');
+      expect(result.url).toBe('https://gitlab.com/owner/repo.git');
+      expect(result.ref).toBeUndefined();
+    });
+
+    it('GitLab URL - tree with branch only', () => {
+      const result = parseSource('https://gitlab.com/owner/repo/-/tree/develop');
+      expect(result.type).toBe('gitlab');
+      expect(result.url).toBe('https://gitlab.com/owner/repo.git');
+      expect(result.ref).toBe('develop');
+      expect(result.subpath).toBeUndefined();
+    });
+
+    it('GitLab URL - tree with branch and path', () => {
+      const result = parseSource('https://gitlab.com/owner/repo/-/tree/main/src/skills');
+      expect(result.type).toBe('gitlab');
+      expect(result.url).toBe('https://gitlab.com/owner/repo.git');
+      expect(result.ref).toBe('main');
+      expect(result.subpath).toBe('src/skills');
+    });
+  });
+
+  describe('GitHub shorthand tests', () => {
+    it('GitHub shorthand - owner/repo', () => {
+      const result = parseSource('owner/repo');
+      expect(result.type).toBe('github');
+      expect(result.url).toBe('https://github.com/owner/repo.git');
+      expect(result.ref).toBeUndefined();
+      expect(result.subpath).toBeUndefined();
+    });
+
+    it('GitHub shorthand - owner/repo/path', () => {
+      const result = parseSource('owner/repo/skills/my-skill');
+      expect(result.type).toBe('github');
+      expect(result.url).toBe('https://github.com/owner/repo.git');
+      expect(result.subpath).toBe('skills/my-skill');
+    });
+  });
+
+  describe('Local path tests', () => {
+    it('Local path - relative with ./', () => {
+      const result = parseSource('./my-skills');
+      expect(result.type).toBe('local');
+      expect(result.localPath).toContain('my-skills');
+    });
+
+    it('Local path - relative with ../', () => {
+      const result = parseSource('../other-skills');
+      expect(result.type).toBe('local');
+      expect(result.localPath).toContain('other-skills');
+    });
+
+    it('Local path - current directory', () => {
+      const result = parseSource('.');
+      expect(result.type).toBe('local');
+      expect(result.localPath).toBeTruthy();
+    });
+
+    it('Local path - absolute path', () => {
+      const result = parseSource('/home/user/skills');
+      expect(result.type).toBe('local');
+      expect(result.localPath).toBe('/home/user/skills');
+    });
+  });
+
+  describe('Git URL fallback tests', () => {
+    it('Git URL - SSH format', () => {
+      const result = parseSource('git@github.com:owner/repo.git');
+      expect(result.type).toBe('git');
+      expect(result.url).toBe('git@github.com:owner/repo.git');
+    });
+
+    it('Git URL - custom host', () => {
+      const result = parseSource('https://git.example.com/owner/repo.git');
+      expect(result.type).toBe('git');
+      expect(result.url).toBe('https://git.example.com/owner/repo.git');
+    });
+  });
 });
 
-test('GitHub URL - with .git suffix', () => {
-  const result = parseSource('https://github.com/owner/repo.git');
-  assert.strictEqual(result.type, 'github');
-  assert.strictEqual(result.url, 'https://github.com/owner/repo.git');
-});
+describe('getOwnerRepo', () => {
+  it('getOwnerRepo - GitHub URL', () => {
+    const parsed = parseSource('https://github.com/owner/repo');
+    expect(getOwnerRepo(parsed)).toBe('owner/repo');
+  });
 
-test('GitHub URL - tree with branch only', () => {
-  const result = parseSource('https://github.com/owner/repo/tree/feature-branch');
-  assert.strictEqual(result.type, 'github');
-  assert.strictEqual(result.url, 'https://github.com/owner/repo.git');
-  assert.strictEqual(result.ref, 'feature-branch');
-  assert.strictEqual(result.subpath, undefined);
-});
+  it('getOwnerRepo - GitHub URL with .git', () => {
+    const parsed = parseSource('https://github.com/owner/repo.git');
+    expect(getOwnerRepo(parsed)).toBe('owner/repo');
+  });
 
-test('GitHub URL - tree with branch and path', () => {
-  const result = parseSource('https://github.com/owner/repo/tree/main/skills/my-skill');
-  assert.strictEqual(result.type, 'github');
-  assert.strictEqual(result.url, 'https://github.com/owner/repo.git');
-  assert.strictEqual(result.ref, 'main');
-  assert.strictEqual(result.subpath, 'skills/my-skill');
-});
+  it('getOwnerRepo - GitHub URL with tree/branch/path', () => {
+    const parsed = parseSource('https://github.com/owner/repo/tree/main/skills/my-skill');
+    expect(getOwnerRepo(parsed)).toBe('owner/repo');
+  });
 
-// Note: Branch names with slashes (e.g., feature/my-feature) are ambiguous.
-// The parser treats the first segment as branch and rest as path.
-// This matches GitHub's URL structure behavior.
-test('GitHub URL - tree with slash in path (ambiguous branch)', () => {
-  const result = parseSource('https://github.com/owner/repo/tree/feature/my-feature');
-  assert.strictEqual(result.type, 'github');
-  assert.strictEqual(result.url, 'https://github.com/owner/repo.git');
-  assert.strictEqual(result.ref, 'feature');
-  assert.strictEqual(result.subpath, 'my-feature');
-});
+  it('getOwnerRepo - GitHub shorthand', () => {
+    const parsed = parseSource('owner/repo');
+    expect(getOwnerRepo(parsed)).toBe('owner/repo');
+  });
 
-// GitLab URL tests
-test('GitLab URL - basic repo', () => {
-  const result = parseSource('https://gitlab.com/owner/repo');
-  assert.strictEqual(result.type, 'gitlab');
-  assert.strictEqual(result.url, 'https://gitlab.com/owner/repo.git');
-  assert.strictEqual(result.ref, undefined);
-});
+  it('getOwnerRepo - GitHub shorthand with subpath', () => {
+    const parsed = parseSource('owner/repo/skills/my-skill');
+    expect(getOwnerRepo(parsed)).toBe('owner/repo');
+  });
 
-test('GitLab URL - tree with branch only', () => {
-  const result = parseSource('https://gitlab.com/owner/repo/-/tree/develop');
-  assert.strictEqual(result.type, 'gitlab');
-  assert.strictEqual(result.url, 'https://gitlab.com/owner/repo.git');
-  assert.strictEqual(result.ref, 'develop');
-  assert.strictEqual(result.subpath, undefined);
-});
+  it('getOwnerRepo - GitLab URL', () => {
+    const parsed = parseSource('https://gitlab.com/owner/repo');
+    expect(getOwnerRepo(parsed)).toBe('owner/repo');
+  });
 
-test('GitLab URL - tree with branch and path', () => {
-  const result = parseSource('https://gitlab.com/owner/repo/-/tree/main/src/skills');
-  assert.strictEqual(result.type, 'gitlab');
-  assert.strictEqual(result.url, 'https://gitlab.com/owner/repo.git');
-  assert.strictEqual(result.ref, 'main');
-  assert.strictEqual(result.subpath, 'src/skills');
-});
+  it('getOwnerRepo - GitLab URL with tree', () => {
+    const parsed = parseSource('https://gitlab.com/owner/repo/-/tree/main/skills');
+    expect(getOwnerRepo(parsed)).toBe('owner/repo');
+  });
 
-// GitHub shorthand tests
-test('GitHub shorthand - owner/repo', () => {
-  const result = parseSource('owner/repo');
-  assert.strictEqual(result.type, 'github');
-  assert.strictEqual(result.url, 'https://github.com/owner/repo.git');
-  assert.strictEqual(result.ref, undefined);
-  assert.strictEqual(result.subpath, undefined);
-});
+  it('getOwnerRepo - local path returns null', () => {
+    const parsed = parseSource('./my-skills');
+    expect(getOwnerRepo(parsed)).toBeNull();
+  });
 
-test('GitHub shorthand - owner/repo/path', () => {
-  const result = parseSource('owner/repo/skills/my-skill');
-  assert.strictEqual(result.type, 'github');
-  assert.strictEqual(result.url, 'https://github.com/owner/repo.git');
-  assert.strictEqual(result.subpath, 'skills/my-skill');
-});
+  it('getOwnerRepo - absolute local path returns null', () => {
+    const parsed = parseSource('/home/user/skills');
+    expect(getOwnerRepo(parsed)).toBeNull();
+  });
 
-// Local path tests
-test('Local path - relative with ./', () => {
-  const result = parseSource('./my-skills');
-  assert.strictEqual(result.type, 'local');
-  assert.ok(result.localPath?.endsWith('my-skills'));
-});
+  it('getOwnerRepo - custom git host returns null', () => {
+    const parsed = parseSource('https://git.example.com/owner/repo.git');
+    expect(getOwnerRepo(parsed)).toBeNull();
+  });
 
-test('Local path - relative with ../', () => {
-  const result = parseSource('../other-skills');
-  assert.strictEqual(result.type, 'local');
-  assert.ok(result.localPath?.includes('other-skills'));
-});
+  it('getOwnerRepo - SSH format returns null', () => {
+    const parsed = parseSource('git@github.com:owner/repo.git');
+    expect(getOwnerRepo(parsed)).toBeNull();
+  });
 
-test('Local path - current directory', () => {
-  const result = parseSource('.');
-  assert.strictEqual(result.type, 'local');
-  assert.ok(result.localPath);
+  it('getOwnerRepo - private GitLab instance returns null', () => {
+    // This falls through to 'git' type since it's not gitlab.com
+    const parsed = parseSource('https://gitlab.company.com/team/repo');
+    expect(getOwnerRepo(parsed)).toBeNull();
+  });
 });
-
-test('Local path - absolute path', () => {
-  const result = parseSource('/home/user/skills');
-  assert.strictEqual(result.type, 'local');
-  assert.strictEqual(result.localPath, '/home/user/skills');
-});
-
-// Git URL fallback tests
-test('Git URL - SSH format', () => {
-  const result = parseSource('git@github.com:owner/repo.git');
-  assert.strictEqual(result.type, 'git');
-  assert.strictEqual(result.url, 'git@github.com:owner/repo.git');
-});
-
-test('Git URL - custom host', () => {
-  const result = parseSource('https://git.example.com/owner/repo.git');
-  assert.strictEqual(result.type, 'git');
-  assert.strictEqual(result.url, 'https://git.example.com/owner/repo.git');
-});
-
-// getOwnerRepo tests - for telemetry normalization
-test('getOwnerRepo - GitHub URL', () => {
-  const parsed = parseSource('https://github.com/owner/repo');
-  assert.strictEqual(getOwnerRepo(parsed), 'owner/repo');
-});
-
-test('getOwnerRepo - GitHub URL with .git', () => {
-  const parsed = parseSource('https://github.com/owner/repo.git');
-  assert.strictEqual(getOwnerRepo(parsed), 'owner/repo');
-});
-
-test('getOwnerRepo - GitHub URL with tree/branch/path', () => {
-  const parsed = parseSource('https://github.com/owner/repo/tree/main/skills/my-skill');
-  assert.strictEqual(getOwnerRepo(parsed), 'owner/repo');
-});
-
-test('getOwnerRepo - GitHub shorthand', () => {
-  const parsed = parseSource('owner/repo');
-  assert.strictEqual(getOwnerRepo(parsed), 'owner/repo');
-});
-
-test('getOwnerRepo - GitHub shorthand with subpath', () => {
-  const parsed = parseSource('owner/repo/skills/my-skill');
-  assert.strictEqual(getOwnerRepo(parsed), 'owner/repo');
-});
-
-test('getOwnerRepo - GitLab URL', () => {
-  const parsed = parseSource('https://gitlab.com/owner/repo');
-  assert.strictEqual(getOwnerRepo(parsed), 'owner/repo');
-});
-
-test('getOwnerRepo - GitLab URL with tree', () => {
-  const parsed = parseSource('https://gitlab.com/owner/repo/-/tree/main/skills');
-  assert.strictEqual(getOwnerRepo(parsed), 'owner/repo');
-});
-
-test('getOwnerRepo - local path returns null', () => {
-  const parsed = parseSource('./my-skills');
-  assert.strictEqual(getOwnerRepo(parsed), null);
-});
-
-test('getOwnerRepo - absolute local path returns null', () => {
-  const parsed = parseSource('/home/user/skills');
-  assert.strictEqual(getOwnerRepo(parsed), null);
-});
-
-test('getOwnerRepo - custom git host returns null', () => {
-  const parsed = parseSource('https://git.example.com/owner/repo.git');
-  assert.strictEqual(getOwnerRepo(parsed), null);
-});
-
-test('getOwnerRepo - SSH format returns null', () => {
-  const parsed = parseSource('git@github.com:owner/repo.git');
-  assert.strictEqual(getOwnerRepo(parsed), null);
-});
-
-test('getOwnerRepo - private GitLab instance returns null', () => {
-  // This falls through to 'git' type since it's not gitlab.com
-  const parsed = parseSource('https://gitlab.company.com/team/repo');
-  assert.strictEqual(getOwnerRepo(parsed), null);
-});
-
-// Summary
-console.log(`\n${passed} passed, ${failed} failed`);
-process.exit(failed > 0 ? 1 : 0);

@@ -1,190 +1,127 @@
 # AGENTS.md
 
-This file provides guidance to AI coding agents working on the `add-skill` codebase.
+This file provides guidance to AI coding agents working on the `skills` CLI codebase.
 
 ## Project Overview
 
-`add-skill` is a CLI tool that installs agent skills (reusable instruction sets in `SKILL.md` files) onto various coding agents. It supports 23+ agents including OpenCode, Claude Code, Cursor, Codex, and more.
+`skills` is the CLI for the open agent skills ecosystem.
 
-### Usage
+## Commands
 
-```bash
-npx skills add <source>          # Install a skill from GitHub, URL, or local path
-npx skills add <source> --global # Install globally for the current user
-npx skills list                  # List installed skills
-npx skills remove <name>         # Remove an installed skill
-```
+| Command | Description |
+|---------|-------------|
+| `skills` | Show banner with available commands |
+| `skills init [name]` | Create a new SKILL.md template |
+| `skills add <pkg>` | Install skills from git repos, URLs, or local paths |
+| `skills check` | Check for available skill updates |
+| `skills update` | Update all skills to latest versions |
+| `skills generate-lock` | Match installed skills to sources via API |
+
+Aliases: `skills a`, `skills i`, `skills install` all work for `add`.
 
 ## Architecture
 
 ```
 src/
-├── index.ts          # CLI entry point, main flow orchestration
-├── types.ts          # Core TypeScript types (AgentType, Skill, etc.)
-├── agents.ts         # Agent configurations (paths, detection logic)
-├── skills.ts         # Skill discovery from SKILL.md files
-├── installer.ts      # Installation logic (symlink/copy modes)
-├── source-parser.ts  # Parse input sources (GitHub, local, URLs)
-├── git.ts            # Git clone operations
-├── mintlify.ts       # Legacy Mintlify skill fetching
-├── telemetry.ts      # Anonymous usage tracking
-├── skill-lock.ts     # Lock file for installed skills
-└── providers/
-    ├── index.ts      # Provider registry exports
-    ├── types.ts      # HostProvider interface
-    ├── registry.ts   # Provider registration
-    ├── mintlify.ts   # Mintlify provider
-    └── huggingface.ts # HuggingFace provider
+├── cli.ts           # Main entry point, command routing, init/check/update/generate-lock
+├── cli.test.ts      # CLI tests
+├── add.ts           # Core add command logic
+├── add.test.ts      # Add command tests
+├── agents.ts        # Agent definitions and detection
+├── installer.ts     # Skill installation logic (symlink/copy)
+├── skills.ts        # Skill discovery and parsing
+├── skill-lock.ts    # Lock file management
+├── source-parser.ts # Parse git URLs, GitHub shorthand, local paths
+├── git.ts           # Git clone operations
+├── telemetry.ts     # Anonymous usage tracking
+├── types.ts         # TypeScript types
+├── mintlify.ts      # Mintlify skill fetching (legacy)
+├── providers/       # Remote skill providers (GitHub, HuggingFace, Mintlify)
+│   ├── index.ts
+│   ├── registry.ts
+│   ├── types.ts
+│   ├── huggingface.ts
+│   └── mintlify.ts
+├── init.test.ts     # Init command tests
+└── test-utils.ts    # Test utilities
 ```
 
-## Key Concepts
+## Update Checking System
 
-### Agent Configuration
+### How `skills check` and `skills update` Work
 
-Each agent is defined in `src/agents.ts` with:
+1. Read `~/.agents/.skill-lock.json` for installed skills
+2. For each skill, get `skillFolderHash` from lock file
+3. POST to `https://add-skill.vercel.sh/check-updates` with:
+   ```json
+   {
+     "skills": [{ "name": "...", "source": "...", "skillFolderHash": "..." }],
+     "forceRefresh": true
+   }
+   ```
+4. API fetches fresh content from GitHub, computes hash, compares
+5. Returns list of skills with different hashes (updates available)
 
-- `name`: CLI identifier (e.g., `claude-code`)
-- `displayName`: Human-readable name
-- `skillsDir`: Project-level skill directory
-- `globalSkillsDir`: User-level skill directory
-- `detectInstalled`: Function to check if agent is installed
+### Why `forceRefresh: true`?
 
-### Skill Format
+Both `check` and `update` always send `forceRefresh: true`. This ensures the API fetches fresh content from GitHub rather than using its Redis cache.
 
-Skills are directories containing a `SKILL.md` with YAML frontmatter:
+**Without forceRefresh:** Users saw phantom "updates available" due to stale cached hashes. The fix was to always fetch fresh.
 
-```markdown
----
-name: skill-name
-description: What this skill does
----
+**Tradeoff:** Slightly slower (GitHub API call per skill), but always accurate.
 
-# Instructions...
-```
+### Lock File Compatibility
 
-### Installation Modes
+The lock file format is v3. Key field: `skillFolderHash` (GitHub tree SHA for the skill folder).
 
-1. **Symlink (default)**: Skills are stored in `.agents/skills/<name>/` and symlinked to each agent's directory
-2. **Copy**: Skills are copied directly to each agent's directory
+If reading an older lock file version, it's wiped. Users must reinstall skills to populate the new format.
 
-### Skill Lock File
+## Key Integration Points
 
-The `.skill-lock.json` file (at `~/.agents/.skill-lock.json`) tracks globally installed skills. Managed by `src/skill-lock.ts`.
+| Feature | Implementation |
+|---------|---------------|
+| `skills add` | `src/add.ts` - full implementation |
+| `skills check` | `POST /check-updates` API |
+| `skills update` | `POST /check-updates` + reinstall per skill |
+| `skills generate-lock` | `POST /api/skills/search` on skills.sh |
 
-**Lock File Format (v3):**
-```json
-{
-  "version": 3,
-  "skills": {
-    "skill-name": {
-      "source": "owner/repo",
-      "sourceType": "github",
-      "sourceUrl": "https://github.com/owner/repo.git",
-      "skillPath": "skills/skill-name/SKILL.md",
-      "skillFolderHash": "github-tree-sha-for-folder",
-      "installedAt": "...",
-      "updatedAt": "..."
-    }
-  }
-}
-```
-
-**Key fields:**
-- `skillFolderHash`: GitHub tree SHA for the skill folder - changes when ANY file in the folder changes
-- `skillPath`: Path to SKILL.md within the repo
-- `version`: Schema version (current: 3)
-
-**Version History:**
-- v1: Initial format (wiped on read)
-- v2: Added `contentHash` for SKILL.md-only change detection (wiped on read)
-- v3: Uses `skillFolderHash` only - full folder change detection via GitHub Trees API
-
-**How `skillFolderHash` works:**
-
-The CLI fetches the tree SHA directly from GitHub at install time:
-```typescript
-const url = `https://api.github.com/repos/${ownerRepo}/git/trees/${branch}?recursive=1`;
-const data = await fetch(url).then(r => r.json());
-const folderEntry = data.tree.find(e => e.type === 'tree' && e.path === skillFolderPath);
-const skillFolderHash = folderEntry.sha;
-```
-
-- This SHA is content-addressable: it changes when ANY file in the folder changes
-- Benefits: 1 API call per repo (not per file), detects changes to reference files, code examples, etc.
-- Rate limit: 5,000 requests/hour with `GITHUB_TOKEN`, 60/hour without
-
-**Update checking flow:**
-1. Client sends `skillFolderHash` to `/check-updates`
-2. Server fetches latest tree SHA from GitHub and compares
-3. If different, skill has updates available
-
-**Backwards compatibility:**
-- v1 and v2 lock files are wiped on read (users must reinstall skills)
-- Non-GitHub sources (Mintlify, HuggingFace) store empty `skillFolderHash` - update checking not supported
-
-### Provider System
-
-For remote skills (Mintlify, HuggingFace), providers implement the `HostProvider` interface:
-
-- `match(url)`: Check if URL belongs to this provider
-- `fetchSkill(url)`: Download and parse the skill
-- `toRawUrl(url)`: Convert to raw content URL
-- `getSourceIdentifier(url)`: Get telemetry identifier
-
-## Common Tasks
-
-### Adding a New Agent
-
-1. Add the agent type to `AgentType` union in `src/types.ts`
-2. Add configuration in `src/agents.ts`
-3. Run `pnpm tsx scripts/sync-agents.ts` to update README.md
-
-### Adding a New Provider
-
-1. Create provider in `src/providers/<name>.ts` implementing `HostProvider`
-2. Register in `src/providers/index.ts`
-
-### Testing
+## Development
 
 ```bash
-pnpm test           # Run tests
-pnpm typecheck      # Type checking
-pnpm lint           # Linting
+# Install dependencies
+pnpm install
+
+# Build
+pnpm build
+
+# Test locally
+pnpm dev add vercel-labs/agent-skills --list
+pnpm dev check
+pnpm dev update
+pnpm dev init my-skill
+
+# Run tests
+pnpm test
+
+# Type check
+pnpm type-check
+
+# Format code
+pnpm format
 ```
 
-## Code Style
+## Publishing
 
-- Use TypeScript strict mode
-- Prefer async/await over callbacks
-- Use `chalk` for colorized output
-- Use `@clack/prompts` for interactive prompts
-- Sanitize user input paths to prevent directory traversal
+```bash
+# 1. Bump version in package.json
+# 2. Build
+pnpm build
+# 3. Publish
+npm publish
+```
 
-## Important Files
+## Adding a New Agent
 
-- `src/agents.ts`: Primary file when adding/modifying agent support
-- `src/installer.ts`: Core installation logic, path security
-- `src/skills.ts`: Skill discovery and parsing
-- `README.md`: Auto-updated sections (agent list, discovery paths)
-
-## Security Considerations
-
-- All skill names are sanitized via `sanitizeName()` in `installer.ts`
-- Paths are validated with `isPathSafe()` to prevent traversal attacks
-- Telemetry is anonymous and respects `DO_NOT_TRACK`/`DISABLE_TELEMETRY`
-
-## Dependencies
-
-Key dependencies:
-
-- `commander`: CLI argument parsing
-- `@clack/prompts`: Interactive prompts
-- `gray-matter`: YAML frontmatter parsing
-- `chalk`: Terminal colors
-- `simple-git`: Git operations
-
-## CI/CD
-
-- GitHub Actions runs on push/PR to main
-- Validates agent configurations via `scripts/validate-agents.ts`
-- Type checking and linting enforced
+1. Add the agent definition to `src/agents.ts`
+2. Run `pnpm run -C scripts validate-agents.ts` to validate
+3. Run `pnpm run -C scripts sync-agents.ts` to update README.md

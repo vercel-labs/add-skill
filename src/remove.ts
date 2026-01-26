@@ -3,12 +3,12 @@ import chalk from 'chalk';
 import { readdir, rm, lstat } from 'fs/promises';
 import { join } from 'path';
 import { homedir } from 'os';
-import { agents, detectInstalledAgents } from '../agents.js';
-import { track } from '../telemetry.js';
-import { removeSkillFromLock, getSkillFromLock } from '../skill-lock.js';
-import { AGENTS_DIR, SKILLS_SUBDIR } from '../constants.js';
-import type { AgentType } from '../types.js';
-import { getInstallPath, getCanonicalPath, getCanonicalSkillsDir } from '../installer.js';
+import { agents, detectInstalledAgents } from './agents.js';
+import { track } from './telemetry.js';
+import { removeSkillFromLock, getSkillFromLock } from './skill-lock.js';
+import { AGENTS_DIR, SKILLS_SUBDIR } from './constants.js';
+import type { AgentType } from './types.js';
+import { getInstallPath, getCanonicalPath, getCanonicalSkillsDir } from './installer.js';
 
 export interface RemoveOptions {
   global?: boolean;
@@ -64,6 +64,18 @@ export async function removeCommand(skillNames: string[], options: RemoveOptions
     return;
   }
 
+  // Validate agent options BEFORE prompting for skill selection
+  if (options.agent && options.agent.length > 0) {
+    const validAgents = Object.keys(agents);
+    const invalidAgents = options.agent.filter((a) => !validAgents.includes(a));
+
+    if (invalidAgents.length > 0) {
+      p.log.error(`Invalid agents: ${invalidAgents.join(', ')}`);
+      p.log.info(`Valid agents: ${validAgents.join(', ')}`);
+      process.exit(1);
+    }
+  }
+
   let selectedSkills: string[] = [];
 
   if (options.all) {
@@ -95,17 +107,6 @@ export async function removeCommand(skillNames: string[], options: RemoveOptions
     }
 
     selectedSkills = selected as string[];
-  }
-
-  if (options.agent && options.agent.length > 0) {
-    const validAgents = Object.keys(agents);
-    const invalidAgents = options.agent.filter((a) => !validAgents.includes(a));
-
-    if (invalidAgents.length > 0) {
-      p.log.error(`Invalid agents: ${invalidAgents.join(', ')}`);
-      p.log.info(`Valid agents: ${validAgents.join(', ')}`);
-      return;
-    }
   }
 
   let targetAgents: AgentType[];
@@ -230,4 +231,39 @@ export async function removeCommand(skillNames: string[], options: RemoveOptions
 
   console.log();
   p.outro(chalk.green('Done!'));
+}
+
+/**
+ * Parse command line options for the remove command.
+ * Separates skill names from options flags.
+ */
+export function parseRemoveOptions(args: string[]): { skills: string[]; options: RemoveOptions } {
+  const options: RemoveOptions = {};
+  const skills: string[] = [];
+
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+
+    if (arg === '-g' || arg === '--global') {
+      options.global = true;
+    } else if (arg === '-y' || arg === '--yes') {
+      options.yes = true;
+    } else if (arg === '--all') {
+      options.all = true;
+    } else if (arg === '-a' || arg === '--agent') {
+      options.agent = options.agent || [];
+      i++;
+      let nextArg = args[i];
+      while (i < args.length && nextArg && !nextArg.startsWith('-')) {
+        options.agent.push(nextArg);
+        i++;
+        nextArg = args[i];
+      }
+      i--; // Back up one since the loop will increment
+    } else if (arg && !arg.startsWith('-')) {
+      skills.push(arg);
+    }
+  }
+
+  return { skills, options };
 }
