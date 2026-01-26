@@ -295,6 +295,49 @@ export function getCanonicalPath(
 }
 
 /**
+ * Install a skill to a custom path (bypasses agent-specific directories).
+ * Used when the user specifies -p/--path option.
+ */
+export async function installToCustomPath(
+  skillName: string,
+  customPath: string,
+  source: { type: 'directory'; path: string } | { type: 'content'; content: string }
+): Promise<{ success: boolean; path: string; error?: string }> {
+  const sanitizedName = sanitizeName(skillName);
+  const targetDir = join(customPath, sanitizedName);
+
+  if (!isPathSafe(customPath, targetDir)) {
+    return {
+      success: false,
+      path: targetDir,
+      error: 'Invalid skill name: potential path traversal detected',
+    };
+  }
+
+  try {
+    await mkdir(targetDir, { recursive: true });
+
+    if (source.type === 'directory') {
+      await copyDirectory(source.path, targetDir);
+    } else {
+      const skillMdPath = join(targetDir, 'SKILL.md');
+      await writeFile(skillMdPath, source.content, 'utf-8');
+    }
+
+    return {
+      success: true,
+      path: targetDir,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      path: targetDir,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
+
+/**
  * Install a Mintlify skill from a direct URL
  * The skill name is derived from the mintlify-proj frontmatter
  * Supports symlink mode (writes to canonical location and symlinks to agent dirs)

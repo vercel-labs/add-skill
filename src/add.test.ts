@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { existsSync, rmSync, mkdirSync, writeFileSync } from 'fs';
+import { existsSync, rmSync, mkdirSync, writeFileSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import { runCli } from './test-utils.js';
@@ -149,5 +149,186 @@ description: Test
     expect(resultA.stdout).toContain('Missing required argument: source');
     expect(resultI.stdout).toContain('Missing required argument: source');
     expect(resultInstall.stdout).toContain('Missing required argument: source');
+  });
+
+  describe('--path option', () => {
+    it('should install skill to custom path', () => {
+      // Create a test skill
+      const skillDir = join(testDir, 'skills', 'my-skill');
+      mkdirSync(skillDir, { recursive: true });
+      writeFileSync(
+        join(skillDir, 'SKILL.md'),
+        `---
+name: my-skill
+description: My test skill
+---
+
+# My Skill
+
+Instructions here.
+`
+      );
+
+      // Create a custom target directory
+      const customPath = join(testDir, 'custom-skills');
+      mkdirSync(customPath, { recursive: true });
+
+      const result = runCli(['add', testDir, '-y', '--path', customPath], testDir);
+      expect(result.stdout).toContain('my-skill');
+      expect(result.stdout).toContain('custom path');
+      expect(result.stdout).toContain('Done!');
+      expect(result.exitCode).toBe(0);
+
+      // Verify the skill was installed to the custom path
+      const installedSkillPath = join(customPath, 'my-skill', 'SKILL.md');
+      expect(existsSync(installedSkillPath)).toBe(true);
+
+      // Verify the content was copied correctly
+      const content = readFileSync(installedSkillPath, 'utf-8');
+      expect(content).toContain('name: my-skill');
+      expect(content).toContain('My test skill');
+    });
+
+    it('should install multiple skills to custom path', () => {
+      // Create multiple test skills
+      const skill1Dir = join(testDir, 'skills', 'skill-one');
+      const skill2Dir = join(testDir, 'skills', 'skill-two');
+      mkdirSync(skill1Dir, { recursive: true });
+      mkdirSync(skill2Dir, { recursive: true });
+
+      writeFileSync(
+        join(skill1Dir, 'SKILL.md'),
+        `---
+name: skill-one
+description: First skill
+---
+# Skill One
+`
+      );
+
+      writeFileSync(
+        join(skill2Dir, 'SKILL.md'),
+        `---
+name: skill-two
+description: Second skill
+---
+# Skill Two
+`
+      );
+
+      // Create a custom target directory
+      const customPath = join(testDir, 'custom-skills');
+      mkdirSync(customPath, { recursive: true });
+
+      const result = runCli(['add', testDir, '-y', '--path', customPath], testDir);
+      expect(result.stdout).toContain('skill-one');
+      expect(result.stdout).toContain('skill-two');
+      expect(result.stdout).toContain('custom path');
+      expect(result.stdout).toContain('Done!');
+      expect(result.exitCode).toBe(0);
+
+      // Verify both skills were installed
+      expect(existsSync(join(customPath, 'skill-one', 'SKILL.md'))).toBe(true);
+      expect(existsSync(join(customPath, 'skill-two', 'SKILL.md'))).toBe(true);
+    });
+
+    it('should install specific skill to custom path with --skill flag', () => {
+      // Create multiple test skills
+      const skill1Dir = join(testDir, 'skills', 'skill-one');
+      const skill2Dir = join(testDir, 'skills', 'skill-two');
+      mkdirSync(skill1Dir, { recursive: true });
+      mkdirSync(skill2Dir, { recursive: true });
+
+      writeFileSync(
+        join(skill1Dir, 'SKILL.md'),
+        `---
+name: skill-one
+description: First skill
+---
+# Skill One
+`
+      );
+
+      writeFileSync(
+        join(skill2Dir, 'SKILL.md'),
+        `---
+name: skill-two
+description: Second skill
+---
+# Skill Two
+`
+      );
+
+      // Create a custom target directory
+      const customPath = join(testDir, 'custom-skills');
+      mkdirSync(customPath, { recursive: true });
+
+      const result = runCli(
+        ['add', testDir, '-y', '--path', customPath, '--skill', 'skill-one'],
+        testDir
+      );
+      expect(result.stdout).toContain('skill-one');
+      expect(result.stdout).toContain('Done!');
+      expect(result.exitCode).toBe(0);
+
+      // Verify only skill-one was installed
+      expect(existsSync(join(customPath, 'skill-one', 'SKILL.md'))).toBe(true);
+      expect(existsSync(join(customPath, 'skill-two', 'SKILL.md'))).toBe(false);
+    });
+
+    it('should use short -p flag for custom path', () => {
+      // Create a test skill
+      const skillDir = join(testDir, 'skills', 'my-skill');
+      mkdirSync(skillDir, { recursive: true });
+      writeFileSync(
+        join(skillDir, 'SKILL.md'),
+        `---
+name: my-skill
+description: My test skill
+---
+
+# My Skill
+`
+      );
+
+      // Create a custom target directory
+      const customPath = join(testDir, 'custom-skills');
+      mkdirSync(customPath, { recursive: true });
+
+      const result = runCli(['add', testDir, '-y', '-p', customPath], testDir);
+      expect(result.stdout).toContain('my-skill');
+      expect(result.stdout).toContain('Done!');
+      expect(result.exitCode).toBe(0);
+
+      // Verify the skill was installed to the custom path
+      expect(existsSync(join(customPath, 'my-skill', 'SKILL.md'))).toBe(true);
+    });
+
+    it('should create custom path directory if it does not exist', () => {
+      // Create a test skill
+      const skillDir = join(testDir, 'skills', 'my-skill');
+      mkdirSync(skillDir, { recursive: true });
+      writeFileSync(
+        join(skillDir, 'SKILL.md'),
+        `---
+name: my-skill
+description: My test skill
+---
+
+# My Skill
+`
+      );
+
+      // Use a non-existent custom path
+      const customPath = join(testDir, 'non-existent', 'nested', 'path');
+
+      const result = runCli(['add', testDir, '-y', '--path', customPath], testDir);
+      expect(result.stdout).toContain('my-skill');
+      expect(result.stdout).toContain('Done!');
+      expect(result.exitCode).toBe(0);
+
+      // Verify the skill was installed and directory was created
+      expect(existsSync(join(customPath, 'my-skill', 'SKILL.md'))).toBe(true);
+    });
   });
 });

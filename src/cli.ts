@@ -102,6 +102,7 @@ ${BOLD}Add Options:${RESET}
   -g, --global           Install skill globally (user-level) instead of project-level
   -a, --agent <agents>   Specify agents to install to
   -s, --skill <skills>   Specify skill names to install (skip selection prompt)
+  -p, --path <path>      Install skill to a custom path (skips agent selection)
   -l, --list             List available skills in the repository without installing
   -y, --yes              Skip confirmation prompts
   --all                  Install all skills to all agents without any prompts
@@ -120,6 +121,7 @@ ${BOLD}Examples:${RESET}
   ${DIM}$${RESET} skills add vercel-labs/agent-skills -g
   ${DIM}$${RESET} skills add vercel-labs/agent-skills --agent claude-code cursor
   ${DIM}$${RESET} skills add vercel-labs/agent-skills --skill pr-review commit
+  ${DIM}$${RESET} skills add vercel-labs/agent-skills --path ./my-skills
   ${DIM}$${RESET} skills check
   ${DIM}$${RESET} skills update
   ${DIM}$${RESET} skills generate-lock --dry-run
