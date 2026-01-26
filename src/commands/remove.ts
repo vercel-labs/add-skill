@@ -1,0 +1,233 @@
+import * as p from '@clack/prompts';
+import chalk from 'chalk';
+import { readdir, rm, lstat } from 'fs/promises';
+import { join } from 'path';
+import { homedir } from 'os';
+import { agents, detectInstalledAgents } from '../agents.js';
+import { track } from '../telemetry.js';
+import { removeSkillFromLock, getSkillFromLock } from '../skill-lock.js';
+import { AGENTS_DIR, SKILLS_SUBDIR } from '../constants.js';
+import type { AgentType } from '../types.js';
+import { getInstallPath, getCanonicalPath, getCanonicalSkillsDir } from '../installer.js';
+
+export interface RemoveOptions {
+  global?: boolean;
+  agent?: string[];
+  yes?: boolean;
+  all?: boolean;
+}
+
+export async function removeCommand(skillNames: string[], options: RemoveOptions) {
+  const isGlobal = options.global ?? false;
+  const cwd = process.cwd();
+
+  console.log();
+  p.intro(chalk.bgRed.white(' remove-skill '));
+
+  const spinner = p.spinner();
+
+  spinner.start('Scanning for installed skills...');
+  const skillNamesSet = new Set<string>();
+
+  const scanDir = async (dir: string) => {
+    try {
+      const entries = await readdir(dir, { withFileTypes: true });
+      for (const entry of entries) {
+        if (entry.isDirectory()) {
+          skillNamesSet.add(entry.name);
+        }
+      }
+    } catch (err) {
+      if (err instanceof Error && (err as { code?: string }).code !== 'ENOENT') {
+        p.log.warn(`Could not scan directory ${dir}: ${err.message}`);
+      }
+    }
+  };
+
+  if (isGlobal) {
+    await scanDir(getCanonicalSkillsDir(true, cwd));
+    for (const agent of Object.values(agents)) {
+      await scanDir(agent.globalSkillsDir);
+    }
+  } else {
+    await scanDir(getCanonicalSkillsDir(false, cwd));
+    for (const agent of Object.values(agents)) {
+      await scanDir(join(cwd, agent.skillsDir));
+    }
+  }
+
+  const installedSkills = Array.from(skillNamesSet).sort();
+  spinner.stop(`Found ${installedSkills.length} unique installed skill(s)`);
+
+  if (installedSkills.length === 0) {
+    p.outro(chalk.yellow('No skills found to remove.'));
+    return;
+  }
+
+  let selectedSkills: string[] = [];
+
+  if (options.all) {
+    selectedSkills = installedSkills;
+  } else if (skillNames.length > 0) {
+    selectedSkills = installedSkills.filter((s) =>
+      skillNames.some((name) => name.toLowerCase() === s.toLowerCase())
+    );
+
+    if (selectedSkills.length === 0) {
+      p.log.error(`No matching skills found for: ${skillNames.join(', ')}`);
+      return;
+    }
+  } else {
+    const choices = installedSkills.map((s) => ({
+      value: s,
+      label: s,
+    }));
+
+    const selected = await p.multiselect({
+      message: `Select skills to remove ${chalk.dim('(space to toggle)')}`,
+      options: choices,
+      required: true,
+    });
+
+    if (p.isCancel(selected)) {
+      p.cancel('Removal cancelled');
+      process.exit(0);
+    }
+
+    selectedSkills = selected as string[];
+  }
+
+  if (options.agent && options.agent.length > 0) {
+    const validAgents = Object.keys(agents);
+    const invalidAgents = options.agent.filter((a) => !validAgents.includes(a));
+
+    if (invalidAgents.length > 0) {
+      p.log.error(`Invalid agents: ${invalidAgents.join(', ')}`);
+      p.log.info(`Valid agents: ${validAgents.join(', ')}`);
+      return;
+    }
+  }
+
+  let targetAgents: AgentType[];
+  if (options.agent && options.agent.length > 0) {
+    targetAgents = options.agent as AgentType[];
+  } else {
+    spinner.start('Detecting installed agents...');
+    targetAgents = await detectInstalledAgents();
+    if (targetAgents.length === 0) {
+      // Fallback to all agents if none detected, to ensure we can at least try to remove from defaults
+      targetAgents = Object.keys(agents) as AgentType[];
+    }
+    spinner.stop(`Targeting ${targetAgents.length} installed agent(s)`);
+  }
+
+  if (!options.yes) {
+    const confirmed = await p.confirm({
+      message: `Are you sure you want to remove ${selectedSkills.length} skill(s)?`,
+    });
+
+    if (p.isCancel(confirmed) || !confirmed) {
+      p.cancel('Removal cancelled');
+      process.exit(0);
+    }
+  }
+
+  spinner.start('Removing skills...');
+
+  const results: {
+    skill: string;
+    success: boolean;
+    source?: string;
+    sourceType?: string;
+    error?: string;
+  }[] = [];
+
+  for (const skillName of selectedSkills) {
+    try {
+      for (const agentKey of targetAgents) {
+        const agent = agents[agentKey];
+        const skillPath = getInstallPath(skillName, agentKey, { global: isGlobal, cwd });
+
+        try {
+          const stats = await lstat(skillPath).catch(() => null);
+          if (stats) {
+            await rm(skillPath, { recursive: true, force: true });
+          }
+        } catch (err) {
+          p.log.warn(
+            `Could not remove skill from ${agent.displayName}: ${
+              err instanceof Error ? err.message : String(err)
+            }`
+          );
+        }
+      }
+
+      const canonicalPath = getCanonicalPath(skillName, { global: isGlobal, cwd });
+      await rm(canonicalPath, { recursive: true, force: true });
+
+      const lockEntry = isGlobal ? await getSkillFromLock(skillName) : null;
+      const effectiveSource = lockEntry?.source || 'local';
+      const effectiveSourceType = lockEntry?.sourceType || 'local';
+
+      if (isGlobal) {
+        await removeSkillFromLock(skillName);
+      }
+
+      results.push({
+        skill: skillName,
+        success: true,
+        source: effectiveSource,
+        sourceType: effectiveSourceType,
+      });
+    } catch (err) {
+      results.push({
+        skill: skillName,
+        success: false,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  spinner.stop('Removal process complete');
+
+  const successful = results.filter((r) => r.success);
+  const failed = results.filter((r) => !r.success);
+
+  // Track removal (grouped by source)
+  if (successful.length > 0) {
+    const bySource = new Map<string, { skills: string[]; sourceType?: string }>();
+
+    for (const r of successful) {
+      const source = r.source || 'local';
+      const existing = bySource.get(source) || { skills: [] };
+      existing.skills.push(r.skill);
+      existing.sourceType = r.sourceType;
+      bySource.set(source, existing);
+    }
+
+    for (const [source, data] of bySource) {
+      track({
+        event: 'remove',
+        source,
+        skills: data.skills.join(','),
+        agents: targetAgents.join(','),
+        ...(isGlobal && { global: '1' }),
+        sourceType: data.sourceType,
+      });
+    }
+  }
+
+  if (successful.length > 0) {
+    p.log.success(chalk.green(`Successfully removed ${successful.length} skill(s)`));
+  }
+
+  if (failed.length > 0) {
+    p.log.error(chalk.red(`Failed to remove ${failed.length} skill(s)`));
+    for (const r of failed) {
+      p.log.message(`  ${chalk.red('✗')} ${r.skill}: ${r.error}`);
+    }
+  }
+
+  console.log();
+  p.outro(chalk.green('Done!'));
+}

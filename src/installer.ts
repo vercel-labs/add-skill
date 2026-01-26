@@ -3,9 +3,7 @@ import { join, basename, normalize, resolve, sep, relative } from 'path';
 import { homedir, platform } from 'os';
 import type { Skill, AgentType, MintlifySkill, RemoteSkill } from './types.js';
 import { agents } from './agents.js';
-
-const AGENTS_DIR = '.agents';
-const SKILLS_SUBDIR = 'skills';
+import { AGENTS_DIR, SKILLS_SUBDIR } from './constants.js';
 
 export type InstallMode = 'symlink' | 'copy';
 
@@ -57,7 +55,7 @@ function isPathSafe(basePath: string, targetPath: string): boolean {
  * @param global - Whether to use global (home) or project-level location
  * @param cwd - Current working directory for project-level installs
  */
-function getCanonicalSkillsDir(global: boolean, cwd?: string): string {
+export function getCanonicalSkillsDir(global: boolean, cwd?: string): string {
   const baseDir = global ? homedir() : cwd || process.cwd();
   return join(baseDir, AGENTS_DIR, SKILLS_SUBDIR);
 }

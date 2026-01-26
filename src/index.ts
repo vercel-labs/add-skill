@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 
-import { program } from 'commander';
+import { program, Command } from 'commander';
 import * as p from '@clack/prompts';
 import chalk from 'chalk';
+import type { RemoveOptions } from './commands/remove.js';
 import { parseSource, getOwnerRepo } from './source-parser.js';
 import { cloneRepo, cleanupTempDir } from './git.js';
 import { discoverSkills, getSkillDisplayName } from './skills.js';
@@ -82,7 +83,22 @@ program
   .description(
     'Install skills onto coding agents (OpenCode, Claude Code, Cline, Codex, Cursor, and more)'
   )
-  .version(version)
+  .version(version);
+
+program
+  .command('remove [skills...]')
+  .alias('rm')
+  .description('Remove installed skills from agents')
+  .option('-g, --global', 'Remove from global scope')
+  .option('-a, --agent <agents...>', 'Remove from specific agents')
+  .option('--all', 'Remove all installed skills')
+  .option('-y, --yes', 'Skip confirmation prompts')
+  .action(async (skills: string[], _options: RemoveOptions, command: Command) => {
+    const { removeCommand } = await import('./commands/remove.js');
+    await removeCommand(skills, command.optsWithGlobals());
+  });
+
+program
   .argument(
     '<source>',
     'Git repo URL, GitHub shorthand (owner/repo), local path (./path), or direct path to skill'
@@ -218,14 +234,16 @@ async function handleRemoteSkill(
       } else {
         p.log.warn('No coding agents detected. You can still install skills.');
 
-        const allAgentChoices = Object.entries(agents).map(([key, config]) => ({
+        const allAgentChoices: Array<{ value: AgentType; label: string }> = Object.entries(
+          agents
+        ).map(([key, config]) => ({
           value: key as AgentType,
           label: config.displayName,
         }));
 
         const selected = await multiselect({
           message: 'Select agents to install skills to',
-          options: allAgentChoices as unknown as p.Option<AgentType>[],
+          options: allAgentChoices,
           required: true,
           initialValues: Object.keys(agents) as AgentType[],
         });
@@ -248,15 +266,16 @@ async function handleRemoteSkill(
         );
       }
     } else {
-      const agentChoices = installedAgents.map((a) => ({
-        value: a,
-        label: agents[a].displayName,
-        hint: `${options.global ? agents[a].globalSkillsDir : agents[a].skillsDir}`,
-      }));
+      const agentChoices: Array<{ value: AgentType; label: string; hint: string }> =
+        installedAgents.map((a) => ({
+          value: a,
+          label: agents[a].displayName,
+          hint: `${options.global ? agents[a].globalSkillsDir : agents[a].skillsDir}`,
+        }));
 
       const selected = await multiselect({
         message: 'Select agents to install skills to',
-        options: agentChoices as unknown as p.Option<AgentType>[],
+        options: agentChoices,
         required: true,
         initialValues: installedAgents,
       });
@@ -560,14 +579,16 @@ async function handleDirectUrlSkillLegacy(
       } else {
         p.log.warn('No coding agents detected. You can still install skills.');
 
-        const allAgentChoices = Object.entries(agents).map(([key, config]) => ({
+        const allAgentChoices: Array<{ value: AgentType; label: string }> = Object.entries(
+          agents
+        ).map(([key, config]) => ({
           value: key as AgentType,
           label: config.displayName,
         }));
 
         const selected = await multiselect({
           message: 'Select agents to install skills to',
-          options: allAgentChoices as unknown as p.Option<AgentType>[],
+          options: allAgentChoices,
           required: true,
           initialValues: Object.keys(agents) as AgentType[],
         });
@@ -590,15 +611,16 @@ async function handleDirectUrlSkillLegacy(
         );
       }
     } else {
-      const agentChoices = installedAgents.map((a) => ({
-        value: a,
-        label: agents[a].displayName,
-        hint: `${options.global ? agents[a].globalSkillsDir : agents[a].skillsDir}`,
-      }));
+      const agentChoices: Array<{ value: AgentType; label: string; hint: string }> =
+        installedAgents.map((a) => ({
+          value: a,
+          label: agents[a].displayName,
+          hint: `${options.global ? agents[a].globalSkillsDir : agents[a].skillsDir}`,
+        }));
 
       const selected = await multiselect({
         message: 'Select agents to install skills to',
-        options: agentChoices as unknown as p.Option<AgentType>[],
+        options: agentChoices,
         required: true,
         initialValues: installedAgents,
       });
@@ -990,14 +1012,16 @@ async function main(source: string, options: Options) {
         } else {
           p.log.warn('No coding agents detected. You can still install skills.');
 
-          const allAgentChoices = Object.entries(agents).map(([key, config]) => ({
+          const allAgentChoices: Array<{ value: AgentType; label: string }> = Object.entries(
+            agents
+          ).map(([key, config]) => ({
             value: key as AgentType,
             label: config.displayName,
           }));
 
           const selected = await multiselect({
             message: 'Select agents to install skills to',
-            options: allAgentChoices as unknown as p.Option<AgentType>[],
+            options: allAgentChoices,
             required: true,
             initialValues: Object.keys(agents) as AgentType[],
           });
@@ -1021,15 +1045,16 @@ async function main(source: string, options: Options) {
           );
         }
       } else {
-        const agentChoices = installedAgents.map((a) => ({
-          value: a,
-          label: agents[a].displayName,
-          hint: `${options.global ? agents[a].globalSkillsDir : agents[a].skillsDir}`,
-        }));
+        const agentChoices: Array<{ value: AgentType; label: string; hint: string }> =
+          installedAgents.map((a) => ({
+            value: a,
+            label: agents[a].displayName,
+            hint: `${options.global ? agents[a].globalSkillsDir : agents[a].skillsDir}`,
+          }));
 
         const selected = await multiselect({
           message: 'Select agents to install skills to',
-          options: agentChoices as unknown as p.Option<AgentType>[],
+          options: agentChoices,
           required: true,
           initialValues: installedAgents,
         });

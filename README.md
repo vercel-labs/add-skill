@@ -9,7 +9,11 @@ Supports **Opencode**, **Claude Code**, **Codex**, **Cursor**, and [23 more](#av
 ## Quick Start
 
 ```bash
+# Install skills
 npx add-skill vercel-labs/agent-skills
+
+# Remove skills
+npx add-skill remove
 ```
 
 ## What are Agent Skills?
@@ -24,7 +28,7 @@ Skills let agents perform specialized tasks like:
 
 ## Usage
 
-### Source Formats
+### Installing Skills
 
 The `<source>` argument accepts multiple formats:
 
@@ -43,6 +47,30 @@ npx add-skill https://gitlab.com/org/repo
 
 # Any git URL
 npx add-skill git@github.com:vercel-labs/agent-skills.git
+```
+
+### Removing Skills
+
+You can remove skills interactively or by specifying their names. The removal command is context-aware:
+
+```bash
+# Scan only LOCAL skills (project-level)
+npx add-skill remove
+
+# Scan ONLY global skills
+npx add-skill remove --global
+
+# Use 'rm' alias
+npx add-skill rm
+
+# Remove specific skills by name
+npx add-skill remove web-design-guidelines frontend-design
+
+# Remove specific global skills
+npx add-skill remove --global web-design-guidelines
+
+# Remove all installed skills in the current scope without confirmation
+npx add-skill remove --all --yes
 ```
 
 ### Options
@@ -74,6 +102,18 @@ npx add-skill vercel-labs/agent-skills --skill frontend-design -g -a claude-code
 
 # Install all skills from a repo
 npx add-skill vercel-labs/agent-skills -y -g
+
+# Remove skills interactively
+npx add-skill remove
+
+# Remove using rm alias
+npx add-skill rm web-design-guidelines
+
+# Remove global skills
+npx add-skill remove --global web-design-guidelines
+
+# Remove all skills without confirmation
+npx add-skill remove --all -y
 ```
 
 ## Available Agents

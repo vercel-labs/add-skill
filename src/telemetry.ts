@@ -1,7 +1,7 @@
 const TELEMETRY_URL = 'https://add-skill.vercel.sh/t';
 
 interface TelemetryData {
-  event: 'install';
+  event: 'install' | 'remove';
   source: string;
   skills: string;
   agents: string;
