@@ -330,5 +330,27 @@ description: My test skill
       // Verify the skill was installed and directory was created
       expect(existsSync(join(customPath, 'my-skill', 'SKILL.md'))).toBe(true);
     });
+
+    it('should fail when target path overlaps with source path', () => {
+      // Create a test skill at the root of testDir (so skill.path == testDir)
+      writeFileSync(
+        join(testDir, 'SKILL.md'),
+        `---
+name: my-skill
+description: My test skill
+---
+
+# My Skill
+`
+      );
+
+      // Try to install to a path inside the skill's source directory (would cause infinite recursion)
+      // Since the skill is at testDir, installing to testDir/output would overlap
+      const customPath = join(testDir, 'output');
+
+      const result = runCli(['add', testDir, '-y', '--path', customPath], testDir);
+      expect(result.stdout).toContain('overlaps with source');
+      expect(result.exitCode).not.toBe(0);
+    });
   });
 });

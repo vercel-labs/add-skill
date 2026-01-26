@@ -274,7 +274,9 @@ async function handleRemoteSkill(
   if (options.path) {
     // Custom path mode - never treated as global; skip scope prompt
     if (options.global) {
-      p.log.warn('Ignoring --global because --path was provided; custom path installs are not global.');
+      p.log.warn(
+        'Ignoring --global because --path was provided; custom path installs are not global.'
+      );
     }
     installGlobally = false;
   } else if (options.global === undefined && !options.yes) {
@@ -651,7 +653,9 @@ async function handleDirectUrlSkillLegacy(
   if (options.path) {
     // Custom path mode - global flag does not apply
     if (options.global) {
-      p.log.warn('--global is ignored when --path is specified; installing to the custom path only.');
+      p.log.warn(
+        '--global is ignored when --path is specified; installing to the custom path only.'
+      );
     }
     installGlobally = false;
   } else if (options.global === undefined && !options.yes) {
@@ -751,10 +755,11 @@ async function handleDirectUrlSkillLegacy(
     });
     results.push({
       skill: remoteSkill.installName,
-      agent: 'custom',
+      agent: 'custom-path',
       success: result.success,
       path: result.path,
       mode: 'copy',
+      canonicalPath: result.path,
       error: result.error,
     });
   } else {
@@ -783,7 +788,7 @@ async function handleDirectUrlSkillLegacy(
     event: 'install',
     source: 'mintlify/com',
     skills: remoteSkill.installName,
-    agents: targetAgents.join(','),
+    agents: options.path ? 'custom-path' : targetAgents.join(','),
     ...(installGlobally && { global: '1' }),
     skillFiles: JSON.stringify({ [remoteSkill.installName]: url }),
     sourceType: 'mintlify',
@@ -1100,6 +1105,12 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
 
     if (options.path) {
       // Custom path mode - skip scope prompt
+      if (options.global) {
+        p.log.warn(
+          'Ignoring --global because --path was provided; custom path installs are not global.'
+        );
+      }
+      installGlobally = false;
     } else if (options.global === undefined && !options.yes) {
       const scope = await p.select({
         message: 'Installation scope',
@@ -1299,7 +1310,7 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
         event: 'install',
         source: normalizedSource,
         skills: selectedSkills.map((s) => s.name).join(','),
-        agents: targetAgents.join(','),
+        agents: options.path ? 'custom-path' : targetAgents.join(','),
         ...(installGlobally && { global: '1' }),
         skillFiles: JSON.stringify(skillFiles),
       });
@@ -1417,6 +1428,14 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
       for (const r of failed) {
         p.log.message(`  ${chalk.red('✗')} ${r.skill} → ${r.agent}: ${chalk.dim(r.error)}`);
       }
+    }
+
+    // If all installations failed, exit with error
+    if (successful.length === 0 && failed.length > 0) {
+      console.log();
+      p.outro(chalk.red('Installation failed'));
+      await cleanup(tempDir);
+      process.exit(1);
     }
 
     console.log();

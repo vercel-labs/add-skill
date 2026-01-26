@@ -295,6 +295,22 @@ export function getCanonicalPath(
 }
 
 /**
+ * Checks if two paths overlap (one is inside the other or they are the same).
+ * Used to prevent copying a directory into itself.
+ */
+function pathsOverlap(path1: string, path2: string): boolean {
+  const resolved1 = normalize(resolve(path1));
+  const resolved2 = normalize(resolve(path2));
+
+  // Check if they're the same or one contains the other
+  return (
+    resolved1 === resolved2 ||
+    resolved1.startsWith(resolved2 + sep) ||
+    resolved2.startsWith(resolved1 + sep)
+  );
+}
+
+/**
  * Install a skill to a custom path (bypasses agent-specific directories).
  * Used when the user specifies -p/--path option.
  */
@@ -311,6 +327,15 @@ export async function installToCustomPath(
       success: false,
       path: targetDir,
       error: 'Invalid skill name: potential path traversal detected',
+    };
+  }
+
+  // Prevent copying a directory into itself (infinite recursion)
+  if (source.type === 'directory' && pathsOverlap(source.path, targetDir)) {
+    return {
+      success: false,
+      path: targetDir,
+      error: 'Cannot install: target path overlaps with source path',
     };
   }
 
