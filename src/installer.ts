@@ -67,26 +67,16 @@ function resolveSymlinkTarget(linkPath: string, linkTarget: string): string {
   return resolve(dirname(linkPath), linkTarget);
 }
 
-async function ensureDirectory(path: string): Promise<void> {
-  try {
-    const stats = await lstat(path);
-    if (stats.isSymbolicLink()) {
-      await rm(path, { recursive: true, force: true });
-    }
-  } catch (err: unknown) {
-    if (err && typeof err === 'object' && 'code' in err) {
-      if (err.code !== 'ENOENT') {
-        if (err.code === 'ELOOP') {
-          await rm(path, { recursive: true, force: true });
-        } else {
-          throw err;
-        }
-      }
-    } else if (err) {
-      throw err;
-    }
-  }
-
+/**
+ * Cleans and recreates a directory for skill installation.
+ *
+ * This ensures:
+ * 1. Renamed/deleted files from previous installs are removed
+ * 2. Symlinks (including self-referential ones causing ELOOP) are handled
+ *    when canonical and agent paths resolve to the same location
+ */
+async function cleanAndCreateDirectory(path: string): Promise<void> {
+  await rm(path, { recursive: true, force: true });
   await mkdir(path, { recursive: true });
 }
 
@@ -185,9 +175,7 @@ export async function installSkillForAgent(
   try {
     // For copy mode, skip canonical directory and copy directly to agent location
     if (installMode === 'copy') {
-      // Clean existing skill directory to ensure renamed/deleted files are removed
-      await rm(agentDir, { recursive: true, force: true });
-      await mkdir(agentDir, { recursive: true });
+      await cleanAndCreateDirectory(agentDir);
       await copyDirectory(skill.path, agentDir);
 
       return {
@@ -198,21 +186,14 @@ export async function installSkillForAgent(
     }
 
     // Symlink mode: copy to canonical location and symlink to agent location
-    // Clean existing skill directory to ensure renamed/deleted files are removed
-    await rm(canonicalDir, { recursive: true, force: true });
-    await mkdir(canonicalDir, { recursive: true });
+    await cleanAndCreateDirectory(canonicalDir);
     await copyDirectory(skill.path, canonicalDir);
 
     const symlinkCreated = await createSymlink(canonicalDir, agentDir);
 
     if (!symlinkCreated) {
-      // Clean up any existing broken symlink before copying
-      try {
-        await rm(agentDir, { recursive: true, force: true });
-      } catch {
-        // Ignore cleanup errors
-      }
-      await mkdir(agentDir, { recursive: true });
+      // Symlink failed, fall back to copy
+      await cleanAndCreateDirectory(agentDir);
       await copyDirectory(skill.path, agentDir);
 
       return {
@@ -386,9 +367,7 @@ export async function installMintlifySkillForAgent(
   try {
     // For copy mode, write directly to agent location
     if (installMode === 'copy') {
-      // Clean existing skill directory to ensure renamed/deleted files are removed
-      await rm(agentDir, { recursive: true, force: true });
-      await mkdir(agentDir, { recursive: true });
+      await cleanAndCreateDirectory(agentDir);
       const skillMdPath = join(agentDir, 'SKILL.md');
       await writeFile(skillMdPath, skill.content, 'utf-8');
 
@@ -400,9 +379,7 @@ export async function installMintlifySkillForAgent(
     }
 
     // Symlink mode: write to canonical location and symlink to agent location
-    // Clean existing skill directory to ensure renamed/deleted files are removed
-    await rm(canonicalDir, { recursive: true, force: true });
-    await mkdir(canonicalDir, { recursive: true });
+    await cleanAndCreateDirectory(canonicalDir);
     const skillMdPath = join(canonicalDir, 'SKILL.md');
     await writeFile(skillMdPath, skill.content, 'utf-8');
 
@@ -410,12 +387,7 @@ export async function installMintlifySkillForAgent(
 
     if (!symlinkCreated) {
       // Symlink failed, fall back to copy
-      try {
-        await rm(agentDir, { recursive: true, force: true });
-      } catch {
-        // Ignore cleanup errors
-      }
-      await mkdir(agentDir, { recursive: true });
+      await cleanAndCreateDirectory(agentDir);
       const agentSkillMdPath = join(agentDir, 'SKILL.md');
       await writeFile(agentSkillMdPath, skill.content, 'utf-8');
 
@@ -493,9 +465,7 @@ export async function installRemoteSkillForAgent(
   try {
     // For copy mode, write directly to agent location
     if (installMode === 'copy') {
-      // Clean existing skill directory to ensure renamed/deleted files are removed
-      await rm(agentDir, { recursive: true, force: true });
-      await mkdir(agentDir, { recursive: true });
+      await cleanAndCreateDirectory(agentDir);
       const skillMdPath = join(agentDir, 'SKILL.md');
       await writeFile(skillMdPath, skill.content, 'utf-8');
 
@@ -507,9 +477,7 @@ export async function installRemoteSkillForAgent(
     }
 
     // Symlink mode: write to canonical location and symlink to agent location
-    // Clean existing skill directory to ensure renamed/deleted files are removed
-    await rm(canonicalDir, { recursive: true, force: true });
-    await mkdir(canonicalDir, { recursive: true });
+    await cleanAndCreateDirectory(canonicalDir);
     const skillMdPath = join(canonicalDir, 'SKILL.md');
     await writeFile(skillMdPath, skill.content, 'utf-8');
 
@@ -517,12 +485,7 @@ export async function installRemoteSkillForAgent(
 
     if (!symlinkCreated) {
       // Symlink failed, fall back to copy
-      try {
-        await rm(agentDir, { recursive: true, force: true });
-      } catch {
-        // Ignore cleanup errors
-      }
-      await mkdir(agentDir, { recursive: true });
+      await cleanAndCreateDirectory(agentDir);
       const agentSkillMdPath = join(agentDir, 'SKILL.md');
       await writeFile(agentSkillMdPath, skill.content, 'utf-8');
 
@@ -599,11 +562,9 @@ export async function installWellKnownSkillForAgent(
   }
 
   /**
-   * Write all skill files to a directory
+   * Write all skill files to a directory (assumes directory already exists)
    */
   async function writeSkillFiles(targetDir: string): Promise<void> {
-    await mkdir(targetDir, { recursive: true });
-
     for (const [filePath, content] of skill.files) {
       // Validate file path doesn't escape the target directory
       const fullPath = join(targetDir, filePath);
@@ -624,6 +585,7 @@ export async function installWellKnownSkillForAgent(
   try {
     // For copy mode, write directly to agent location
     if (installMode === 'copy') {
+      await cleanAndCreateDirectory(agentDir);
       await writeSkillFiles(agentDir);
 
       return {
@@ -634,17 +596,14 @@ export async function installWellKnownSkillForAgent(
     }
 
     // Symlink mode: write to canonical location and symlink to agent location
+    await cleanAndCreateDirectory(canonicalDir);
     await writeSkillFiles(canonicalDir);
 
     const symlinkCreated = await createSymlink(canonicalDir, agentDir);
 
     if (!symlinkCreated) {
       // Symlink failed, fall back to copy
-      try {
-        await rm(agentDir, { recursive: true, force: true });
-      } catch {
-        // Ignore cleanup errors
-      }
+      await cleanAndCreateDirectory(agentDir);
       await writeSkillFiles(agentDir);
 
       return {
