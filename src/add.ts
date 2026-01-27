@@ -1422,7 +1422,7 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
 
       if (options.path) {
         // Custom path installation output
-        for (const [skillName, skillResults] of bySkill) {
+        for (const skillResults of bySkill.values()) {
           for (const r of skillResults) {
             const shortPath = shortenPath(r.path, cwd);
             resultLines.push(`${chalk.green('✓')} ${shortPath}`);

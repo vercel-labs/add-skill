@@ -8,8 +8,6 @@ Supports **Opencode**, **Claude Code**, **Codex**, **Cursor**, and [23 more](#av
 
 <!-- agent-list:end -->
 
-<!-- agent-list:end -->
-
 ## Install a Skill
 
 ```bash
