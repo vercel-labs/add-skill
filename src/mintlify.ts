@@ -1,5 +1,5 @@
 import matter from 'gray-matter';
-import type { MintlifySkill } from './types.js';
+import type { MintlifySkill } from './types.ts';
 
 /**
  * Fetch a skill.md file from a direct URL and parse its contents

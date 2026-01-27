@@ -3,11 +3,11 @@ name: CI
 on:
   pull_request:
     paths-ignore:
-      - '**/*.md'
+      - "**/*.md"
   push:
     branches: [main]
     paths-ignore:
-      - '**/*.md'
+      - "**/*.md"
 
 jobs:
   checks:
@@ -15,15 +15,15 @@ jobs:
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Enable Corepack
         run: corepack enable
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: lts/*
           cache: pnpm
 
       - name: Install dependencies

@@ -2,27 +2,35 @@ export type AgentType =
   | 'amp'
   | 'antigravity'
   | 'claude-code'
-  | 'clawdbot'
+  | 'moltbot'
   | 'cline'
+  | 'codebuddy'
   | 'codex'
   | 'command-code'
+  | 'continue'
+  | 'crush'
   | 'cursor'
   | 'droid'
   | 'gemini-cli'
   | 'github-copilot'
   | 'goose'
   | 'kilo'
+  | 'kimi-cli'
   | 'kiro-cli'
   | 'kode'
+  | 'mcpjam'
+  | 'mux'
   | 'neovate'
   | 'opencode'
   | 'openhands'
   | 'pi'
   | 'qoder'
+  | 'qwen-code'
   | 'roo'
   | 'trae'
   | 'windsurf'
-  | 'zencoder';
+  | 'zencoder'
+  | 'pochi';
 
 export interface Skill {
   name: string;
@@ -30,7 +38,7 @@ export interface Skill {
   path: string;
   /** Raw SKILL.md content for hashing */
   rawContent?: string;
-  metadata?: Record<string, string>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface AgentConfig {
@@ -42,7 +50,7 @@ export interface AgentConfig {
 }
 
 export interface ParsedSource {
-  type: 'github' | 'gitlab' | 'git' | 'local' | 'direct-url';
+  type: 'github' | 'gitlab' | 'git' | 'local' | 'direct-url' | 'well-known';
   url: string;
   subpath?: string;
   localPath?: string;

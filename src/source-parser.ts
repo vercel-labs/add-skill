@@ -1,5 +1,5 @@
 import { isAbsolute, resolve } from 'path';
-import type { ParsedSource } from './types.js';
+import type { ParsedSource } from './types.ts';
 
 /**
  * Extract owner/repo from a parsed source for telemetry.
@@ -175,9 +175,58 @@ export function parseSource(input: string): ParsedSource {
     };
   }
 
+  // Well-known skills: arbitrary HTTP(S) URLs that aren't GitHub/GitLab
+  // This is the final fallback for URLs - we'll check for /.well-known/skills/index.json
+  if (isWellKnownUrl(input)) {
+    return {
+      type: 'well-known',
+      url: input,
+    };
+  }
+
   // Fallback: treat as direct git URL
   return {
     type: 'git',
     url: input,
   };
+}
+
+/**
+ * Check if a URL could be a well-known skills endpoint.
+ * Must be HTTP(S) and not a known git host (GitHub, GitLab).
+ * Also excludes URLs that look like git repos (.git suffix).
+ */
+function isWellKnownUrl(input: string): boolean {
+  if (!input.startsWith('http://') && !input.startsWith('https://')) {
+    return false;
+  }
+
+  try {
+    const parsed = new URL(input);
+
+    // Exclude known git hosts that have their own handling
+    const excludedHosts = [
+      'github.com',
+      'gitlab.com',
+      'huggingface.co',
+      'raw.githubusercontent.com',
+    ];
+    if (excludedHosts.includes(parsed.hostname)) {
+      return false;
+    }
+
+    // Don't match URLs that look like direct skill.md links (handled by direct-url type)
+    if (input.toLowerCase().endsWith('/skill.md')) {
+      return false;
+    }
+
+    // Don't match URLs that look like git repos (should be handled by git type)
+    if (input.endsWith('.git')) {
+      return false;
+    }
+
+    return true;
+  } catch {
+    return false;
+  }
 }

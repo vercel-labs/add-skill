@@ -1,8 +1,9 @@
 import { mkdir, cp, access, readdir, symlink, lstat, rm, readlink, writeFile } from 'fs/promises';
-import { join, basename, normalize, resolve, sep, relative } from 'path';
+import { join, basename, normalize, resolve, sep, relative, dirname } from 'path';
 import { homedir, platform } from 'os';
-import type { Skill, AgentType, MintlifySkill, RemoteSkill } from './types.js';
-import { agents } from './agents.js';
+import type { Skill, AgentType, MintlifySkill, RemoteSkill } from './types.ts';
+import type { WellKnownSkill } from './providers/wellknown.ts';
+import { agents } from './agents.ts';
 
 const AGENTS_DIR = '.agents';
 const SKILLS_SUBDIR = 'skills';
@@ -62,17 +63,51 @@ function getCanonicalSkillsDir(global: boolean, cwd?: string): string {
   return join(baseDir, AGENTS_DIR, SKILLS_SUBDIR);
 }
 
+function resolveSymlinkTarget(linkPath: string, linkTarget: string): string {
+  return resolve(dirname(linkPath), linkTarget);
+}
+
+async function ensureDirectory(path: string): Promise<void> {
+  try {
+    const stats = await lstat(path);
+    if (stats.isSymbolicLink()) {
+      await rm(path, { recursive: true, force: true });
+    }
+  } catch (err: unknown) {
+    if (err && typeof err === 'object' && 'code' in err) {
+      if (err.code !== 'ENOENT') {
+        if (err.code === 'ELOOP') {
+          await rm(path, { recursive: true, force: true });
+        } else {
+          throw err;
+        }
+      }
+    } else if (err) {
+      throw err;
+    }
+  }
+
+  await mkdir(path, { recursive: true });
+}
+
 /**
  * Creates a symlink, handling cross-platform differences
  * Returns true if symlink was created, false if fallback to copy is needed
  */
 async function createSymlink(target: string, linkPath: string): Promise<boolean> {
   try {
+    const resolvedTarget = resolve(target);
+    const resolvedLinkPath = resolve(linkPath);
+
+    if (resolvedTarget === resolvedLinkPath) {
+      return true;
+    }
+
     try {
       const stats = await lstat(linkPath);
       if (stats.isSymbolicLink()) {
         const existingTarget = await readlink(linkPath);
-        if (resolve(existingTarget) === resolve(target)) {
+        if (resolveSymlinkTarget(linkPath, existingTarget) === resolvedTarget) {
           return true;
         }
         await rm(linkPath);
@@ -92,7 +127,7 @@ async function createSymlink(target: string, linkPath: string): Promise<boolean>
       // For ENOENT or other errors, continue to symlink creation
     }
 
-    const linkDir = join(linkPath, '..');
+    const linkDir = dirname(linkPath);
     await mkdir(linkDir, { recursive: true });
 
     const relativePath = relative(linkDir, target);
@@ -161,7 +196,7 @@ export async function installSkillForAgent(
     }
 
     // Symlink mode: copy to canonical location and symlink to agent location
-    await mkdir(canonicalDir, { recursive: true });
+    await ensureDirectory(canonicalDir);
     await copyDirectory(skill.path, canonicalDir);
 
     const symlinkCreated = await createSymlink(canonicalDir, agentDir);
@@ -202,10 +237,12 @@ export async function installSkillForAgent(
 }
 
 const EXCLUDE_FILES = new Set(['README.md', 'metadata.json']);
+const EXCLUDE_DIRS = new Set(['.git']);
 
-const isExcluded = (name: string): boolean => {
+const isExcluded = (name: string, isDirectory: boolean = false): boolean => {
   if (EXCLUDE_FILES.has(name)) return true;
   if (name.startsWith('_')) return true;
+  if (isDirectory && EXCLUDE_DIRS.has(name)) return true;
   return false;
 };
 
@@ -215,14 +252,15 @@ async function copyDirectory(src: string, dest: string): Promise<void> {
   const entries = await readdir(src, { withFileTypes: true });
 
   for (const entry of entries) {
-    if (isExcluded(entry.name)) {
+    const isDir = entry.isDirectory();
+    if (isExcluded(entry.name, isDir)) {
       continue;
     }
 
     const srcPath = join(src, entry.name);
     const destPath = join(dest, entry.name);
 
-    if (entry.isDirectory()) {
+    if (isDir) {
       await copyDirectory(srcPath, destPath);
     } else {
       await cp(srcPath, destPath);
@@ -356,7 +394,7 @@ export async function installMintlifySkillForAgent(
     }
 
     // Symlink mode: write to canonical location and symlink to agent location
-    await mkdir(canonicalDir, { recursive: true });
+    await ensureDirectory(canonicalDir);
     const skillMdPath = join(canonicalDir, 'SKILL.md');
     await writeFile(skillMdPath, skill.content, 'utf-8');
 
@@ -459,7 +497,7 @@ export async function installRemoteSkillForAgent(
     }
 
     // Symlink mode: write to canonical location and symlink to agent location
-    await mkdir(canonicalDir, { recursive: true });
+    await ensureDirectory(canonicalDir);
     const skillMdPath = join(canonicalDir, 'SKILL.md');
     await writeFile(skillMdPath, skill.content, 'utf-8');
 
@@ -475,6 +513,127 @@ export async function installRemoteSkillForAgent(
       await mkdir(agentDir, { recursive: true });
       const agentSkillMdPath = join(agentDir, 'SKILL.md');
       await writeFile(agentSkillMdPath, skill.content, 'utf-8');
+
+      return {
+        success: true,
+        path: agentDir,
+        canonicalPath: canonicalDir,
+        mode: 'symlink',
+        symlinkFailed: true,
+      };
+    }
+
+    return {
+      success: true,
+      path: agentDir,
+      canonicalPath: canonicalDir,
+      mode: 'symlink',
+    };
+  } catch (error) {
+    return {
+      success: false,
+      path: agentDir,
+      mode: installMode,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
+
+/**
+ * Install a well-known skill with multiple files.
+ * The skill directory name is derived from the installName field.
+ * All files from the skill's files map are written to the installation directory.
+ * Supports symlink mode (writes to canonical location and symlinks to agent dirs)
+ * or copy mode (writes directly to each agent dir).
+ */
+export async function installWellKnownSkillForAgent(
+  skill: WellKnownSkill,
+  agentType: AgentType,
+  options: { global?: boolean; cwd?: string; mode?: InstallMode } = {}
+): Promise<InstallResult> {
+  const agent = agents[agentType];
+  const isGlobal = options.global ?? false;
+  const cwd = options.cwd || process.cwd();
+  const installMode = options.mode ?? 'symlink';
+
+  // Use installName as the skill directory name
+  const skillName = sanitizeName(skill.installName);
+
+  // Canonical location: .agents/skills/<skill-name>
+  const canonicalBase = getCanonicalSkillsDir(isGlobal, cwd);
+  const canonicalDir = join(canonicalBase, skillName);
+
+  // Agent-specific location (for symlink)
+  const agentBase = isGlobal ? agent.globalSkillsDir : join(cwd, agent.skillsDir);
+  const agentDir = join(agentBase, skillName);
+
+  // Validate paths
+  if (!isPathSafe(canonicalBase, canonicalDir)) {
+    return {
+      success: false,
+      path: agentDir,
+      mode: installMode,
+      error: 'Invalid skill name: potential path traversal detected',
+    };
+  }
+
+  if (!isPathSafe(agentBase, agentDir)) {
+    return {
+      success: false,
+      path: agentDir,
+      mode: installMode,
+      error: 'Invalid skill name: potential path traversal detected',
+    };
+  }
+
+  /**
+   * Write all skill files to a directory
+   */
+  async function writeSkillFiles(targetDir: string): Promise<void> {
+    await mkdir(targetDir, { recursive: true });
+
+    for (const [filePath, content] of skill.files) {
+      // Validate file path doesn't escape the target directory
+      const fullPath = join(targetDir, filePath);
+      if (!isPathSafe(targetDir, fullPath)) {
+        continue; // Skip files that would escape the directory
+      }
+
+      // Create parent directories if needed
+      const parentDir = dirname(fullPath);
+      if (parentDir !== targetDir) {
+        await mkdir(parentDir, { recursive: true });
+      }
+
+      await writeFile(fullPath, content, 'utf-8');
+    }
+  }
+
+  try {
+    // For copy mode, write directly to agent location
+    if (installMode === 'copy') {
+      await writeSkillFiles(agentDir);
+
+      return {
+        success: true,
+        path: agentDir,
+        mode: 'copy',
+      };
+    }
+
+    // Symlink mode: write to canonical location and symlink to agent location
+    await writeSkillFiles(canonicalDir);
+
+    const symlinkCreated = await createSymlink(canonicalDir, agentDir);
+
+    if (!symlinkCreated) {
+      // Symlink failed, fall back to copy
+      try {
+        await rm(agentDir, { recursive: true, force: true });
+      } catch {
+        // Ignore cleanup errors
+      }
+      await writeSkillFiles(agentDir);
 
       return {
         success: true,

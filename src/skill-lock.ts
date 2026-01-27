@@ -32,6 +32,14 @@ export interface SkillLockEntry {
 }
 
 /**
+ * Tracks dismissed prompts so they're not shown again.
+ */
+export interface DismissedPrompts {
+  /** Dismissed the find-skills skill installation prompt */
+  findSkillsPrompt?: boolean;
+}
+
+/**
  * The structure of the skill lock file.
  */
 export interface SkillLockFile {
@@ -39,6 +47,10 @@ export interface SkillLockFile {
   version: number;
   /** Map of skill name to its lock entry */
   skills: Record<string, SkillLockEntry>;
+  /** Tracks dismissed prompts */
+  dismissed?: DismissedPrompts;
+  /** Last selected agents for installation */
+  lastSelectedAgents?: string[];
 }
 
 /**
@@ -133,15 +145,21 @@ export async function fetchSkillFolderHash(
       const response = await fetch(url, {
         headers: {
           Accept: 'application/vnd.github.v3+json',
-          'User-Agent': 'add-skill-cli',
+          'User-Agent': 'skills-cli',
         },
       });
 
       if (!response.ok) continue;
 
       const data = (await response.json()) as {
+        sha: string;
         tree: Array<{ path: string; type: string; sha: string }>;
       };
+
+      // If folderPath is empty, this is a root-level skill - use the root tree SHA
+      if (!folderPath) {
+        return data.sha;
+      }
 
       // Find the tree entry for the skill folder
       const folderEntry = data.tree.find(
@@ -239,5 +257,43 @@ function createEmptyLockFile(): SkillLockFile {
   return {
     version: CURRENT_VERSION,
     skills: {},
+    dismissed: {},
   };
+}
+
+/**
+ * Check if a prompt has been dismissed.
+ */
+export async function isPromptDismissed(promptKey: keyof DismissedPrompts): Promise<boolean> {
+  const lock = await readSkillLock();
+  return lock.dismissed?.[promptKey] === true;
+}
+
+/**
+ * Mark a prompt as dismissed.
+ */
+export async function dismissPrompt(promptKey: keyof DismissedPrompts): Promise<void> {
+  const lock = await readSkillLock();
+  if (!lock.dismissed) {
+    lock.dismissed = {};
+  }
+  lock.dismissed[promptKey] = true;
+  await writeSkillLock(lock);
+}
+
+/**
+ * Get the last selected agents.
+ */
+export async function getLastSelectedAgents(): Promise<string[] | undefined> {
+  const lock = await readSkillLock();
+  return lock.lastSelectedAgents;
+}
+
+/**
+ * Save the selected agents to the lock file.
+ */
+export async function saveSelectedAgents(agents: string[]): Promise<void> {
+  const lock = await readSkillLock();
+  lock.lastSelectedAgents = agents;
+  await writeSkillLock(lock);
 }
