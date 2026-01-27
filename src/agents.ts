@@ -145,6 +145,15 @@ export const agents: Record<AgentType, AgentConfig> = {
       return existsSync(join(home, '.config/goose'));
     },
   },
+  'iflow-cli': {
+    name: 'iflow-cli',
+    displayName: 'iFlow CLI',
+    skillsDir: '.iflow/skills',
+    globalSkillsDir: join(home, '.iflow/skills'),
+    detectInstalled: async () => {
+      return existsSync(join(home, '.iflow'));
+    },
+  },
   kilo: {
     name: 'kilo',
     displayName: 'Kilo Code',
