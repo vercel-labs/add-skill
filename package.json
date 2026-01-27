@@ -75,8 +75,8 @@
   "license": "MIT",
   "dependencies": {
     "@clack/prompts": "^0.11.0",
-    "chalk": "^5.4.1",
     "gray-matter": "^4.0.3",
+    "picocolors": "^1.1.1",
     "simple-git": "^3.27.0"
   },
   "devDependencies": {
