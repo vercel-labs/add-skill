@@ -20,7 +20,9 @@ export class GitCloneError extends Error {
 export async function cloneRepo(url: string, ref?: string): Promise<string> {
   const tempDir = await mkdtemp(join(tmpdir(), 'skills-'));
   const git = simpleGit({ timeout: { block: CLONE_TIMEOUT_MS } });
-  const cloneOptions = ref ? ['--depth', '1', '--branch', ref] : ['--depth', '1'];
+  const cloneOptions = ref
+    ? ['--depth', '1', '--branch', ref, '--recurse-submodules', '--shallow-submodules']
+    : ['--depth', '1', '--recurse-submodules', '--shallow-submodules'];
 
   try {
     await git.clone(url, tempDir, cloneOptions);
