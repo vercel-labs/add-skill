@@ -1,0 +1,11 @@
+{
+  "name": "skills",
+  "description": "The open agent skills ecosystem - discover, install, and manage agent skills",
+  "version": "1.0.0",
+  "author": {
+    "name": "Vercel"
+  },
+  "license": "MIT",
+  "homepage": "https://skills.sh",
+  "repository": "https://github.com/vercel-labs/skills"
+}
