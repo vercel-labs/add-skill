@@ -252,13 +252,34 @@ async function copyDirectory(src: string, dest: string): Promise<void> {
   const entries = await readdir(src, { withFileTypes: true });
 
   for (const entry of entries) {
+    const srcPath = join(src, entry.name);
+    const destPath = join(dest, entry.name);
+
+    // Handle symlinks: resolve them and copy the target content
+    if (entry.isSymbolicLink()) {
+      try {
+        const stats = await lstat(resolve(src, await readlink(srcPath)));
+        if (stats.isDirectory()) {
+          // Symlink points to directory - recursively copy resolved content
+          const resolvedPath = resolve(src, await readlink(srcPath));
+          if (isExcluded(entry.name, true)) continue;
+          await copyDirectory(resolvedPath, destPath);
+        } else {
+          // Symlink points to file - copy the resolved file
+          if (isExcluded(entry.name, false)) continue;
+          await cp(srcPath, destPath, { dereference: true });
+        }
+      } catch {
+        // Broken symlink or inaccessible target - skip it
+        continue;
+      }
+      continue;
+    }
+
     const isDir = entry.isDirectory();
     if (isExcluded(entry.name, isDir)) {
       continue;
     }
-
-    const srcPath = join(src, entry.name);
-    const destPath = join(dest, entry.name);
 
     if (isDir) {
       await copyDirectory(srcPath, destPath);
