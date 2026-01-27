@@ -23,7 +23,7 @@ interface InstallResult {
  * @param name - The name to sanitize
  * @returns Sanitized name safe for use in file paths
  */
-function sanitizeName(name: string): string {
+export function sanitizeName(name: string): string {
   let sanitized = name.replace(/[\/\\:\0]/g, '');
   sanitized = sanitized.replace(/^[.\s]+|[.\s]+$/g, '');
   sanitized = sanitized.replace(/^\.+/, '');
@@ -329,6 +329,74 @@ export function getCanonicalPath(
   }
 
   return canonicalPath;
+}
+
+/**
+ * Checks if two paths overlap (one is inside the other or they are the same).
+ * Used to prevent copying a directory into itself.
+ */
+function pathsOverlap(path1: string, path2: string): boolean {
+  const resolved1 = normalize(resolve(path1));
+  const resolved2 = normalize(resolve(path2));
+
+  // Check if they're the same or one contains the other
+  return (
+    resolved1 === resolved2 ||
+    resolved1.startsWith(resolved2 + sep) ||
+    resolved2.startsWith(resolved1 + sep)
+  );
+}
+
+/**
+ * Install a skill to a custom path (bypasses agent-specific directories).
+ * Used when the user specifies -p/--path option.
+ */
+export async function installToCustomPath(
+  skillName: string,
+  customPath: string,
+  source: { type: 'directory'; path: string } | { type: 'content'; content: string }
+): Promise<{ success: boolean; path: string; error?: string }> {
+  const sanitizedName = sanitizeName(skillName);
+  const targetDir = join(customPath, sanitizedName);
+
+  if (!isPathSafe(customPath, targetDir)) {
+    return {
+      success: false,
+      path: targetDir,
+      error: 'Invalid skill name: potential path traversal detected',
+    };
+  }
+
+  // Prevent copying a directory into itself (infinite recursion)
+  if (source.type === 'directory' && pathsOverlap(source.path, targetDir)) {
+    return {
+      success: false,
+      path: targetDir,
+      error: 'Cannot install: target path overlaps with source path',
+    };
+  }
+
+  try {
+    await mkdir(targetDir, { recursive: true });
+
+    if (source.type === 'directory') {
+      await copyDirectory(source.path, targetDir);
+    } else {
+      const skillMdPath = join(targetDir, 'SKILL.md');
+      await writeFile(skillMdPath, source.content, 'utf-8');
+    }
+
+    return {
+      success: true,
+      path: targetDir,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      path: targetDir,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
 }
 
 /**

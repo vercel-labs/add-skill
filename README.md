@@ -6,9 +6,6 @@ The CLI for the open agent skills ecosystem.
 Supports **Opencode**, **Claude Code**, **Codex**, **Cursor**, and [25 more](#available-agents).
 <!-- agent-list:end -->
 
-
-<!-- agent-list:end -->
-
 ## Install a Skill
 
 ```bash
@@ -44,6 +41,7 @@ npx skills add ./my-local-skills
 | `-g, --global`            | Install to user directory instead of project                                                                                                       |
 | `-a, --agent <agents...>` | <!-- agent-names:start -->Target specific agents (e.g., `claude-code`, `codex`). See [Available Agents](#available-agents)<!-- agent-names:end --> |
 | `-s, --skill <skills...>` | Install specific skills by name                                                                                                                    |
+| `-p, --path <path>`       | Install to a custom path (skips agent selection)                                                                                                   |
 | `-l, --list`              | List available skills without installing                                                                                                           |
 | `-y, --yes`               | Skip all confirmation prompts                                                                                                                      |
 | `--all`                   | Install all skills to all agents without prompts                                                                                                   |
@@ -59,6 +57,9 @@ npx skills add vercel-labs/agent-skills --skill frontend-design --skill skill-cr
 
 # Install to specific agents
 npx skills add vercel-labs/agent-skills -a claude-code -a opencode
+
+# Install to a custom path
+npx skills add vercel-labs/agent-skills --path ./my-skills
 
 # Non-interactive installation (CI/CD friendly)
 npx skills add vercel-labs/agent-skills --skill frontend-design -g -a claude-code -y
