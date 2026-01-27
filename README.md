@@ -3,7 +3,7 @@
 The CLI for the open agent skills ecosystem.
 
 <!-- agent-list:start -->
-Supports **Opencode**, **Claude Code**, **Codex**, **Cursor**, and [25 more](#available-agents).
+Supports **OpenCode**, **Claude Code**, **Codex**, **Cursor**, and [26 more](#supported-agents).
 <!-- agent-list:end -->
 
 <!-- agent-list:end -->
@@ -26,7 +26,7 @@ npx skills add vercel-labs/agent-skills
 npx skills add https://github.com/vercel-labs/agent-skills
 
 # Direct path to a skill in a repo
-npx skills add https://github.com/vercel-labs/agent-skills/tree/main/skills/frontend-design
+npx skills add https://github.com/vercel-labs/agent-skills/tree/main/skills/web-design-guidelines
 
 # GitLab URL
 npx skills add https://gitlab.com/org/repo
@@ -43,7 +43,7 @@ npx skills add ./my-local-skills
 | Option                    | Description                                                                                                                                        |
 | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `-g, --global`            | Install to user directory instead of project                                                                                                       |
-| `-a, --agent <agents...>` | <!-- agent-names:start -->Target specific agents (e.g., `claude-code`, `codex`). See [Available Agents](#available-agents)<!-- agent-names:end --> |
+| `-a, --agent <agents...>` | <!-- agent-names:start -->Target specific agents (e.g., `claude-code`, `codex`). See [Supported Agents](#supported-agents)<!-- agent-names:end --> |
 | `-s, --skill <skills...>` | Install specific skills by name                                                                                                                    |
 | `-l, --list`              | List available skills without installing                                                                                                           |
 | `-y, --yes`               | Skip all confirmation prompts                                                                                                                      |
@@ -56,13 +56,13 @@ npx skills add ./my-local-skills
 npx skills add vercel-labs/agent-skills --list
 
 # Install specific skills
-npx skills add vercel-labs/agent-skills --skill frontend-design --skill skill-creator
+npx skills add vercel-labs/agent-skills --skill web-design-guidelines --skill skill-creator
 
 # Install to specific agents
 npx skills add vercel-labs/agent-skills -a claude-code -a opencode
 
 # Non-interactive installation (CI/CD friendly)
-npx skills add vercel-labs/agent-skills --skill frontend-design -g -a claude-code -y
+npx skills add vercel-labs/agent-skills --skill web-design-guidelines -g -a claude-code -y
 
 # Install all skills from a repo to all agents
 npx skills add vercel-labs/agent-skills --all
@@ -170,6 +170,7 @@ Skills can be installed to any of these agents:
 | Gemini CLI | `gemini-cli` | `.gemini/skills/` | `~/.gemini/skills/` |
 | GitHub Copilot | `github-copilot` | `.github/skills/` | `~/.copilot/skills/` |
 | Goose | `goose` | `.goose/skills/` | `~/.config/goose/skills/` |
+| Junie | `junie` | `.junie/skills/` | `~/.junie/skills/` |
 | Kilo Code | `kilo` | `.kilocode/skills/` | `~/.kilocode/skills/` |
 | Kiro CLI | `kiro-cli` | `.kiro/skills/` | `~/.kiro/skills/` |
 | MCPJam | `mcpjam` | `.mcpjam/skills/` | `~/.mcpjam/skills/` |
@@ -264,6 +265,7 @@ The CLI searches for skills in these locations within a repository:
 - `.gemini/skills/`
 - `.github/skills/`
 - `.goose/skills/`
+- `.junie/skills/`
 - `.kilocode/skills/`
 - `.kiro/skills/`
 - `.mcpjam/skills/`

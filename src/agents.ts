@@ -145,6 +145,15 @@ export const agents: Record<AgentType, AgentConfig> = {
       return existsSync(join(home, '.config/goose'));
     },
   },
+  junie: {
+    name: 'junie',
+    displayName: 'Junie',
+    skillsDir: '.junie/skills',
+    globalSkillsDir: join(home, '.junie/skills'),
+    detectInstalled: async () => {
+      return existsSync(join(home, '.junie'));
+    },
+  },
   kilo: {
     name: 'kilo',
     displayName: 'Kilo Code',
