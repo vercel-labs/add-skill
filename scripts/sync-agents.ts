@@ -12,7 +12,7 @@ const PACKAGE_PATH = join(ROOT, 'package.json');
 function generateAgentList(): string {
   const agentList = Object.values(agents);
   const count = agentList.length;
-  return `Supports **Opencode**, **Claude Code**, **Codex**, **Cursor**, and [${count - 4} more](#available-agents).`;
+  return `Supports **OpenCode**, **Claude Code**, **Codex**, **Cursor**, and [${count - 4} more](#available-agents).`;
 }
 
 function generateAgentNames(): string {
