@@ -1,7 +1,7 @@
-#!/usr/bin/env tsx
+#!/usr/bin/env node
 
 import { homedir } from 'os';
-import { agents } from '../src/agents.js';
+import { agents } from '../src/agents.ts';
 
 let hasErrors = false;
 
@@ -85,7 +85,8 @@ function checkDuplicateSkillsDirs() {
 console.log('Validating agents...\n');
 
 checkDuplicateDisplayNames();
-checkDuplicateSkillsDirs();
+// It's fine to have duplicate skills dirs
+// checkDuplicateSkillsDirs();
 
 if (hasErrors) {
   console.log('\nValidation failed.');

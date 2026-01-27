@@ -1,5 +1,5 @@
 import matter from 'gray-matter';
-import type { HostProvider, ProviderMatch, RemoteSkill } from './types.js';
+import type { HostProvider, ProviderMatch, RemoteSkill } from './types.ts';
 
 /**
  * Represents the index.json structure for well-known skills.
@@ -97,16 +97,16 @@ export class WellKnownProvider implements HostProvider {
       const urlsToTry = [
         // Path-relative: https://example.com/docs/.well-known/skills/index.json
         {
-          indexUrl: `${parsed.protocol}//${parsed.hostname}${basePath}/${this.WELL_KNOWN_PATH}/${this.INDEX_FILE}`,
-          baseUrl: `${parsed.protocol}//${parsed.hostname}${basePath}`,
+          indexUrl: `${parsed.protocol}//${parsed.host}${basePath}/${this.WELL_KNOWN_PATH}/${this.INDEX_FILE}`,
+          baseUrl: `${parsed.protocol}//${parsed.host}${basePath}`,
         },
       ];
 
       // Also try root if we have a path
       if (basePath && basePath !== '') {
         urlsToTry.push({
-          indexUrl: `${parsed.protocol}//${parsed.hostname}/${this.WELL_KNOWN_PATH}/${this.INDEX_FILE}`,
-          baseUrl: `${parsed.protocol}//${parsed.hostname}`,
+          indexUrl: `${parsed.protocol}//${parsed.host}/${this.WELL_KNOWN_PATH}/${this.INDEX_FILE}`,
+          baseUrl: `${parsed.protocol}//${parsed.host}`,
         });
       }
 
@@ -340,12 +340,12 @@ export class WellKnownProvider implements HostProvider {
       const pathMatch = parsed.pathname.match(/\/.well-known\/skills\/([^/]+)\/?$/);
       if (pathMatch && pathMatch[1]) {
         const basePath = parsed.pathname.replace(/\/.well-known\/skills\/.*$/, '');
-        return `${parsed.protocol}//${parsed.hostname}${basePath}/${this.WELL_KNOWN_PATH}/${pathMatch[1]}/SKILL.md`;
+        return `${parsed.protocol}//${parsed.host}${basePath}/${this.WELL_KNOWN_PATH}/${pathMatch[1]}/SKILL.md`;
       }
 
       // Otherwise, return the index URL
       const basePath = parsed.pathname.replace(/\/$/, '');
-      return `${parsed.protocol}//${parsed.hostname}${basePath}/${this.WELL_KNOWN_PATH}/${this.INDEX_FILE}`;
+      return `${parsed.protocol}//${parsed.host}${basePath}/${this.WELL_KNOWN_PATH}/${this.INDEX_FILE}`;
     } catch {
       return url;
     }

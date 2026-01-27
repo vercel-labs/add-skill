@@ -1,9 +1,8 @@
 import { execSync } from 'child_process';
 import { join } from 'path';
 
-const PROJECT_ROOT = join(import.meta.dirname, '..');
+// const PROJECT_ROOT = join(import.meta.dirname, '..');
 const CLI_PATH = join(import.meta.dirname, 'cli.ts');
-const TSX_PATH = join(PROJECT_ROOT, 'node_modules', '.bin', 'tsx');
 
 export function stripAnsi(str: string): string {
   return str.replace(/\x1b\[[0-9;]*m/g, '');
@@ -23,7 +22,7 @@ export function runCli(
   env?: Record<string, string>
 ): { stdout: string; stderr: string; exitCode: number } {
   try {
-    const output = execSync(`${TSX_PATH} ${CLI_PATH} ${args.join(' ')}`, {
+    const output = execSync(`node ${CLI_PATH} ${args.join(' ')}`, {
       encoding: 'utf-8',
       cwd,
       stdio: ['pipe', 'pipe', 'pipe'],

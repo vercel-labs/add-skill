@@ -49,6 +49,8 @@ export interface SkillLockFile {
   skills: Record<string, SkillLockEntry>;
   /** Tracks dismissed prompts */
   dismissed?: DismissedPrompts;
+  /** Last selected agents for installation */
+  lastSelectedAgents?: string[];
 }
 
 /**
@@ -276,5 +278,22 @@ export async function dismissPrompt(promptKey: keyof DismissedPrompts): Promise<
     lock.dismissed = {};
   }
   lock.dismissed[promptKey] = true;
+  await writeSkillLock(lock);
+}
+
+/**
+ * Get the last selected agents.
+ */
+export async function getLastSelectedAgents(): Promise<string[] | undefined> {
+  const lock = await readSkillLock();
+  return lock.lastSelectedAgents;
+}
+
+/**
+ * Save the selected agents to the lock file.
+ */
+export async function saveSelectedAgents(agents: string[]): Promise<void> {
+  const lock = await readSkillLock();
+  lock.lastSelectedAgents = agents;
   await writeSkillLock(lock);
 }
