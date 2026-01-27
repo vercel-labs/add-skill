@@ -1,19 +1,32 @@
 {
-  "name": "add-skill",
-  "version": "1.0.23",
-  "description": "Install agent skills onto coding agents (OpenCode, Claude Code, Codex, Cursor)",
+  "name": "skills",
+  "version": "1.1.5",
+  "description": "The open agent skills ecosystem",
   "type": "module",
   "bin": {
-    "add-skill": "./dist/index.js"
+    "skills": "./dist/cli.js",
+    "add-skill": "./dist/cli.js"
   },
   "files": [
     "dist",
     "README.md"
   ],
   "scripts": {
-    "build": "tsup src/index.ts --format esm --dts --clean",
-    "dev": "tsx src/index.ts",
-    "prepublishOnly": "npm run build"
+    "build": "tsup src/cli.ts --format esm --clean",
+    "dev": "tsx src/cli.ts",
+    "exec:test": "tsx scripts/execute-tests.ts",
+    "prepublishOnly": "npm run build",
+    "format": "prettier --write 'src/**/*.ts' 'scripts/**/*.ts'",
+    "format:check": "prettier --check 'src/**/*.ts' 'scripts/**/*.ts'",
+    "prepare": "husky",
+    "test": "vitest",
+    "type-check": "tsc --noEmit",
+    "publish:snapshot": "npm version prerelease --preid=snapshot --no-git-tag-version && npm publish --tag snapshot"
+  },
+  "lint-staged": {
+    "src/**/*.ts": "prettier --write",
+    "scripts/**/*.ts": "prettier --write",
+    "tests/**/*.ts": "prettier --write"
   },
   "keywords": [
     "cli",
@@ -24,7 +37,12 @@
     "antigravity",
     "claude-code",
     "clawdbot",
+    "cline",
+    "codebuddy",
     "codex",
+    "command-code",
+    "continue",
+    "crush",
     "cursor",
     "droid",
     "gemini-cli",
@@ -32,36 +50,48 @@
     "goose",
     "kilo",
     "kiro-cli",
+    "mcpjam",
+    "mux",
     "opencode",
+    "openhands",
+    "pi",
+    "qoder",
+    "qwen-code",
     "roo",
     "trae",
     "windsurf",
+    "zencoder",
     "neovate"
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vercel-labs/add-skill.git"
+    "url": "git+https://github.com/vercel-labs/skills.git"
   },
-  "homepage": "https://github.com/vercel-labs/add-skill#readme",
+  "homepage": "https://github.com/vercel-labs/skills#readme",
   "bugs": {
-    "url": "https://github.com/vercel-labs/add-skill/issues"
+    "url": "https://github.com/vercel-labs/skills/issues"
   },
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@clack/prompts": "^0.9.1",
+    "@clack/prompts": "^0.11.0",
     "chalk": "^5.4.1",
-    "commander": "^13.1.0",
     "gray-matter": "^4.0.3",
     "simple-git": "^3.27.0"
   },
   "devDependencies": {
+    "@types/bun": "latest",
     "@types/node": "^22.10.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
+    "prettier": "^3.8.1",
     "tsup": "^8.3.5",
     "tsx": "^4.19.2",
-    "typescript": "^5.7.2"
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.17"
   },
   "engines": {
     "node": ">=18"
-  }
+  },
+  "packageManager": "pnpm@10.17.1"
 }

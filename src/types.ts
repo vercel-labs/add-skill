@@ -1,10 +1,41 @@
-export type AgentType = 'amp' | 'antigravity' | 'claude-code' | 'clawdbot' | 'codex' | 'cursor' | 'droid' | 'gemini-cli' | 'github-copilot' | 'goose' | 'kilo' | 'kiro-cli' | 'opencode' | 'roo' | 'trae' | 'windsurf' | 'neovate';
+export type AgentType =
+  | 'amp'
+  | 'antigravity'
+  | 'claude-code'
+  | 'clawdbot'
+  | 'cline'
+  | 'codebuddy'
+  | 'codex'
+  | 'command-code'
+  | 'continue'
+  | 'crush'
+  | 'cursor'
+  | 'droid'
+  | 'gemini-cli'
+  | 'github-copilot'
+  | 'goose'
+  | 'kilo'
+  | 'kiro-cli'
+  | 'mcpjam'
+  | 'mux'
+  | 'neovate'
+  | 'opencode'
+  | 'openhands'
+  | 'pi'
+  | 'qoder'
+  | 'qwen-code'
+  | 'roo'
+  | 'trae'
+  | 'windsurf'
+  | 'zencoder';
 
 export interface Skill {
   name: string;
   description: string;
   path: string;
-  metadata?: Record<string, string>;
+  /** Raw SKILL.md content for hashing */
+  rawContent?: string;
+  metadata?: Record<string, unknown>;
 }
 
 export interface AgentConfig {
@@ -16,7 +47,7 @@ export interface AgentConfig {
 }
 
 export interface ParsedSource {
-  type: 'github' | 'gitlab' | 'git' | 'local' | 'direct-url';
+  type: 'github' | 'gitlab' | 'git' | 'local' | 'direct-url' | 'well-known';
   url: string;
   subpath?: string;
   localPath?: string;

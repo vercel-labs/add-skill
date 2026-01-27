@@ -1,5 +1,5 @@
-import matter from "gray-matter";
-import type { MintlifySkill } from "./types.js";
+import matter from 'gray-matter';
+import type { MintlifySkill } from './types.js';
 
 /**
  * Fetch a skill.md file from a direct URL and parse its contents
@@ -13,9 +13,7 @@ import type { MintlifySkill } from "./types.js";
  *   mintlify-proj: bun.com
  * ---
  */
-export async function fetchMintlifySkill(
-  url: string,
-): Promise<MintlifySkill | null> {
+export async function fetchMintlifySkill(url: string): Promise<MintlifySkill | null> {
   try {
     const response = await fetch(url);
 
@@ -27,7 +25,7 @@ export async function fetchMintlifySkill(
     const { data } = matter(content);
 
     // Must have mintlify-proj in metadata
-    const mintlifySite = data.metadata?.["mintlify-proj"];
+    const mintlifySite = data.metadata?.['mintlify-proj'];
     if (!mintlifySite) {
       return null;
     }

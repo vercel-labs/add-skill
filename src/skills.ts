@@ -5,6 +5,15 @@ import type { Skill } from './types.js';
 
 const SKIP_DIRS = ['node_modules', '.git', 'dist', 'build', '__pycache__'];
 
+/**
+ * Check if internal skills should be installed.
+ * Internal skills are hidden by default unless INSTALL_INTERNAL_SKILLS=1 is set.
+ */
+export function shouldInstallInternalSkills(): boolean {
+  const envValue = process.env.INSTALL_INTERNAL_SKILLS;
+  return envValue === '1' || envValue === 'true';
+}
+
 async function hasSkillMd(dir: string): Promise<boolean> {
   try {
     const skillPath = join(dir, 'SKILL.md');
@@ -24,10 +33,17 @@ async function parseSkillMd(skillMdPath: string): Promise<Skill | null> {
       return null;
     }
 
+    // Skip internal skills unless INSTALL_INTERNAL_SKILLS=1 is set
+    const isInternal = data.metadata?.internal === true;
+    if (isInternal && !shouldInstallInternalSkills()) {
+      return null;
+    }
+
     return {
       name: data.name,
       description: data.description,
       path: dirname(skillMdPath),
+      rawContent: content,
       metadata: data.metadata,
     };
   } catch {
@@ -84,15 +100,26 @@ export async function discoverSkills(basePath: string, subpath?: string): Promis
     join(searchPath, '.agent/skills'),
     join(searchPath, '.agents/skills'),
     join(searchPath, '.claude/skills'),
+    join(searchPath, '.cline/skills'),
+    join(searchPath, '.codebuddy/skills'),
     join(searchPath, '.codex/skills'),
+    join(searchPath, '.commandcode/skills'),
+    join(searchPath, '.continue/skills'),
     join(searchPath, '.cursor/skills'),
     join(searchPath, '.github/skills'),
     join(searchPath, '.goose/skills'),
     join(searchPath, '.kilocode/skills'),
     join(searchPath, '.kiro/skills'),
+    join(searchPath, '.mux/skills'),
+    join(searchPath, '.neovate/skills'),
     join(searchPath, '.opencode/skills'),
+    join(searchPath, '.openhands/skills'),
+    join(searchPath, '.pi/skills'),
+    join(searchPath, '.qoder/skills'),
     join(searchPath, '.roo/skills'),
     join(searchPath, '.trae/skills'),
+    join(searchPath, '.windsurf/skills'),
+    join(searchPath, '.zencoder/skills'),
   ];
 
   for (const dir of prioritySearchDirs) {
