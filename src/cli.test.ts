@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { runCliOutput, stripLogo } from './test-utils.ts';
+import { formatSkippedMessage } from './cli.ts';
 
 describe('skills CLI', () => {
   describe('--help', () => {
@@ -66,5 +67,21 @@ describe('skills CLI', () => {
         "
       `);
     });
+  });
+});
+
+describe('formatSkippedMessage', () => {
+  it('should return null for empty array', () => {
+    expect(formatSkippedMessage([])).toBeNull();
+  });
+
+  it('should format single skill', () => {
+    expect(formatSkippedMessage(['my-skill'])).toBe('Skipped 1 (reinstall needed): my-skill');
+  });
+
+  it('should format multiple skills', () => {
+    expect(formatSkippedMessage(['skill-a', 'skill-b', 'skill-c'])).toBe(
+      'Skipped 3 (reinstall needed): skill-a, skill-b, skill-c'
+    );
   });
 });
