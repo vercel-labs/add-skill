@@ -19,11 +19,11 @@ describe('add command', () => {
     }
   });
 
-  it('should show error when no source provided', () => {
+  it('should look for .skills file when no source provided', () => {
     const result = runCli(['add'], testDir);
-    expect(result.stdout).toContain('ERROR');
-    expect(result.stdout).toContain('Missing required argument: source');
-    expect(result.exitCode).toBe(1);
+    // When no source is provided, it tries to find .skills file
+    expect(result.stdout).toContain('No .skills file found');
+    expect(result.exitCode).toBe(0); // Not an error, just no file found
   });
 
   it('should show error for non-existent local path', () => {
@@ -141,15 +141,15 @@ description: Test
   });
 
   it('should support add command aliases (a, i, install)', () => {
-    // Test that aliases work (just check they don't error unexpectedly)
+    // Test that aliases work - they should all look for .skills file when no source
     const resultA = runCli(['a'], testDir);
     const resultI = runCli(['i'], testDir);
     const resultInstall = runCli(['install'], testDir);
 
-    // All should show the same "missing source" error
-    expect(resultA.stdout).toContain('Missing required argument: source');
-    expect(resultI.stdout).toContain('Missing required argument: source');
-    expect(resultInstall.stdout).toContain('Missing required argument: source');
+    // All should show the same ".skills file not found" message
+    expect(resultA.stdout).toContain('No .skills file found');
+    expect(resultI.stdout).toContain('No .skills file found');
+    expect(resultInstall.stdout).toContain('No .skills file found');
   });
 
   describe('internal skills', () => {

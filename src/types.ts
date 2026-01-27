@@ -83,3 +83,17 @@ export interface RemoteSkill {
   /** Any additional metadata from frontmatter */
   metadata?: Record<string, unknown>;
 }
+
+export interface AddOptions {
+  global?: boolean;
+  agent?: string[];
+  yes?: boolean;
+  skill?: string[];
+  list?: boolean;
+  all?: boolean;
+}
+
+export interface InstallFromFileOptions extends AddOptions {
+  /** Remove skills not listed in .skills file */
+  sync?: boolean;
+}

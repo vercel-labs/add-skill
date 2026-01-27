@@ -9,6 +9,7 @@ import { fileURLToPath } from 'url';
 import { runAdd, parseAddOptions, initTelemetry } from './add.js';
 import { runFind } from './find.js';
 import { track } from './telemetry.js';
+import { runInstallFromFile } from './skillsfile.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -91,6 +92,7 @@ ${BOLD}Usage:${RESET} skills <command> [options]
 ${BOLD}Commands:${RESET}
   find [query]      Search for skills interactively
   init [name]       Initialize a skill (creates <name>/SKILL.md or ./SKILL.md)
+  install           Install skills from .skills file (project or global)
   add <package>     Add a skill package
                     e.g. vercel-labs/agent-skills
                          https://github.com/vercel-labs/agent-skills
@@ -98,24 +100,47 @@ ${BOLD}Commands:${RESET}
   update            Update all skills to latest versions
   generate-lock     Generate lock file from installed skills
 
-${BOLD}Add Options:${RESET}
+${BOLD}Add/Install Options:${RESET}
   -g, --global           Install skill globally (user-level) instead of project-level
   -a, --agent <agents>   Specify agents to install to
   -s, --skill <skills>   Specify skill names to install (skip selection prompt)
   -l, --list             List available skills in the repository without installing
   -y, --yes              Skip confirmation prompts
   --all                  Install all skills to all agents without any prompts
+  --sync                 Remove skills not listed in .skills file (install only)
 
 ${BOLD}Options:${RESET}
   --help, -h        Show this help message
   --version, -v     Show version number
   --dry-run         Preview changes without writing (generate-lock)
 
+${BOLD}.skills File:${RESET}
+  Create a .skills file with one skill source per line:
+    ${DIM}# Comments start with #${RESET}
+    ${DIM}vercel-labs/agent-skills${RESET}
+    ${DIM}owner/repo specific-skill${RESET}
+    ${DIM}owner/repo skill1 skill2 skill3${RESET}
+    ${DIM}owner/repo 'skill with spaces'${RESET}
+    ${DIM}https://docs.example.com/skill.md${RESET}
+    ${DIM}./local-path/to/skill${RESET}
+
+  Skill selection syntax:
+    ${DIM}source skill${RESET}              - Install single skill from source
+    ${DIM}source skill1 skill2${RESET}      - Install multiple skills from source
+    ${DIM}source 'name with spaces'${RESET} - Quote skill names containing spaces
+    ${DIM}source${RESET}                    - Install all skills from source
+
+  File locations:
+    ${DIM}./.skills${RESET}  - Project-level (installed to current directory)
+    ${DIM}~/.skills${RESET}  - Global (installed to home directory)
+
 ${BOLD}Examples:${RESET}
   ${DIM}$${RESET} skills find                     ${DIM}# interactive search${RESET}
   ${DIM}$${RESET} skills find typescript          ${DIM}# search by keyword${RESET}
   ${DIM}$${RESET} skills find "react testing"    ${DIM}# search by phrase${RESET}
   ${DIM}$${RESET} skills init my-skill
+  ${DIM}$${RESET} skills install                  ${DIM}# install from .skills file${RESET}
+  ${DIM}$${RESET} skills install --sync           ${DIM}# install and remove unlisted${RESET}
   ${DIM}$${RESET} skills add vercel-labs/agent-skills
   ${DIM}$${RESET} skills add vercel-labs/agent-skills -g
   ${DIM}$${RESET} skills add vercel-labs/agent-skills --agent claude-code cursor
@@ -711,7 +736,14 @@ async function main(): Promise<void> {
     case 'add': {
       showLogo();
       const { source, options } = parseAddOptions(restArgs);
-      await runAdd(source, options);
+
+      // If no source provided, try to read from .skills file
+      if (source.length === 0) {
+        console.log();
+        await runInstallFromFile(options);
+      } else {
+        await runAdd(source, options);
+      }
       break;
     }
     case 'check':

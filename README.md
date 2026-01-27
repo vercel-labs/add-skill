@@ -84,11 +84,65 @@ When installing interactively, you can choose:
 | **Symlink** (Recommended) | Creates symlinks from each agent to a canonical copy. Single source of truth, easy updates. |
 | **Copy**                  | Creates independent copies for each agent. Use when symlinks aren't supported.              |
 
+## Declarative Installation with `.skills` File
+
+Instead of running `npx skills add` for each skill, you can create a `.skills` file to declaratively manage your skills.
+
+### File Locations
+
+| Location     | Scope   | Description                                    |
+| ------------ | ------- | ---------------------------------------------- |
+| `./.skills`  | Project | Installed to current directory, share with team |
+| `~/.skills`  | Global  | Installed to home directory, available everywhere |
+
+Project-level `.skills` files take precedence over global ones.
+
+### File Format
+
+```bash
+# Comments start with #
+vercel-labs/agent-skills
+
+# Select specific skills from a source
+owner/repo skill1 skill2 skill3
+
+# Skill names with spaces use quotes
+owner/repo 'skill with spaces' another-skill
+
+# Works with any source format
+https://github.com/owner/repo my-skill
+./local-path/to/skills
+
+# Version/ref selection (future support)
+owner/repo@v2 skill1 skill2
+```
+
+### Syntax
+
+| Format                          | Description                              |
+| ------------------------------- | ---------------------------------------- |
+| `source`                        | Install all skills from source           |
+| `source skill1 skill2`          | Install only specified skills            |
+| `source 'name with spaces'`     | Quote skill names containing spaces      |
+
+### Installing from `.skills` File
+
+```bash
+# Install all skills listed in .skills file
+npx skills install
+
+# Install and remove skills not in .skills file
+npx skills install --sync
+```
+
+The `--sync` flag removes any previously installed skills that are no longer listed in your `.skills` file, keeping your installation in sync with the file.
+
 ## Other Commands
 
 | Command                    | Description                                           |
 | -------------------------- | ----------------------------------------------------- |
 | `npx skills find [query]`  | Search for skills interactively or by keyword         |
+| `npx skills install`       | Install skills from `.skills` file                    |
 | `npx skills check`         | Check for available skill updates                     |
 | `npx skills update`        | Update all installed skills to latest versions        |
 | `npx skills init [name]`   | Create a new SKILL.md template                        |

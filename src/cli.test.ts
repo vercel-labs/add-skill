@@ -10,17 +10,20 @@ describe('skills CLI', () => {
       expect(output).toContain('Usage: skills <command> [options]');
       expect(output).toContain('Commands:');
       expect(output).toContain('init [name]');
+      expect(output).toContain('install');
       expect(output).toContain('add <package>');
       expect(output).toContain('check');
       expect(output).toContain('update');
       expect(output).toContain('generate-lock');
-      expect(output).toContain('Add Options:');
+      expect(output).toContain('Add/Install Options:');
       expect(output).toContain('-g, --global');
       expect(output).toContain('-a, --agent');
       expect(output).toContain('-s, --skill');
       expect(output).toContain('-l, --list');
       expect(output).toContain('-y, --yes');
       expect(output).toContain('--all');
+      expect(output).toContain('--sync');
+      expect(output).toContain('.skills File:');
     });
 
     it('should show same output for -h alias', () => {
