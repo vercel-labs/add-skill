@@ -52,20 +52,22 @@ export interface SkillLockFile {
 }
 
 /**
- * Get the path to the global skill lock file.
- * Located at ~/.agents/.skill-lock.json
+ * Get the path to the skill lock file.
+ * @param global - If true, uses ~/.agents; if false, uses ./.agents in cwd
  */
-export function getSkillLockPath(): string {
-  return join(homedir(), AGENTS_DIR, LOCK_FILE);
+export function getSkillLockPath(global: boolean = true): string {
+  const baseDir = global ? homedir() : process.cwd();
+  return join(baseDir, AGENTS_DIR, LOCK_FILE);
 }
 
 /**
  * Read the skill lock file.
  * Returns an empty lock file structure if the file doesn't exist.
  * Wipes the lock file if it's an old format (version < CURRENT_VERSION).
+ * @param global - If true, reads from ~/.agents; if false, reads from ./.agents
  */
-export async function readSkillLock(): Promise<SkillLockFile> {
-  const lockPath = getSkillLockPath();
+export async function readSkillLock(global: boolean = true): Promise<SkillLockFile> {
+  const lockPath = getSkillLockPath(global);
 
   try {
     const content = await readFile(lockPath, 'utf-8');
@@ -92,9 +94,11 @@ export async function readSkillLock(): Promise<SkillLockFile> {
 /**
  * Write the skill lock file.
  * Creates the directory if it doesn't exist.
+ * @param lock - The lock file data to write
+ * @param global - If true, writes to ~/.agents; if false, writes to ./.agents
  */
-export async function writeSkillLock(lock: SkillLockFile): Promise<void> {
-  const lockPath = getSkillLockPath();
+export async function writeSkillLock(lock: SkillLockFile, global: boolean = true): Promise<void> {
+  const lockPath = getSkillLockPath(global);
 
   // Ensure directory exists
   await mkdir(dirname(lockPath), { recursive: true });
@@ -177,12 +181,16 @@ export async function fetchSkillFolderHash(
 
 /**
  * Add or update a skill entry in the lock file.
+ * @param skillName - The name of the skill
+ * @param entry - The skill entry data
+ * @param global - If true, uses ~/.agents; if false, uses ./.agents
  */
 export async function addSkillToLock(
   skillName: string,
-  entry: Omit<SkillLockEntry, 'installedAt' | 'updatedAt'>
+  entry: Omit<SkillLockEntry, 'installedAt' | 'updatedAt'>,
+  global: boolean = true
 ): Promise<void> {
-  const lock = await readSkillLock();
+  const lock = await readSkillLock(global);
   const now = new Date().toISOString();
 
   const existingEntry = lock.skills[skillName];
@@ -193,47 +201,61 @@ export async function addSkillToLock(
     updatedAt: now,
   };
 
-  await writeSkillLock(lock);
+  await writeSkillLock(lock, global);
 }
 
 /**
  * Remove a skill from the lock file.
+ * @param skillName - The name of the skill to remove
+ * @param global - If true, uses ~/.agents; if false, uses ./.agents
  */
-export async function removeSkillFromLock(skillName: string): Promise<boolean> {
-  const lock = await readSkillLock();
+export async function removeSkillFromLock(
+  skillName: string,
+  global: boolean = true
+): Promise<boolean> {
+  const lock = await readSkillLock(global);
 
   if (!(skillName in lock.skills)) {
     return false;
   }
 
   delete lock.skills[skillName];
-  await writeSkillLock(lock);
+  await writeSkillLock(lock, global);
   return true;
 }
 
 /**
  * Get a skill entry from the lock file.
+ * @param skillName - The name of the skill
+ * @param global - If true, reads from ~/.agents; if false, reads from ./.agents
  */
-export async function getSkillFromLock(skillName: string): Promise<SkillLockEntry | null> {
-  const lock = await readSkillLock();
+export async function getSkillFromLock(
+  skillName: string,
+  global: boolean = true
+): Promise<SkillLockEntry | null> {
+  const lock = await readSkillLock(global);
   return lock.skills[skillName] ?? null;
 }
 
 /**
  * Get all skills from the lock file.
+ * @param global - If true, reads from ~/.agents; if false, reads from ./.agents
  */
-export async function getAllLockedSkills(): Promise<Record<string, SkillLockEntry>> {
-  const lock = await readSkillLock();
+export async function getAllLockedSkills(
+  global: boolean = true
+): Promise<Record<string, SkillLockEntry>> {
+  const lock = await readSkillLock(global);
   return lock.skills;
 }
 
 /**
  * Get skills grouped by source for batch update operations.
+ * @param global - If true, reads from ~/.agents; if false, reads from ./.agents
  */
-export async function getSkillsBySource(): Promise<
-  Map<string, { skills: string[]; entry: SkillLockEntry }>
-> {
-  const lock = await readSkillLock();
+export async function getSkillsBySource(
+  global: boolean = true
+): Promise<Map<string, { skills: string[]; entry: SkillLockEntry }>> {
+  const lock = await readSkillLock(global);
   const bySource = new Map<string, { skills: string[]; entry: SkillLockEntry }>();
 
   for (const [skillName, entry] of Object.entries(lock.skills)) {
@@ -261,20 +283,30 @@ function createEmptyLockFile(): SkillLockFile {
 
 /**
  * Check if a prompt has been dismissed.
+ * @param promptKey - The key of the prompt to check
+ * @param global - If true, reads from ~/.agents; if false, reads from ./.agents
  */
-export async function isPromptDismissed(promptKey: keyof DismissedPrompts): Promise<boolean> {
-  const lock = await readSkillLock();
+export async function isPromptDismissed(
+  promptKey: keyof DismissedPrompts,
+  global: boolean = true
+): Promise<boolean> {
+  const lock = await readSkillLock(global);
   return lock.dismissed?.[promptKey] === true;
 }
 
 /**
  * Mark a prompt as dismissed.
+ * @param promptKey - The key of the prompt to dismiss
+ * @param global - If true, writes to ~/.agents; if false, writes to ./.agents
  */
-export async function dismissPrompt(promptKey: keyof DismissedPrompts): Promise<void> {
-  const lock = await readSkillLock();
+export async function dismissPrompt(
+  promptKey: keyof DismissedPrompts,
+  global: boolean = true
+): Promise<void> {
+  const lock = await readSkillLock(global);
   if (!lock.dismissed) {
     lock.dismissed = {};
   }
   lock.dismissed[promptKey] = true;
-  await writeSkillLock(lock);
+  await writeSkillLock(lock, global);
 }
