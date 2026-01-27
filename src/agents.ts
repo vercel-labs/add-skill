@@ -271,6 +271,15 @@ export const agents: Record<AgentType, AgentConfig> = {
       return existsSync(join(home, '.neovate'));
     },
   },
+  pochi: {
+    name: 'pochi',
+    displayName: 'Pochi',
+    skillsDir: '.pochi/skills',
+    globalSkillsDir: join(home, '.pochi/skills'),
+    detectInstalled: async () => {
+      return existsSync(join(home, '.pochi'));
+    },
+  },
 };
 
 export async function detectInstalledAgents(): Promise<AgentType[]> {
