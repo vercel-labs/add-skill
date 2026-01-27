@@ -1,4 +1,4 @@
-import type { Skill } from '../types.js';
+import type { Skill, SkillAuthConfig } from '../types.js';
 
 /**
  * Represents a parsed skill from a remote host.
@@ -17,6 +17,8 @@ export interface RemoteSkill {
   sourceUrl: string;
   /** Any additional metadata from frontmatter */
   metadata?: Record<string, unknown>;
+  /** Auth configuration for private skills */
+  authConfig?: SkillAuthConfig;
 }
 
 /**

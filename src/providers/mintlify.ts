@@ -1,5 +1,6 @@
 import matter from 'gray-matter';
 import type { HostProvider, ProviderMatch, RemoteSkill } from './types.js';
+import { isPrivateSkill, fetchAuthConfig } from '../auth.js';
 
 /**
  * Mintlify-hosted skills provider.
@@ -70,6 +71,13 @@ export class MintlifyProvider implements HostProvider {
         return null;
       }
 
+      // Check for private skill and fetch auth config
+      let authConfig = undefined;
+      if (isPrivateSkill(data.metadata)) {
+        const authConfigUrl = url.replace(/SKILL\.md$/i, 'SKILL.auth.json');
+        authConfig = await fetchAuthConfig(authConfigUrl);
+      }
+
       return {
         name: data.name,
         description: data.description,
@@ -77,6 +85,7 @@ export class MintlifyProvider implements HostProvider {
         installName: mintlifySite,
         sourceUrl: url,
         metadata: data.metadata,
+        authConfig,
       };
     } catch {
       return null;

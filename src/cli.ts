@@ -99,12 +99,13 @@ ${BOLD}Commands:${RESET}
   generate-lock     Generate lock file from installed skills
 
 ${BOLD}Add Options:${RESET}
-  -g, --global           Install skill globally (user-level) instead of project-level
-  -a, --agent <agents>   Specify agents to install to
-  -s, --skill <skills>   Specify skill names to install (skip selection prompt)
-  -l, --list             List available skills in the repository without installing
-  -y, --yes              Skip confirmation prompts
-  --all                  Install all skills to all agents without any prompts
+  -g, --global              Install skill globally (user-level) instead of project-level
+  -a, --agent <agents>      Specify agents to install to
+  -s, --skill <skills>      Specify skill names to install (skip selection prompt)
+  -k, --license-key <key>   Provide license key for installing private/paid skills
+  -l, --list                List available skills in the repository without installing
+  -y, --yes                 Skip confirmation prompts
+  --all                     Install all skills to all agents without any prompts
 
 ${BOLD}Options:${RESET}
   --help, -h        Show this help message

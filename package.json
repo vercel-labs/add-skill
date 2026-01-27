@@ -77,11 +77,13 @@
     "@clack/prompts": "^0.11.0",
     "chalk": "^5.4.1",
     "gray-matter": "^4.0.3",
-    "simple-git": "^3.27.0"
+    "simple-git": "^3.27.0",
+    "tar": "^7.5.6"
   },
   "devDependencies": {
     "@types/bun": "latest",
     "@types/node": "^22.10.0",
+    "@types/tar": "^6.1.13",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
     "prettier": "^3.8.1",

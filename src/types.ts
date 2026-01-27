@@ -36,6 +36,8 @@ export interface Skill {
   /** Raw SKILL.md content for hashing */
   rawContent?: string;
   metadata?: Record<string, unknown>;
+  /** Auth configuration for private skills */
+  authConfig?: SkillAuthConfig;
 }
 
 export interface AgentConfig {
@@ -65,6 +67,43 @@ export interface MintlifySkill {
 /**
  * Represents a skill fetched from a remote host provider.
  */
+/**
+ * Endpoint configuration for auth requests.
+ */
+export interface AuthEndpointConfig {
+  /** The endpoint URL to call */
+  endpoint: string;
+  /** HTTP method to use */
+  method: 'GET' | 'POST';
+  /** Header name for the license token */
+  tokenHeader: string;
+  /** Prefix to add before the token (e.g., "Bearer ") */
+  tokenPrefix: string;
+}
+
+/**
+ * Configuration for private skill authentication.
+ * Stored in SKILL.auth.json alongside SKILL.md.
+ */
+export interface SkillAuthConfig {
+  /** Endpoint for verifying license validity */
+  verify: AuthEndpointConfig;
+  /** Endpoint for fetching protected skill content (required for gated skills) */
+  content?: AuthEndpointConfig;
+}
+
+/**
+ * Result of license verification from the skill author's endpoint.
+ */
+export interface LicenseVerificationResult {
+  /** Whether the license is valid */
+  valid: boolean;
+  /** Error message if invalid */
+  error?: string;
+  /** ISO timestamp when the license expires */
+  expiresAt?: string;
+}
+
 export interface RemoteSkill {
   /** Display name of the skill (from frontmatter) */
   name: string;
@@ -82,4 +121,6 @@ export interface RemoteSkill {
   sourceIdentifier: string;
   /** Any additional metadata from frontmatter */
   metadata?: Record<string, unknown>;
+  /** Auth configuration for private skills */
+  authConfig?: SkillAuthConfig;
 }

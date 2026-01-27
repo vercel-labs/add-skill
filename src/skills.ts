@@ -1,7 +1,8 @@
 import { readdir, readFile, stat } from 'fs/promises';
 import { join, basename, dirname } from 'path';
 import matter from 'gray-matter';
-import type { Skill } from './types.js';
+import type { Skill, SkillAuthConfig } from './types.js';
+import { isPrivateSkill, parseAuthConfig } from './auth.js';
 
 const SKIP_DIRS = ['node_modules', '.git', 'dist', 'build', '__pycache__'];
 
@@ -39,12 +40,28 @@ async function parseSkillMd(skillMdPath: string): Promise<Skill | null> {
       return null;
     }
 
+    // Load auth config for private skills
+    let authConfig: SkillAuthConfig | undefined;
+    if (isPrivateSkill(data.metadata)) {
+      try {
+        const authConfigPath = join(dirname(skillMdPath), 'SKILL.auth.json');
+        const authContent = await readFile(authConfigPath, 'utf-8');
+        const parsed = parseAuthConfig(authContent);
+        if (parsed) {
+          authConfig = parsed;
+        }
+      } catch {
+        // Auth config file doesn't exist or is invalid - will be handled during installation
+      }
+    }
+
     return {
       name: data.name,
       description: data.description,
       path: dirname(skillMdPath),
       rawContent: content,
       metadata: data.metadata,
+      authConfig,
     };
   } catch {
     return null;
