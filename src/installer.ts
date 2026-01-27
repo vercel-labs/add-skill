@@ -1,9 +1,9 @@
 import { mkdir, cp, access, readdir, symlink, lstat, rm, readlink, writeFile } from 'fs/promises';
 import { join, basename, normalize, resolve, sep, relative, dirname } from 'path';
 import { homedir, platform } from 'os';
-import type { Skill, AgentType, MintlifySkill, RemoteSkill } from './types.js';
-import type { WellKnownSkill } from './providers/wellknown.js';
-import { agents } from './agents.js';
+import type { Skill, AgentType, MintlifySkill, RemoteSkill } from './types.ts';
+import type { WellKnownSkill } from './providers/wellknown.ts';
+import { agents } from './agents.ts';
 
 const AGENTS_DIR = '.agents';
 const SKILLS_SUBDIR = 'skills';

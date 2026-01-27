@@ -2,9 +2,9 @@ import * as p from '@clack/prompts';
 import chalk from 'chalk';
 import { existsSync } from 'fs';
 import { homedir } from 'os';
-import { parseSource, getOwnerRepo } from './source-parser.js';
-import { cloneRepo, cleanupTempDir, GitCloneError } from './git.js';
-import { discoverSkills, getSkillDisplayName } from './skills.js';
+import { parseSource, getOwnerRepo } from './source-parser.ts';
+import { cloneRepo, cleanupTempDir, GitCloneError } from './git.ts';
+import { discoverSkills, getSkillDisplayName } from './skills.ts';
 import {
   installSkillForAgent,
   isSkillInstalled,
@@ -13,19 +13,19 @@ import {
   installRemoteSkillForAgent,
   installWellKnownSkillForAgent,
   type InstallMode,
-} from './installer.js';
-import { detectInstalledAgents, agents } from './agents.js';
-import { track, setVersion } from './telemetry.js';
-import { findProvider, wellKnownProvider, type WellKnownSkill } from './providers/index.js';
-import { fetchMintlifySkill } from './mintlify.js';
+} from './installer.ts';
+import { detectInstalledAgents, agents } from './agents.ts';
+import { track, setVersion } from './telemetry.ts';
+import { findProvider, wellKnownProvider, type WellKnownSkill } from './providers/index.ts';
+import { fetchMintlifySkill } from './mintlify.ts';
 import {
   addSkillToLock,
   fetchSkillFolderHash,
   isPromptDismissed,
   dismissPrompt,
-} from './skill-lock.js';
-import type { Skill, AgentType, RemoteSkill } from './types.js';
-import packageJson from '../package.json' assert { type: 'json' };
+} from './skill-lock.ts';
+import type { Skill, AgentType, RemoteSkill } from './types.ts';
+import packageJson from '../package.json' with { type: 'json' };
 export function initTelemetry(version: string): void {
   setVersion(version);
 }

@@ -1,5 +1,5 @@
 import { isAbsolute, resolve } from 'path';
-import type { ParsedSource } from './types.js';
+import type { ParsedSource } from './types.ts';
 
 /**
  * Extract owner/repo from a parsed source for telemetry.

@@ -1,7 +1,7 @@
 import { homedir } from 'os';
 import { join } from 'path';
 import { existsSync } from 'fs';
-import type { AgentConfig, AgentType } from './types.js';
+import type { AgentConfig, AgentType } from './types.ts';
 
 const home = homedir();
 const codexHome = process.env.CODEX_HOME?.trim() || join(home, '.codex');

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { runCliOutput, stripLogo } from './test-utils.js';
+import { runCliOutput, stripLogo } from './test-utils.ts';
 
 describe('skills CLI', () => {
   describe('--help', () => {

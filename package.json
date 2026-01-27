@@ -13,8 +13,8 @@
   ],
   "scripts": {
     "build": "tsup src/cli.ts --format esm --clean",
-    "dev": "tsx src/cli.ts",
-    "exec:test": "tsx scripts/execute-tests.ts",
+    "dev": "node src/cli.ts",
+    "exec:test": "node scripts/execute-tests.ts",
     "prepublishOnly": "npm run build",
     "format": "prettier --write 'src/**/*.ts' 'scripts/**/*.ts'",
     "format:check": "prettier --check 'src/**/*.ts' 'scripts/**/*.ts'",
@@ -86,7 +86,6 @@
     "lint-staged": "^16.2.7",
     "prettier": "^3.8.1",
     "tsup": "^8.3.5",
-    "tsx": "^4.19.2",
     "typescript": "^5.9.3",
     "vitest": "^4.0.17"
   },

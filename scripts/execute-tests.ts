@@ -1,4 +1,4 @@
-#!/usr/bin/env tsx
+#!/usr/bin/env node
 
 import { spawn } from 'node:child_process';
 import { readdir } from 'node:fs/promises';
@@ -33,7 +33,7 @@ function parseArgs(argv: string[], rootDir: string): RunOptions {
     }
     if (arg === '--help' || arg === '-h') {
       console.log(
-        `Usage: tsx scripts/execute-tests.ts [options]\n\nOptions:\n  -l, --list              List discovered test files and exit\n  -f, --filter <regex>    Only run tests whose path matches regex\n  -h, --help              Show help\n`
+        `Usage: node scripts/execute-tests.ts [options]\n\nOptions:\n  -l, --list              List discovered test files and exit\n  -f, --filter <regex>    Only run tests whose path matches regex\n  -h, --help              Show help\n`
       );
       process.exit(0);
     }
@@ -63,7 +63,7 @@ async function findTestFiles(dir: string): Promise<string[]> {
 
 async function runOneTest(rootDir: string, testFile: string): Promise<number> {
   return await new Promise((resolve, reject) => {
-    const child = spawn('pnpm', ['exec', 'tsx', testFile], {
+    const child = spawn('node', [testFile], {
       cwd: rootDir,
       stdio: 'inherit',
     });

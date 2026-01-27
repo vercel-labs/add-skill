@@ -1,7 +1,7 @@
 import { readdir, readFile, stat } from 'fs/promises';
 import { join, basename, dirname } from 'path';
 import matter from 'gray-matter';
-import type { Skill } from './types.js';
+import type { Skill } from './types.ts';
 
 const SKIP_DIRS = ['node_modules', '.git', 'dist', 'build', '__pycache__'];
 

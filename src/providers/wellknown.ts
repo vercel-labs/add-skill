@@ -1,5 +1,5 @@
 import matter from 'gray-matter';
-import type { HostProvider, ProviderMatch, RemoteSkill } from './types.js';
+import type { HostProvider, ProviderMatch, RemoteSkill } from './types.ts';
 
 /**
  * Represents the index.json structure for well-known skills.

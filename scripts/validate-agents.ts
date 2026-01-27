@@ -1,7 +1,7 @@
-#!/usr/bin/env tsx
+#!/usr/bin/env node
 
 import { homedir } from 'os';
-import { agents } from '../src/agents.js';
+import { agents } from '../src/agents.ts';
 
 let hasErrors = false;
 
