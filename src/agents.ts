@@ -5,6 +5,7 @@ import type { AgentConfig, AgentType } from './types.js';
 
 const home = homedir();
 const codexHome = process.env.CODEX_HOME?.trim() || join(home, '.codex');
+const claudeHome = process.env.CLAUDE_CONFIG_DIR?.trim() || join(home, '.claude');
 
 export const agents: Record<AgentType, AgentConfig> = {
   amp: {
@@ -31,9 +32,9 @@ export const agents: Record<AgentType, AgentConfig> = {
     name: 'claude-code',
     displayName: 'Claude Code',
     skillsDir: '.claude/skills',
-    globalSkillsDir: join(home, '.claude/skills'),
+    globalSkillsDir: join(claudeHome, 'skills'),
     detectInstalled: async () => {
-      return existsSync(join(home, '.claude'));
+      return existsSync(claudeHome);
     },
   },
   clawdbot: {
