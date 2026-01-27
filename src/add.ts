@@ -130,28 +130,56 @@ export async function promptForAgents(
 }
 
 /**
- * Two-step agent selection: first ask "all agents" or "select specific",
+ * Two-step agent selection: first ask "all agents", "previously selected", or "select specific",
  * then show the multiselect only if user wants to select specific agents.
  */
 async function selectAgentsInteractive(
   availableAgents: AgentType[],
   options: { global?: boolean }
 ): Promise<AgentType[] | symbol> {
-  // First step: ask if user wants all agents or to select specific ones
+  // Check if we have previously selected agents
+  let lastSelected: string[] | undefined;
+  try {
+    lastSelected = await getLastSelectedAgents();
+  } catch {
+    // Silently ignore errors reading lock file
+  }
+
+  // Filter last selected to only include currently available agents
+  const validLastSelected = lastSelected?.filter((a) =>
+    availableAgents.includes(a as AgentType)
+  ) as AgentType[] | undefined;
+
+  // Build options list
+  const selectOptions: Array<{ value: string; label: string; hint: string }> = [];
+  const hasPrevious = validLastSelected && validLastSelected.length > 0;
+
+  // Add "Same as last time" option first if we have valid history (recommended)
+  if (hasPrevious) {
+    const agentNames = validLastSelected.map((a) => agents[a].displayName).join(', ');
+    selectOptions.push({
+      value: 'previous',
+      label: 'Same as last time (Recommended)',
+      hint: agentNames,
+    });
+  }
+
+  selectOptions.push({
+    value: 'all',
+    label: hasPrevious ? 'All detected agents' : 'All detected agents (Recommended)',
+    hint: `Install to all ${availableAgents.length} detected agents`,
+  });
+
+  selectOptions.push({
+    value: 'select',
+    label: 'Select specific agents',
+    hint: 'Choose which agents to install to',
+  });
+
+  // First step: ask if user wants all agents, previous selection, or to select specific ones
   const installChoice = await p.select({
     message: 'Install to',
-    options: [
-      {
-        value: 'all',
-        label: 'All agents (Recommended)',
-        hint: `Install to all ${availableAgents.length} detected agents`,
-      },
-      {
-        value: 'select',
-        label: 'Select specific agents',
-        hint: 'Choose which agents to install to',
-      },
-    ],
+    options: selectOptions,
   });
 
   if (p.isCancel(installChoice)) {
@@ -160,6 +188,10 @@ async function selectAgentsInteractive(
 
   if (installChoice === 'all') {
     return availableAgents;
+  }
+
+  if (installChoice === 'previous' && validLastSelected) {
+    return validLastSelected;
   }
 
   // Second step: show multiselect for specific agent selection
