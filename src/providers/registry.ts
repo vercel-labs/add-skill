@@ -1,4 +1,4 @@
-import type { HostProvider, ProviderRegistry } from './types.js';
+import type { HostProvider, ProviderRegistry } from './types.ts';
 
 class ProviderRegistryImpl implements ProviderRegistry {
   private providers: HostProvider[] = [];

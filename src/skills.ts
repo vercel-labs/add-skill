@@ -1,8 +1,8 @@
 import { readdir, readFile, stat } from 'fs/promises';
 import { join, basename, dirname } from 'path';
 import matter from 'gray-matter';
-import type { Skill, SkillAuthConfig } from './types.js';
-import { isPrivateSkill, parseAuthConfig } from './auth.js';
+import type { Skill, SkillAuthConfig } from './types.ts';
+import { isPrivateSkill, parseAuthConfig } from './auth.ts';
 
 const SKIP_DIRS = ['node_modules', '.git', 'dist', 'build', '__pycache__'];
 

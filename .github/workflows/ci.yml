@@ -3,11 +3,11 @@ name: CI
 on:
   pull_request:
     paths-ignore:
-      - '**/*.md'
+      - "**/*.md"
   push:
     branches: [main]
     paths-ignore:
-      - '**/*.md'
+      - "**/*.md"
 
 jobs:
   checks:
@@ -23,7 +23,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: lts/*
           cache: pnpm
 
       - name: Install dependencies

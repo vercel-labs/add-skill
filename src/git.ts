@@ -6,14 +6,16 @@ import { tmpdir } from 'os';
 const CLONE_TIMEOUT_MS = 60000; // 60 seconds
 
 export class GitCloneError extends Error {
-  constructor(
-    message: string,
-    public readonly url: string,
-    public readonly isTimeout: boolean = false,
-    public readonly isAuthError: boolean = false
-  ) {
+  readonly url: string;
+  readonly isTimeout: boolean;
+  readonly isAuthError: boolean;
+
+  constructor(message: string, url: string, isTimeout = false, isAuthError = false) {
     super(message);
     this.name = 'GitCloneError';
+    this.url = url;
+    this.isTimeout = isTimeout;
+    this.isAuthError = isAuthError;
   }
 }
 

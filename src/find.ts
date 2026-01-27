@@ -1,6 +1,6 @@
 import * as readline from 'readline';
-import { runAdd, parseAddOptions } from './add.js';
-import { track } from './telemetry.js';
+import { runAdd, parseAddOptions } from './add.ts';
+import { track } from './telemetry.ts';
 
 const RESET = '\x1b[0m';
 const BOLD = '\x1b[1m';

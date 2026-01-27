@@ -1,4 +1,4 @@
-import type { Skill, SkillAuthConfig } from '../types.js';
+import type { SkillAuthConfig } from '../types.ts';
 
 /**
  * Represents a parsed skill from a remote host.

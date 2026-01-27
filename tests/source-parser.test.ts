@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { parseSource, getOwnerRepo } from '../src/source-parser.js';
+import { parseSource, getOwnerRepo } from '../src/source-parser.ts';
 
 describe('parseSource', () => {
   describe('GitHub URL tests', () => {

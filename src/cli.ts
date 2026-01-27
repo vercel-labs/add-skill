@@ -6,9 +6,9 @@ import { basename, join, dirname } from 'path';
 import { homedir } from 'os';
 import { createHash } from 'crypto';
 import { fileURLToPath } from 'url';
-import { runAdd, parseAddOptions, initTelemetry } from './add.js';
-import { runFind } from './find.js';
-import { track } from './telemetry.js';
+import { runAdd, parseAddOptions, initTelemetry } from './add.ts';
+import { runFind } from './find.ts';
+import { track } from './telemetry.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 

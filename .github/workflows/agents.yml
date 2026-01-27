@@ -3,11 +3,11 @@ name: Agents CI
 on:
   pull_request:
     paths:
-      - 'src/agents.ts'
+      - "src/agents.ts"
   push:
     branches: [main]
     paths:
-      - 'src/agents.ts'
+      - "src/agents.ts"
 
 concurrency:
   group: agents-${{ github.ref }}
@@ -29,14 +29,14 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: lts/*
           cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Validate agents
-        run: pnpm exec tsx scripts/validate-agents.ts
+        run: node scripts/validate-agents.ts
 
   sync-agents:
     needs: validate-agents
@@ -52,14 +52,14 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: lts/*
           cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Sync agents
-        run: pnpm exec tsx scripts/sync-agents.ts
+        run: pnpm exec node scripts/sync-agents.ts
 
       - name: Commit changes
         run: |

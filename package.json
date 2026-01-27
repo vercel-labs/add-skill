@@ -1,20 +1,21 @@
 {
   "name": "skills",
-  "version": "1.1.5",
+  "version": "1.1.7",
   "description": "The open agent skills ecosystem",
   "type": "module",
   "bin": {
-    "skills": "./dist/cli.js",
-    "add-skill": "./dist/cli.js"
+    "skills": "./bin/cli.mjs",
+    "add-skill": "./bin/cli.mjs"
   },
   "files": [
     "dist",
+    "bin",
     "README.md"
   ],
   "scripts": {
-    "build": "tsup src/cli.ts --format esm --clean",
-    "dev": "tsx src/cli.ts",
-    "exec:test": "tsx scripts/execute-tests.ts",
+    "build": "obuild",
+    "dev": "node src/cli.ts",
+    "exec:test": "node scripts/execute-tests.ts",
     "prepublishOnly": "npm run build",
     "format": "prettier --write 'src/**/*.ts' 'scripts/**/*.ts'",
     "format:check": "prettier --check 'src/**/*.ts' 'scripts/**/*.ts'",
@@ -73,22 +74,19 @@
   },
   "author": "",
   "license": "MIT",
-  "dependencies": {
-    "@clack/prompts": "^0.11.0",
-    "chalk": "^5.4.1",
-    "gray-matter": "^4.0.3",
-    "simple-git": "^3.27.0",
-    "tar": "^7.5.6"
-  },
   "devDependencies": {
+    "@clack/prompts": "^0.11.0",
     "@types/bun": "latest",
     "@types/node": "^22.10.0",
     "@types/tar": "^6.1.13",
+    "gray-matter": "^4.0.3",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
+    "obuild": "^0.4.22",
+    "picocolors": "^1.1.1",
     "prettier": "^3.8.1",
-    "tsup": "^8.3.5",
-    "tsx": "^4.19.2",
+    "simple-git": "^3.27.0",
+    "tar": "^7.5.6",
     "typescript": "^5.9.3",
     "vitest": "^4.0.17"
   },

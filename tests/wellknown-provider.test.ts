@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { WellKnownProvider } from '../src/providers/wellknown.js';
+import { WellKnownProvider } from '../src/providers/wellknown.ts';
 
 describe('WellKnownProvider', () => {
   const provider = new WellKnownProvider();
@@ -85,7 +85,7 @@ describe('WellKnownProvider', () => {
 
 describe('parseSource with well-known URLs', async () => {
   // Import parseSource after provider is defined
-  const { parseSource } = await import('../src/source-parser.js');
+  const { parseSource } = await import('../src/source-parser.ts');
 
   it('should parse arbitrary URL as well-known type', () => {
     const result = parseSource('https://example.com');
