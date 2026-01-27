@@ -118,9 +118,17 @@ ${BOLD}.skills File:${RESET}
   Create a .skills file with one skill source per line:
     ${DIM}# Comments start with #${RESET}
     ${DIM}vercel-labs/agent-skills${RESET}
-    ${DIM}owner/repo@specific-skill${RESET}
+    ${DIM}owner/repo specific-skill${RESET}
+    ${DIM}owner/repo skill1 skill2 skill3${RESET}
+    ${DIM}owner/repo 'skill with spaces'${RESET}
     ${DIM}https://docs.example.com/skill.md${RESET}
     ${DIM}./local-path/to/skill${RESET}
+
+  Skill selection syntax:
+    ${DIM}source skill${RESET}              - Install single skill from source
+    ${DIM}source skill1 skill2${RESET}      - Install multiple skills from source
+    ${DIM}source 'name with spaces'${RESET} - Quote skill names containing spaces
+    ${DIM}source${RESET}                    - Install all skills from source
 
   File locations:
     ${DIM}./.skills${RESET}  - Project-level (installed to current directory)

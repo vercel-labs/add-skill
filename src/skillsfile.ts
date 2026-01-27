@@ -6,19 +6,32 @@ import chalk from 'chalk';
 import { runAdd } from './add.js';
 import { readSkillLock, removeSkillFromLock } from './skill-lock.js';
 import { agents } from './agents.js';
-import type { InstallFromFileOptions } from './types.js';
+import type { AddOptions, InstallFromFileOptions } from './types.js';
 
 const SKILLS_FILENAME = '.skills';
 const AGENTS_DIR = '.agents';
 const SKILLS_SUBDIR = 'skills';
+
+/**
+ * Represents a parsed entry from a .skills file.
+ * Supports the format: source@skill1,skill2,skill3
+ */
+export interface SkillsFileEntry {
+  /** The source (repo, URL, or local path) without skill filter */
+  source: string;
+  /** Optional list of specific skills to install from this source */
+  skills?: string[];
+}
 
 export interface SkillsFileConfig {
   /** Path to the .skills file found */
   path: string;
   /** true if ~/.skills, false if ./.skills */
   isGlobal: boolean;
-  /** List of skill sources parsed from the file */
+  /** List of skill sources parsed from the file (raw strings for backward compat) */
   sources: string[];
+  /** Parsed entries with skill filters */
+  entries: SkillsFileEntry[];
 }
 
 /**
@@ -34,11 +47,12 @@ export async function findSkillsFile(): Promise<SkillsFileConfig | null> {
   const localPath = join(cwd, SKILLS_FILENAME);
   try {
     await access(localPath);
-    const sources = await parseSkillsFile(localPath);
+    const { sources, entries } = await parseSkillsFileWithEntries(localPath);
     return {
       path: localPath,
       isGlobal: false,
       sources,
+      entries,
     };
   } catch {
     // Not found in current directory
@@ -48,17 +62,93 @@ export async function findSkillsFile(): Promise<SkillsFileConfig | null> {
   const globalPath = join(home, SKILLS_FILENAME);
   try {
     await access(globalPath);
-    const sources = await parseSkillsFile(globalPath);
+    const { sources, entries } = await parseSkillsFileWithEntries(globalPath);
     return {
       path: globalPath,
       isGlobal: true,
       sources,
+      entries,
     };
   } catch {
     // Not found in home directory either
   }
 
   return null;
+}
+
+/**
+ * Tokenize a string, respecting single and double quotes.
+ * Returns an array of tokens with quotes stripped.
+ *
+ * Examples:
+ *   "a b c"           -> ["a", "b", "c"]
+ *   "a 'b c' d"       -> ["a", "b c", "d"]
+ *   'a "b c" d'       -> ["a", "b c", "d"]
+ *   "a 'b c'd"        -> ["a", "b cd"] (quote continues until closing quote)
+ */
+function tokenize(input: string): string[] {
+  const tokens: string[] = [];
+  let current = '';
+  let inQuote: string | null = null;
+
+  for (let i = 0; i < input.length; i++) {
+    const char = input[i]!;
+
+    if (inQuote) {
+      if (char === inQuote) {
+        // End of quoted section
+        inQuote = null;
+      } else {
+        current += char;
+      }
+    } else if (char === '"' || char === "'") {
+      // Start of quoted section
+      inQuote = char;
+    } else if (char === ' ' || char === '\t') {
+      // Whitespace - end current token if any
+      if (current) {
+        tokens.push(current);
+        current = '';
+      }
+    } else {
+      current += char;
+    }
+  }
+
+  // Don't forget the last token
+  if (current) {
+    tokens.push(current);
+  }
+
+  return tokens;
+}
+
+/**
+ * Parse a source string into a SkillsFileEntry.
+ * Supports the format: source skill1 skill2 'skill with spaces'
+ *
+ * Examples:
+ *   vercel-labs/agent-skills                    -> { source: 'vercel-labs/agent-skills' }
+ *   owner/repo my-skill                         -> { source: 'owner/repo', skills: ['my-skill'] }
+ *   owner/repo skill1 skill2                    -> { source: 'owner/repo', skills: ['skill1', 'skill2'] }
+ *   owner/repo 'skill with spaces' skill2       -> { source: 'owner/repo', skills: ['skill with spaces', 'skill2'] }
+ *   https://github.com/o/r my-skill             -> { source: 'https://github.com/o/r', skills: ['my-skill'] }
+ */
+export function parseSkillsEntry(rawSource: string): SkillsFileEntry {
+  const tokens = tokenize(rawSource);
+
+  if (tokens.length === 0) {
+    return { source: rawSource };
+  }
+
+  const source = tokens[0]!;
+
+  if (tokens.length === 1) {
+    return { source };
+  }
+
+  const skills = tokens.slice(1);
+  return { source, skills };
 }
 
 /**
@@ -87,6 +177,20 @@ export async function parseSkillsFile(filePath: string): Promise<string[]> {
   }
 
   return sources;
+}
+
+/**
+ * Parse a .skills file and return both raw sources and parsed entries.
+ * @param filePath Path to the .skills file
+ * @returns Object with sources array and entries array
+ */
+export async function parseSkillsFileWithEntries(filePath: string): Promise<{
+  sources: string[];
+  entries: SkillsFileEntry[];
+}> {
+  const sources = await parseSkillsFile(filePath);
+  const entries = sources.map(parseSkillsEntry);
+  return { sources, entries };
 }
 
 /**
@@ -145,7 +249,9 @@ async function removeSkill(skillName: string, isGlobal: boolean): Promise<boolea
 
   // Remove from each agent's skills directory
   for (const [agentKey, agentConfig] of Object.entries(agents)) {
-    const agentSkillsDir = isGlobal ? agentConfig.globalSkillsDir : join(process.cwd(), agentConfig.skillsDir);
+    const agentSkillsDir = isGlobal
+      ? agentConfig.globalSkillsDir
+      : join(process.cwd(), agentConfig.skillsDir);
     const agentSkillPath = join(agentSkillsDir, skillName);
 
     try {
@@ -166,7 +272,10 @@ async function removeSkill(skillName: string, isGlobal: boolean): Promise<boolea
  * This is a heuristic - for GitHub sources it extracts from the path,
  * for URLs it tries to extract from the source identifier.
  */
-function extractExpectedSkillNames(sources: string[], installedResults: Map<string, string[]>): Set<string> {
+function extractExpectedSkillNames(
+  sources: string[],
+  installedResults: Map<string, string[]>
+): Set<string> {
   const expected = new Set<string>();
 
   for (const source of sources) {
@@ -198,11 +307,17 @@ export async function runInstallFromFile(options: InstallFromFileOptions = {}): 
     console.log();
     console.log(chalk.dim('  # .skills example'));
     console.log(chalk.dim('  vercel-labs/agent-skills'));
-    console.log(chalk.dim('  owner/repo@specific-skill'));
+    console.log(chalk.dim('  owner/repo specific-skill'));
+    console.log(chalk.dim("  owner/repo 'skill with spaces' another-skill"));
     console.log(chalk.dim('  https://docs.example.com/skill.md'));
     console.log(chalk.dim('  ./local-path/to/skill'));
     console.log();
-    p.log.message(chalk.dim(`Place in current directory (./.skills) for project-level or home directory (~/.skills) for global.`));
+    p.log.message(chalk.dim('Add skill names after the source to select specific skills.'));
+    p.log.message(
+      chalk.dim(
+        `Place in current directory (./.skills) for project-level or home directory (~/.skills) for global.`
+      )
+    );
     console.log();
     return;
   }
@@ -218,7 +333,9 @@ export async function runInstallFromFile(options: InstallFromFileOptions = {}): 
   }
 
   console.log();
-  p.log.info(`Found ${chalk.cyan(config.sources.length)} skill source${config.sources.length !== 1 ? 's' : ''} to install`);
+  p.log.info(
+    `Found ${chalk.cyan(config.sources.length)} skill source${config.sources.length !== 1 ? 's' : ''} to install`
+  );
 
   // Track installed skill names for sync functionality
   const installedSkillNames = new Map<string, string[]>();
@@ -228,10 +345,12 @@ export async function runInstallFromFile(options: InstallFromFileOptions = {}): 
   // Get initial list of installed skills before installing (for sync)
   const preInstalledSkills = options.sync ? await getInstalledSkillNames(config.isGlobal) : [];
 
-  // Install each source
-  for (const source of config.sources) {
+  // Install each source using parsed entries
+  for (const entry of config.entries) {
+    const displaySource = entry.skills ? `${entry.source}@${entry.skills.join(',')}` : entry.source;
+
     console.log();
-    p.log.step(`Installing: ${chalk.cyan(source)}`);
+    p.log.step(`Installing: ${chalk.cyan(displaySource)}`);
 
     try {
       // Create options for this installation
@@ -241,23 +360,29 @@ export async function runInstallFromFile(options: InstallFromFileOptions = {}): 
         yes: true, // Auto-confirm in file mode
       };
 
-      // Run the add command for this source
-      await runAdd([source], installOptions);
+      // If specific skills are requested, pass them via the skill option
+      if (entry.skills && entry.skills.length > 0) {
+        installOptions.skill = entry.skills;
+      }
+
+      // Run the add command for this source (without the @skills suffix)
+      await runAdd([entry.source], installOptions);
       successCount++;
 
-      // Track the skill name - this is a heuristic
-      // For GitHub repos with @skill syntax, extract the skill name
-      const atIndex = source.indexOf('@');
-      if (atIndex !== -1) {
-        const skillPart = source.slice(atIndex + 1);
-        if (!installedSkillNames.has(source)) {
-          installedSkillNames.set(source, []);
+      // Track the skill names for sync functionality
+      if (entry.skills && entry.skills.length > 0) {
+        if (!installedSkillNames.has(entry.source)) {
+          installedSkillNames.set(entry.source, []);
         }
-        installedSkillNames.get(source)!.push(skillPart);
+        for (const skill of entry.skills) {
+          installedSkillNames.get(entry.source)!.push(skill);
+        }
       }
     } catch (error) {
       failCount++;
-      p.log.error(`Failed to install ${chalk.cyan(source)}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      p.log.error(
+        `Failed to install ${chalk.cyan(displaySource)}: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -281,25 +406,53 @@ export async function runInstallFromFile(options: InstallFromFileOptions = {}): 
     const lock = await readSkillLock();
     const lockedSkillNames = new Set(Object.keys(lock.skills));
 
-    // Determine which skills should be kept based on sources in .skills file
-    const sourcesSet = new Set(config.sources);
+    // Build a set of clean sources (without @skills suffix) and a map of skill filters
+    const sourcesSet = new Set(config.entries.map((e) => e.source));
+    const skillFilters = new Map<string, string[]>();
+    for (const entry of config.entries) {
+      if (entry.skills && entry.skills.length > 0) {
+        skillFilters.set(entry.source, entry.skills);
+      }
+    }
+
     const skillsToKeep = new Set<string>();
 
-    for (const [skillName, entry] of Object.entries(lock.skills)) {
+    for (const [skillName, lockEntry] of Object.entries(lock.skills)) {
       // Check if this skill's source is in the .skills file
-      if (sourcesSet.has(entry.source) || sourcesSet.has(entry.sourceUrl)) {
-        skillsToKeep.add(skillName);
+      if (sourcesSet.has(lockEntry.source) || sourcesSet.has(lockEntry.sourceUrl)) {
+        // If there's a skill filter for this source, only keep if skill is in the filter
+        const filter = skillFilters.get(lockEntry.source) || skillFilters.get(lockEntry.sourceUrl);
+        if (filter) {
+          // Check if skill name matches any in the filter (case-insensitive)
+          const matches = filter.some(
+            (f) =>
+              skillName.toLowerCase() === f.toLowerCase() ||
+              skillName.toLowerCase().includes(f.toLowerCase()) ||
+              f.toLowerCase().includes(skillName.toLowerCase())
+          );
+          if (matches) {
+            skillsToKeep.add(skillName);
+          }
+        } else {
+          // No filter means keep all skills from this source
+          skillsToKeep.add(skillName);
+        }
       }
       // Also check if source matches a pattern like owner/repo
       for (const source of sourcesSet) {
-        if (entry.source.includes(source) || source.includes(entry.source)) {
-          skillsToKeep.add(skillName);
-        }
-        // Handle @skill-name syntax
-        const atIndex = source.indexOf('@');
-        if (atIndex !== -1) {
-          const skillPart = source.slice(atIndex + 1);
-          if (skillName === skillPart || skillName.toLowerCase() === skillPart.toLowerCase()) {
+        if (lockEntry.source.includes(source) || source.includes(lockEntry.source)) {
+          const filter = skillFilters.get(source);
+          if (filter) {
+            const matches = filter.some(
+              (f) =>
+                skillName.toLowerCase() === f.toLowerCase() ||
+                skillName.toLowerCase().includes(f.toLowerCase()) ||
+                f.toLowerCase().includes(skillName.toLowerCase())
+            );
+            if (matches) {
+              skillsToKeep.add(skillName);
+            }
+          } else {
             skillsToKeep.add(skillName);
           }
         }
@@ -308,20 +461,24 @@ export async function runInstallFromFile(options: InstallFromFileOptions = {}): 
 
     // Find skills to remove (installed but not in keep list)
     const skillsToRemove = postInstalledSkills.filter(
-      name => lockedSkillNames.has(name) && !skillsToKeep.has(name)
+      (name) => lockedSkillNames.has(name) && !skillsToKeep.has(name)
     );
 
     if (skillsToRemove.length === 0) {
       spinner.stop('All skills in sync');
     } else {
-      spinner.stop(`Found ${skillsToRemove.length} skill${skillsToRemove.length !== 1 ? 's' : ''} to remove`);
+      spinner.stop(
+        `Found ${skillsToRemove.length} skill${skillsToRemove.length !== 1 ? 's' : ''} to remove`
+      );
 
       for (const skillName of skillsToRemove) {
         p.log.info(`Removing: ${chalk.yellow(skillName)}`);
         await removeSkill(skillName, config.isGlobal);
       }
 
-      p.log.success(`Removed ${skillsToRemove.length} skill${skillsToRemove.length !== 1 ? 's' : ''} not in .skills file`);
+      p.log.success(
+        `Removed ${skillsToRemove.length} skill${skillsToRemove.length !== 1 ? 's' : ''} not in .skills file`
+      );
     }
   }
 

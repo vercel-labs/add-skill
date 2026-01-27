@@ -23,7 +23,7 @@ import {
   isPromptDismissed,
   dismissPrompt,
 } from './skill-lock.js';
-import type { Skill, AgentType, RemoteSkill, AddOptions } from './types.js';
+import type { Skill, AgentType, RemoteSkill, AddOptions, InstallFromFileOptions } from './types.js';
 import packageJson from '../package.json' assert { type: 'json' };
 export function initTelemetry(version: string): void {
   setVersion(version);
@@ -1392,8 +1392,11 @@ async function promptForFindSkills(): Promise<void> {
 }
 
 // Parse command line options from args array
-export function parseAddOptions(args: string[]): { source: string[]; options: AddOptions } {
-  const options: AddOptions = {};
+export function parseAddOptions(args: string[]): {
+  source: string[];
+  options: InstallFromFileOptions;
+} {
+  const options: InstallFromFileOptions = {};
   const source: string[] = [];
 
   for (let i = 0; i < args.length; i++) {
