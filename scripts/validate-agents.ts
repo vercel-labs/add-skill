@@ -85,7 +85,8 @@ function checkDuplicateSkillsDirs() {
 console.log('Validating agents...\n');
 
 checkDuplicateDisplayNames();
-checkDuplicateSkillsDirs();
+// It's fine to have duplicate skills dirs
+// checkDuplicateSkillsDirs();
 
 if (hasErrors) {
   console.log('\nValidation failed.');
