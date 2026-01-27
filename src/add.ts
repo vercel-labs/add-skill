@@ -413,6 +413,42 @@ async function handleRemoteSkill(
       mode: 'copy',
       error: result.error,
     });
+
+    // Custom-path-specific output
+    spinner.stop(result.success ? 'Skill installed' : 'Skill installation failed');
+
+    console.log();
+    if (result.success) {
+      const shortPath = shortenPath(result.path, cwd);
+      p.note(
+        `${chalk.green('✓')} ${shortPath}`,
+        chalk.green(`Installed ${chalk.bold(remoteSkill.installName)} to custom path`)
+      );
+
+      // Track installation
+      track({
+        event: 'install',
+        source: remoteSkill.sourceIdentifier,
+        skills: remoteSkill.installName,
+        agents: 'custom-path',
+        skillFiles: JSON.stringify({ [remoteSkill.installName]: url }),
+        sourceType: remoteSkill.providerId,
+      });
+
+      console.log();
+      p.outro(chalk.green('Done!'));
+      await promptForFindSkills();
+    } else {
+      p.log.error(
+        chalk.red(
+          `Failed to install ${chalk.bold(remoteSkill.installName)} to custom path: ${result.error ?? 'Unknown error'}`
+        )
+      );
+      console.log();
+      p.outro(chalk.red('Installation failed'));
+      process.exit(1);
+    }
+    return;
   } else {
     // Install to agent directories
     for (const agent of targetAgents) {
@@ -754,15 +790,42 @@ async function handleDirectUrlSkillLegacy(
       type: 'content',
       content: remoteSkill.content,
     });
-    results.push({
-      skill: remoteSkill.installName,
-      agent: 'custom-path',
-      success: result.success,
-      path: result.path,
-      mode: 'copy',
-      canonicalPath: result.path,
-      error: result.error,
-    });
+
+    // Custom-path-specific output
+    spinner.stop(result.success ? 'Skill installed' : 'Skill installation failed');
+
+    console.log();
+    if (result.success) {
+      const shortPath = shortenPath(result.path, cwd);
+      p.note(
+        `${chalk.green('✓')} ${shortPath}`,
+        chalk.green(`Installed ${chalk.bold(remoteSkill.installName)} to custom path`)
+      );
+
+      // Track installation
+      track({
+        event: 'install',
+        source: 'mintlify/com',
+        skills: remoteSkill.installName,
+        agents: 'custom-path',
+        skillFiles: JSON.stringify({ [remoteSkill.installName]: url }),
+        sourceType: 'mintlify',
+      });
+
+      console.log();
+      p.outro(chalk.green('Done!'));
+      await promptForFindSkills();
+    } else {
+      p.log.error(
+        chalk.red(
+          `Failed to install ${chalk.bold(remoteSkill.installName)} to custom path: ${result.error ?? 'Unknown error'}`
+        )
+      );
+      console.log();
+      p.outro(chalk.red('Installation failed'));
+      process.exit(1);
+    }
+    return;
   } else {
     // Install to agent directories
     for (const agent of targetAgents) {
@@ -789,7 +852,7 @@ async function handleDirectUrlSkillLegacy(
     event: 'install',
     source: 'mintlify/com',
     skills: remoteSkill.installName,
-    agents: options.path ? 'custom-path' : targetAgents.join(','),
+    agents: targetAgents.join(','),
     ...(installGlobally && { global: '1' }),
     skillFiles: JSON.stringify({ [remoteSkill.installName]: url }),
     sourceType: 'mintlify',
