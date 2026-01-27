@@ -108,6 +108,7 @@ export async function discoverSkills(basePath: string, subpath?: string): Promis
     join(searchPath, '.cursor/skills'),
     join(searchPath, '.github/skills'),
     join(searchPath, '.goose/skills'),
+    join(searchPath, '.junie/skills'),
     join(searchPath, '.kilocode/skills'),
     join(searchPath, '.kiro/skills'),
     join(searchPath, '.mux/skills'),
