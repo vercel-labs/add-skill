@@ -127,32 +127,39 @@ export function parseSource(input: string): ParsedSource {
     };
   }
 
-  // GitLab URL with path: https://gitlab.com/owner/repo/-/tree/branch/path
+  // GitLab URL with path (any GitLab instance): https://gitlab.com/owner/repo/-/tree/branch/path
+  // Key identifier is the "/-/tree/" path pattern unique to GitLab.
+  // Supports subgroups by using a non-greedy match for the repository path.
   const gitlabTreeWithPathMatch = input.match(
-    /gitlab\.com\/([^/]+)\/([^/]+)\/-\/tree\/([^/]+)\/(.+)/
+    /^(https?):\/\/([^/]+)\/(.+?)\/-\/tree\/([^/]+)\/(.+)/
   );
   if (gitlabTreeWithPathMatch) {
-    const [, owner, repo, ref, subpath] = gitlabTreeWithPathMatch;
-    return {
-      type: 'gitlab',
-      url: `https://gitlab.com/${owner}/${repo}.git`,
-      ref,
-      subpath,
-    };
+    const [, protocol, hostname, repoPath, ref, subpath] = gitlabTreeWithPathMatch;
+    if (hostname !== 'github.com' && repoPath) {
+      return {
+        type: 'gitlab',
+        url: `${protocol}://${hostname}/${repoPath.replace(/\.git$/, '')}.git`,
+        ref,
+        subpath,
+      };
+    }
   }
 
-  // GitLab URL with branch only: https://gitlab.com/owner/repo/-/tree/branch
-  const gitlabTreeMatch = input.match(/gitlab\.com\/([^/]+)\/([^/]+)\/-\/tree\/([^/]+)$/);
+  // GitLab URL with branch only (any GitLab instance): https://gitlab.com/owner/repo/-/tree/branch
+  const gitlabTreeMatch = input.match(/^(https?):\/\/([^/]+)\/(.+?)\/-\/tree\/([^/]+)$/);
   if (gitlabTreeMatch) {
-    const [, owner, repo, ref] = gitlabTreeMatch;
-    return {
-      type: 'gitlab',
-      url: `https://gitlab.com/${owner}/${repo}.git`,
-      ref,
-    };
+    const [, protocol, hostname, repoPath, ref] = gitlabTreeMatch;
+    if (hostname !== 'github.com' && repoPath) {
+      return {
+        type: 'gitlab',
+        url: `${protocol}://${hostname}/${repoPath.replace(/\.git$/, '')}.git`,
+        ref,
+      };
+    }
   }
 
-  // GitLab URL: https://gitlab.com/owner/repo
+  // GitLab.com URL: https://gitlab.com/owner/repo
+  // Only for the official gitlab.com domain for user convenience.
   const gitlabRepoMatch = input.match(/gitlab\.com\/([^/]+)\/([^/]+)/);
   if (gitlabRepoMatch) {
     const [, owner, repo] = gitlabRepoMatch;
