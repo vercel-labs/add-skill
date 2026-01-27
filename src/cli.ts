@@ -8,6 +8,7 @@ import { createHash } from 'crypto';
 import { fileURLToPath } from 'url';
 import { runAdd, parseAddOptions, initTelemetry } from './add.js';
 import { runFind } from './find.js';
+import { runRemove, parseRemoveOptions } from './remove.js';
 import { track } from './telemetry.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -66,6 +67,9 @@ function showBanner(): void {
     `  ${DIM}$${RESET} ${TEXT}npx skills add ${DIM}<package>${RESET}   ${DIM}Install a skill${RESET}`
   );
   console.log(
+    `  ${DIM}$${RESET} ${TEXT}npx skills remove ${DIM}<name>${RESET}   ${DIM}Remove a skill${RESET}`
+  );
+  console.log(
     `  ${DIM}$${RESET} ${TEXT}npx skills find ${DIM}[query]${RESET}    ${DIM}Search for skills${RESET}`
   );
   console.log(
@@ -94,6 +98,7 @@ ${BOLD}Commands:${RESET}
   add <package>     Add a skill package
                     e.g. vercel-labs/agent-skills
                          https://github.com/vercel-labs/agent-skills
+  remove <skill>    Remove an installed skill
   check             Check for available skill updates
   update            Update all skills to latest versions
   generate-lock     Generate lock file from installed skills
@@ -105,6 +110,13 @@ ${BOLD}Add Options:${RESET}
   -l, --list             List available skills in the repository without installing
   -y, --yes              Skip confirmation prompts
   --all                  Install all skills to all agents without any prompts
+
+${BOLD}Remove Options:${RESET}
+  -g, --global           Remove from global installation (default)
+  -l, --local            Remove from local/project installation
+  -a, --agent <agents>   Target specific agent(s) only
+  -y, --yes              Skip confirmation prompt
+  --all                  Remove from all installed agents
 
 ${BOLD}Options:${RESET}
   --help, -h        Show this help message
@@ -120,6 +132,9 @@ ${BOLD}Examples:${RESET}
   ${DIM}$${RESET} skills add vercel-labs/agent-skills -g
   ${DIM}$${RESET} skills add vercel-labs/agent-skills --agent claude-code cursor
   ${DIM}$${RESET} skills add vercel-labs/agent-skills --skill pr-review commit
+  ${DIM}$${RESET} skills remove ai-sdk
+  ${DIM}$${RESET} skills remove ai-sdk --agent claude-code
+  ${DIM}$${RESET} skills remove ai-sdk --all -y
   ${DIM}$${RESET} skills check
   ${DIM}$${RESET} skills update
   ${DIM}$${RESET} skills generate-lock --dry-run
@@ -712,6 +727,16 @@ async function main(): Promise<void> {
       showLogo();
       const { source, options } = parseAddOptions(restArgs);
       await runAdd(source, options);
+      break;
+    }
+    case 'remove':
+    case 'rm':
+    case 'r':
+    case 'uninstall': {
+      showLogo();
+      console.log();
+      const { skillName, options: removeOptions } = parseRemoveOptions(restArgs);
+      await runRemove(skillName, removeOptions);
       break;
     }
     case 'check':
