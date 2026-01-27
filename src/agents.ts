@@ -41,9 +41,11 @@ export const agents: Record<AgentType, AgentConfig> = {
     name: 'moltbot',
     displayName: 'Moltbot',
     skillsDir: 'skills',
-    globalSkillsDir: join(home, '.moltbot/skills'),
+    globalSkillsDir: existsSync(join(home, '.clawdbot'))
+      ? join(home, '.clawdbot/skills')
+      : join(home, '.moltbot/skills'),
     detectInstalled: async () => {
-      return existsSync(join(home, '.moltbot'));
+      return existsSync(join(home, '.moltbot')) || existsSync(join(home, '.clawdbot'));
     },
   },
   cline: {
