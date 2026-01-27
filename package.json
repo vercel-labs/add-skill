@@ -4,11 +4,12 @@
   "description": "The open agent skills ecosystem",
   "type": "module",
   "bin": {
-    "skills": "./dist/cli.mjs",
-    "add-skill": "./dist/cli.mjs"
+    "skills": "./bin/cli.mjs",
+    "add-skill": "./bin/cli.mjs"
   },
   "files": [
     "dist",
+    "bin",
     "README.md"
   ],
   "scripts": {
