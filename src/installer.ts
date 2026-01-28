@@ -1,4 +1,15 @@
-import { mkdir, cp, access, readdir, symlink, lstat, rm, readlink, writeFile, stat } from 'fs/promises';
+import {
+  mkdir,
+  cp,
+  access,
+  readdir,
+  symlink,
+  lstat,
+  rm,
+  readlink,
+  writeFile,
+  stat,
+} from 'fs/promises';
 import { join, basename, normalize, resolve, sep, relative, dirname } from 'path';
 import { homedir, platform } from 'os';
 import type { Skill, AgentType, MintlifySkill, RemoteSkill } from './types.ts';
@@ -734,13 +745,11 @@ export async function listInstalledSkills(
         const sanitizedSkillName = sanitizeName(skill.name);
         const installedAgents: AgentType[] = [];
         // Check all agents if no filter, otherwise only check filtered agents
-        const agentsToCheck = options.agentFilter || Object.keys(agents) as AgentType[];
+        const agentsToCheck = options.agentFilter || (Object.keys(agents) as AgentType[]);
 
         for (const agentType of agentsToCheck) {
           const agent = agents[agentType];
-          const agentBase = scope.global
-            ? agent.globalSkillsDir
-            : join(cwd, agent.skillsDir);
+          const agentBase = scope.global ? agent.globalSkillsDir : join(cwd, agent.skillsDir);
 
           let found = false;
 
@@ -748,7 +757,10 @@ export async function listInstalledSkills(
           const possibleNames = [
             entry.name,
             sanitizedSkillName,
-            skill.name.toLowerCase().replace(/\s+/g, '-').replace(/[\/\\:\0]/g, ''),
+            skill.name
+              .toLowerCase()
+              .replace(/\s+/g, '-')
+              .replace(/[\/\\:\0]/g, ''),
           ];
           const uniqueNames = Array.from(new Set(possibleNames));
 
