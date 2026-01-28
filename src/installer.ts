@@ -251,21 +251,21 @@ async function copyDirectory(src: string, dest: string): Promise<void> {
 
   const entries = await readdir(src, { withFileTypes: true });
 
-  for (const entry of entries) {
-    const isDir = entry.isDirectory();
-    if (isExcluded(entry.name, isDir)) {
-      continue;
-    }
+  // Copy files and directories in parallel
+  await Promise.all(
+    entries
+      .filter((entry) => !isExcluded(entry.name, entry.isDirectory()))
+      .map(async (entry) => {
+        const srcPath = join(src, entry.name);
+        const destPath = join(dest, entry.name);
 
-    const srcPath = join(src, entry.name);
-    const destPath = join(dest, entry.name);
-
-    if (isDir) {
-      await copyDirectory(srcPath, destPath);
-    } else {
-      await cp(srcPath, destPath);
-    }
-  }
+        if (entry.isDirectory()) {
+          await copyDirectory(srcPath, destPath);
+        } else {
+          await cp(srcPath, destPath);
+        }
+      })
+  );
 }
 
 export async function isSkillInstalled(

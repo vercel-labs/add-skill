@@ -53,7 +53,12 @@ export class HuggingFaceProvider implements HostProvider {
     try {
       // Convert to raw URL
       const rawUrl = this.toRawUrl(url);
-      const response = await fetch(rawUrl);
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 30000);
+
+      const response = await fetch(rawUrl, { signal: controller.signal });
+      clearTimeout(timeout);
 
       if (!response.ok) {
         return null;

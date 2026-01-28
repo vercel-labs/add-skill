@@ -52,28 +52,27 @@ async function parseSkillMd(skillMdPath: string): Promise<Skill | null> {
 }
 
 async function findSkillDirs(dir: string, depth = 0, maxDepth = 5): Promise<string[]> {
-  const skillDirs: string[] = [];
-
-  if (depth > maxDepth) return skillDirs;
+  if (depth > maxDepth) return [];
 
   try {
-    if (await hasSkillMd(dir)) {
-      skillDirs.push(dir);
-    }
+    const [hasSkill, entries] = await Promise.all([
+      hasSkillMd(dir),
+      readdir(dir, { withFileTypes: true }).catch(() => []),
+    ]);
 
-    const entries = await readdir(dir, { withFileTypes: true });
+    const currentDir = hasSkill ? [dir] : [];
 
-    for (const entry of entries) {
-      if (entry.isDirectory() && !SKIP_DIRS.includes(entry.name)) {
-        const subDirs = await findSkillDirs(join(dir, entry.name), depth + 1, maxDepth);
-        skillDirs.push(...subDirs);
-      }
-    }
+    // Search subdirectories in parallel
+    const subDirResults = await Promise.all(
+      entries
+        .filter((entry) => entry.isDirectory() && !SKIP_DIRS.includes(entry.name))
+        .map((entry) => findSkillDirs(join(dir, entry.name), depth + 1, maxDepth))
+    );
+
+    return [...currentDir, ...subDirResults.flat()];
   } catch {
-    // Ignore errors
+    return [];
   }
-
-  return skillDirs;
 }
 
 export async function discoverSkills(basePath: string, subpath?: string): Promise<Skill[]> {

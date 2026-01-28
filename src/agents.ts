@@ -274,15 +274,13 @@ export const agents: Record<AgentType, AgentConfig> = {
 };
 
 export async function detectInstalledAgents(): Promise<AgentType[]> {
-  const installed: AgentType[] = [];
-
-  for (const [type, config] of Object.entries(agents)) {
-    if (await config.detectInstalled()) {
-      installed.push(type as AgentType);
-    }
-  }
-
-  return installed;
+  const results = await Promise.all(
+    Object.entries(agents).map(async ([type, config]) => ({
+      type: type as AgentType,
+      installed: await config.detectInstalled(),
+    }))
+  );
+  return results.filter((r) => r.installed).map((r) => r.type);
 }
 
 export function getAgentConfig(type: AgentType): AgentConfig {
