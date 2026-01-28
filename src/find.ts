@@ -1,6 +1,7 @@
 import * as readline from 'readline';
 import { runAdd, parseAddOptions } from './add.ts';
 import { track } from './telemetry.ts';
+import { isRepoPrivate, parseOwnerRepo } from './source-parser.ts';
 
 const RESET = '\x1b[0m';
 const BOLD = '\x1b[1m';
@@ -248,12 +249,10 @@ function getOwnerRepoFromString(pkg: string): { owner: string; repo: string } | 
 }
 
 async function isRepoPublic(owner: string, repo: string): Promise<boolean> {
-  try {
-    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}`);
-    return res.ok;
-  } catch {
-    return false;
-  }
+  const isPrivate = await isRepoPrivate(owner, repo);
+  // Return true only if we know it's public (isPrivate === false)
+  // Return false if private or unable to determine
+  return isPrivate === false;
 }
 
 export async function runFind(args: string[]): Promise<void> {

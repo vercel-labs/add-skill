@@ -20,6 +20,40 @@ export function getOwnerRepo(parsed: ParsedSource): string | null {
 }
 
 /**
+ * Extract owner and repo from an owner/repo string.
+ * Returns null if the format is invalid.
+ */
+export function parseOwnerRepo(ownerRepo: string): { owner: string; repo: string } | null {
+  const match = ownerRepo.match(/^([^/]+)\/([^/]+)$/);
+  if (match) {
+    return { owner: match[1]!, repo: match[2]! };
+  }
+  return null;
+}
+
+/**
+ * Check if a GitHub repository is private.
+ * Returns true if private, false if public, null if unable to determine.
+ * Only works for GitHub repositories (GitLab not supported).
+ */
+export async function isRepoPrivate(owner: string, repo: string): Promise<boolean | null> {
+  try {
+    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}`);
+    
+    // If repo doesn't exist or we don't have access, assume private to be safe
+    if (!res.ok) {
+      return null; // Unable to determine
+    }
+    
+    const data = await res.json() as { private?: boolean };
+    return data.private === true;
+  } catch {
+    // On error, return null to indicate we couldn't determine
+    return null;
+  }
+}
+
+/**
  * Check if a string represents a local file system path
  */
 function isLocalPath(input: string): boolean {
