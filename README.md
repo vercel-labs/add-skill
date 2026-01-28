@@ -86,6 +86,7 @@ When installing interactively, you can choose:
 
 | Command                      | Description                                             |
 | ---------------------------- | ------------------------------------------------------- |
+| `npx skills list`            | List installed skills (alias: `ls`)                     |
 | `npx skills find [query]`    | Search for skills interactively or by keyword           |
 | `npx skills remove [skills]` | Remove installed skills from agents                     |
 | `npx skills check`           | Check for available skill updates                       |

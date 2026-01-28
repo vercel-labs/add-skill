@@ -1,14 +1,12 @@
 import * as p from '@clack/prompts';
-import chalk from 'chalk';
+import pc from 'picocolors';
 import { readdir, rm, lstat } from 'fs/promises';
 import { join } from 'path';
-import { homedir } from 'os';
-import { agents, detectInstalledAgents } from './agents.js';
-import { track } from './telemetry.js';
-import { removeSkillFromLock, getSkillFromLock } from './skill-lock.js';
-import { AGENTS_DIR, SKILLS_SUBDIR } from './constants.js';
-import type { AgentType } from './types.js';
-import { getInstallPath, getCanonicalPath, getCanonicalSkillsDir } from './installer.js';
+import { agents, detectInstalledAgents } from './agents.ts';
+import { track } from './telemetry.ts';
+import { removeSkillFromLock, getSkillFromLock } from './skill-lock.ts';
+import type { AgentType } from './types.ts';
+import { getInstallPath, getCanonicalPath, getCanonicalSkillsDir } from './installer.ts';
 
 export interface RemoveOptions {
   global?: boolean;
@@ -20,9 +18,6 @@ export interface RemoveOptions {
 export async function removeCommand(skillNames: string[], options: RemoveOptions) {
   const isGlobal = options.global ?? false;
   const cwd = process.cwd();
-
-  console.log();
-  p.intro(chalk.bgRed.white(' remove-skill '));
 
   const spinner = p.spinner();
 
@@ -60,7 +55,7 @@ export async function removeCommand(skillNames: string[], options: RemoveOptions
   spinner.stop(`Found ${installedSkills.length} unique installed skill(s)`);
 
   if (installedSkills.length === 0) {
-    p.outro(chalk.yellow('No skills found to remove.'));
+    p.outro(pc.yellow('No skills found to remove.'));
     return;
   }
 
@@ -96,7 +91,7 @@ export async function removeCommand(skillNames: string[], options: RemoveOptions
     }));
 
     const selected = await p.multiselect({
-      message: `Select skills to remove ${chalk.dim('(space to toggle)')}`,
+      message: `Select skills to remove ${pc.dim('(space to toggle)')}`,
       options: choices,
       required: true,
     });
@@ -219,18 +214,18 @@ export async function removeCommand(skillNames: string[], options: RemoveOptions
   }
 
   if (successful.length > 0) {
-    p.log.success(chalk.green(`Successfully removed ${successful.length} skill(s)`));
+    p.log.success(pc.green(`Successfully removed ${successful.length} skill(s)`));
   }
 
   if (failed.length > 0) {
-    p.log.error(chalk.red(`Failed to remove ${failed.length} skill(s)`));
+    p.log.error(pc.red(`Failed to remove ${failed.length} skill(s)`));
     for (const r of failed) {
-      p.log.message(`  ${chalk.red('✗')} ${r.skill}: ${r.error}`);
+      p.log.message(`  ${pc.red('✗')} ${r.skill}: ${r.error}`);
     }
   }
 
   console.log();
-  p.outro(chalk.green('Done!'));
+  p.outro(pc.green('Done!'));
 }
 
 /**

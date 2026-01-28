@@ -9,7 +9,7 @@ import { fileURLToPath } from 'url';
 import { runAdd, parseAddOptions, initTelemetry } from './add.ts';
 import { runFind } from './find.ts';
 import { runList } from './list.ts';
-import { removeCommand, parseRemoveOptions } from './remove.js';
+import { removeCommand, parseRemoveOptions } from './remove.ts';
 import { track } from './telemetry.ts';
 
 export function formatSkippedMessage(skippedSkills: string[]): string | null {
@@ -786,10 +786,9 @@ async function main(): Promise<void> {
         showRemoveHelp();
         break;
       }
-      showLogo();
-      console.log();
       const { skills, options: removeOptions } = parseRemoveOptions(restArgs);
       await removeCommand(skills, removeOptions);
+      break;
     case 'list':
     case 'ls':
       showLogo();

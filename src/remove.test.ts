@@ -191,7 +191,8 @@ This is a test skill.
 
     it('should accept --global flag without error', () => {
       const result = runCli(['remove', 'global-skill', '--global', '-y'], testDir);
-      expect(result.stdout).toContain('remove-skill'); // Logo/intro should appear
+      // Command should run without error (skill may not be found in global scope from test dir)
+      expect(result.exitCode).toBe(0);
     });
   });
 
@@ -202,13 +203,13 @@ This is a test skill.
 
     it('should support "rm" alias', () => {
       const result = runCli(['rm', 'alias-test-skill', '-y'], testDir);
-      expect(result.stdout).toContain('remove-skill');
+      expect(result.stdout).toContain('Successfully removed');
       expect(result.exitCode).toBe(0);
     });
 
     it('should support "r" alias', () => {
       const result = runCli(['r', 'alias-test-skill', '-y'], testDir);
-      expect(result.stdout).toContain('remove-skill');
+      expect(result.stdout).toContain('Successfully removed');
       expect(result.exitCode).toBe(0);
     });
   });

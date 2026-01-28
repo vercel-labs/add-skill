@@ -12,10 +12,10 @@ import {
 } from 'fs/promises';
 import { join, basename, normalize, resolve, sep, relative, dirname } from 'path';
 import { homedir, platform } from 'os';
-import type { Skill, AgentType, MintlifySkill, RemoteSkill } from './types.js';
-import type { WellKnownSkill } from './providers/wellknown.js';
-import { agents } from './agents.js';
-import { AGENTS_DIR, SKILLS_SUBDIR } from './constants.js';
+import type { Skill, AgentType, MintlifySkill, RemoteSkill } from './types.ts';
+import type { WellKnownSkill } from './providers/wellknown.ts';
+import { agents } from './agents.ts';
+import { AGENTS_DIR, SKILLS_SUBDIR } from './constants.ts';
 import { parseSkillMd } from './skills.ts';
 
 export type InstallMode = 'symlink' | 'copy';
