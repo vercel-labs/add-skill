@@ -118,8 +118,15 @@ export async function removeCommand(skillNames: string[], options: RemoveOptions
   }
 
   if (!options.yes) {
+    console.log();
+    p.log.info('Skills to remove:');
+    for (const skill of selectedSkills) {
+      p.log.message(`  ${pc.red('•')} ${skill}`);
+    }
+    console.log();
+
     const confirmed = await p.confirm({
-      message: `Are you sure you want to remove ${selectedSkills.length} skill(s)?`,
+      message: `Are you sure you want to uninstall ${selectedSkills.length} skill(s)?`,
     });
 
     if (p.isCancel(confirmed) || !confirmed) {

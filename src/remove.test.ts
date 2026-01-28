@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { existsSync, rmSync, mkdirSync, writeFileSync, readdirSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
-import { runCli } from './test-utils.js';
+import { runCli, runCliWithInput } from './test-utils.js';
 
 describe('remove command', () => {
   let testDir: string;
@@ -150,6 +150,21 @@ This is a test skill.
       // Others still exist
       expect(existsSync(join(skillsDir, 'skill-one'))).toBe(true);
       expect(existsSync(join(skillsDir, 'skill-three'))).toBe(true);
+    });
+
+    it('should list skills to remove before confirmation', () => {
+      // Answer 'n' to cancel the confirmation prompt
+      const result = runCliWithInput(['remove', 'skill-one', 'skill-two'], 'n', testDir);
+
+      // Should show the skills that will be removed
+      expect(result.stdout).toContain('Skills to remove');
+      expect(result.stdout).toContain('skill-one');
+      expect(result.stdout).toContain('skill-two');
+      expect(result.stdout).toContain('uninstall');
+
+      // Skills should NOT be removed since we cancelled
+      expect(existsSync(join(skillsDir, 'skill-one'))).toBe(true);
+      expect(existsSync(join(skillsDir, 'skill-two'))).toBe(true);
     });
   });
 

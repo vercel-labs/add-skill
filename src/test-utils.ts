@@ -46,3 +46,25 @@ export function runCliOutput(args: string[], cwd?: string): string {
   const result = runCli(args, cwd);
   return result.stdout || result.stderr;
 }
+
+export function runCliWithInput(
+  args: string[],
+  input: string,
+  cwd?: string
+): { stdout: string; stderr: string; exitCode: number } {
+  try {
+    const output = execSync(`echo "${input}" | node ${CLI_PATH} ${args.join(' ')}`, {
+      encoding: 'utf-8',
+      cwd,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      shell: true,
+    });
+    return { stdout: stripAnsi(output), stderr: '', exitCode: 0 };
+  } catch (error: any) {
+    return {
+      stdout: stripAnsi(error.stdout || ''),
+      stderr: stripAnsi(error.stderr || ''),
+      exitCode: error.status || 1,
+    };
+  }
+}
