@@ -490,8 +490,8 @@ async function handleRemoteSkill(
     sourceType: remoteSkill.providerId,
   });
 
-  // Add to skill lock file for update tracking (only for global installs)
-  if (successful.length > 0 && installGlobally) {
+  // Add to skill lock file for update tracking
+  if (successful.length > 0) {
     try {
       // Try to fetch the folder hash from GitHub Trees API
       let skillFolderHash = '';
@@ -500,12 +500,16 @@ async function handleRemoteSkill(
         if (hash) skillFolderHash = hash;
       }
 
-      await addSkillToLock(remoteSkill.installName, {
-        source: remoteSkill.sourceIdentifier,
-        sourceType: remoteSkill.providerId,
-        sourceUrl: url,
-        skillFolderHash,
-      });
+      await addSkillToLock(
+        remoteSkill.installName,
+        {
+          source: remoteSkill.sourceIdentifier,
+          sourceType: remoteSkill.providerId,
+          sourceUrl: url,
+          skillFolderHash,
+        },
+        installGlobally
+      );
     } catch {
       // Don't fail installation if lock file update fails
     }
@@ -914,18 +918,22 @@ async function handleWellKnownSkills(
     sourceType: 'well-known',
   });
 
-  // Add to skill lock file for update tracking (only for global installs)
-  if (successful.length > 0 && installGlobally) {
+  // Add to skill lock file for update tracking
+  if (successful.length > 0) {
     const successfulSkillNames = new Set(successful.map((r) => r.skill));
     for (const skill of selectedSkills) {
       if (successfulSkillNames.has(skill.installName)) {
         try {
-          await addSkillToLock(skill.installName, {
-            source: sourceIdentifier,
-            sourceType: 'well-known',
-            sourceUrl: skill.sourceUrl,
-            skillFolderHash: '', // Well-known skills don't have a folder hash
-          });
+          await addSkillToLock(
+            skill.installName,
+            {
+              source: sourceIdentifier,
+              sourceType: 'well-known',
+              sourceUrl: skill.sourceUrl,
+              skillFolderHash: '', // Well-known skills don't have a folder hash
+            },
+            installGlobally
+          );
         } catch {
           // Don't fail installation if lock file update fails
         }
@@ -1243,17 +1251,21 @@ async function handleDirectUrlSkillLegacy(
     sourceType: 'mintlify',
   });
 
-  // Add to skill lock file for update tracking (only for global installs)
-  if (successful.length > 0 && installGlobally) {
+  // Add to skill lock file for update tracking
+  if (successful.length > 0) {
     try {
       // skillFolderHash will be populated by telemetry server
       // Mintlify skills are single-file, so folder hash = content hash on server
-      await addSkillToLock(remoteSkill.installName, {
-        source: `mintlify/${remoteSkill.installName}`,
-        sourceType: 'mintlify',
-        sourceUrl: url,
-        skillFolderHash: '', // Populated by server
-      });
+      await addSkillToLock(
+        remoteSkill.installName,
+        {
+          source: `mintlify/${remoteSkill.installName}`,
+          sourceType: 'mintlify',
+          sourceUrl: url,
+          skillFolderHash: '', // Populated by server
+        },
+        installGlobally
+      );
     } catch {
       // Don't fail installation if lock file update fails
     }
@@ -1758,13 +1770,17 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
               if (hash) skillFolderHash = hash;
             }
 
-            await addSkillToLock(skill.name, {
-              source: normalizedSource,
-              sourceType: parsed.type,
-              sourceUrl: parsed.url,
-              skillPath: skillPathValue,
-              skillFolderHash,
-            });
+            await addSkillToLock(
+              skill.name,
+              {
+                source: normalizedSource,
+                sourceType: parsed.type,
+                sourceUrl: parsed.url,
+                skillPath: skillPathValue,
+                skillFolderHash,
+              },
+              installGlobally
+            );
           } catch {
             // Don't fail installation if lock file update fails
           }
@@ -1883,7 +1899,7 @@ async function promptForFindSkills(): Promise<void> {
   if (!process.stdin.isTTY) return;
 
   try {
-    const dismissed = await isPromptDismissed('findSkillsPrompt');
+    const dismissed = await isPromptDismissed('findSkillsPrompt', true);
     if (dismissed) return;
 
     // Check if find-skills is already installed
@@ -1892,7 +1908,7 @@ async function promptForFindSkills(): Promise<void> {
     });
     if (findSkillsInstalled) {
       // Mark as dismissed so we don't check again
-      await dismissPrompt('findSkillsPrompt');
+      await dismissPrompt('findSkillsPrompt', true);
       return;
     }
 
@@ -1903,14 +1919,14 @@ async function promptForFindSkills(): Promise<void> {
     });
 
     if (p.isCancel(install)) {
-      await dismissPrompt('findSkillsPrompt');
+      await dismissPrompt('findSkillsPrompt', true);
       return;
     }
 
     if (install) {
       // Install find-skills globally to all agents
       // Mark as dismissed first to prevent recursive prompts
-      await dismissPrompt('findSkillsPrompt');
+      await dismissPrompt('findSkillsPrompt', true);
 
       console.log();
       p.log.step('Installing find-skills skill...');
@@ -1929,7 +1945,7 @@ async function promptForFindSkills(): Promise<void> {
       }
     } else {
       // User declined - dismiss the prompt
-      await dismissPrompt('findSkillsPrompt');
+      await dismissPrompt('findSkillsPrompt', true);
       p.log.message(
         pc.dim('You can install it later with: npx skills add vercel-labs/skills@find-skills')
       );

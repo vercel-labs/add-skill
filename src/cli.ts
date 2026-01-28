@@ -106,10 +106,12 @@ ${BOLD}Add Options:${RESET}
   -y, --yes              Skip confirmation prompts
   --all                  Install all skills to all agents without any prompts
 
+${BOLD}Generate-lock Options:${RESET}
+  -g, --global           Generate lock file for global directory (~/.agents)
+                         Default: local directory (./.agents)
+  --dry-run              Preview changes without writing
+
 ${BOLD}Options:${RESET}
-  --help, -h        Show this help message
-  --version, -v     Show version number
-  --dry-run         Preview changes without writing (generate-lock)
 
 ${BOLD}Examples:${RESET}
   ${DIM}$${RESET} skills find                     ${DIM}# interactive search${RESET}
@@ -122,6 +124,8 @@ ${BOLD}Examples:${RESET}
   ${DIM}$${RESET} skills add vercel-labs/agent-skills --skill pr-review commit
   ${DIM}$${RESET} skills check
   ${DIM}$${RESET} skills update
+  ${DIM}$${RESET} skills generate-lock              ${DIM}# local directory${RESET}
+  ${DIM}$${RESET} skills generate-lock -g           ${DIM}# global directory${RESET}
   ${DIM}$${RESET} skills generate-lock --dry-run
 
 Discover more skills at ${TEXT}https://skills.sh/${RESET}
@@ -254,12 +258,13 @@ interface SearchResponse {
   matches: Record<string, MatchResult | null>;
 }
 
-function getSkillLockPath(): string {
-  return join(homedir(), AGENTS_DIR, LOCK_FILE);
+function getSkillLockPath(global: boolean = true): string {
+  const baseDir = global ? homedir() : process.cwd();
+  return join(baseDir, AGENTS_DIR, LOCK_FILE);
 }
 
-function readSkillLock(): SkillLockFile {
-  const lockPath = getSkillLockPath();
+function readSkillLock(global: boolean = true): SkillLockFile {
+  const lockPath = getSkillLockPath(global);
   try {
     const content = readFileSync(lockPath, 'utf-8');
     const parsed = JSON.parse(content) as SkillLockFile;
@@ -277,17 +282,18 @@ function readSkillLock(): SkillLockFile {
   }
 }
 
-function writeSkillLock(lock: SkillLockFile): void {
-  const lockPath = getSkillLockPath();
-  const dir = join(homedir(), AGENTS_DIR);
+function writeSkillLock(lock: SkillLockFile, global: boolean = true): void {
+  const lockPath = getSkillLockPath(global);
+  const dir = dirname(lockPath);
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
   }
   writeFileSync(lockPath, JSON.stringify(lock, null, 2), 'utf-8');
 }
 
-function getInstalledSkillNames(): string[] {
-  const skillsDir = join(homedir(), AGENTS_DIR, SKILLS_SUBDIR);
+function getInstalledSkillNames(global: boolean = true): string[] {
+  const baseDir = global ? homedir() : process.cwd();
+  const skillsDir = join(baseDir, AGENTS_DIR, SKILLS_SUBDIR);
   const skillNames: string[] = [];
 
   try {
@@ -363,13 +369,14 @@ function buildSourceUrl(source: string, sourceType: string): string {
 
 async function runGenerateLock(args: string[]): Promise<void> {
   const dryRun = args.includes('--dry-run');
+  const global = args.includes('-g') || args.includes('--global');
 
   // Allow API URL override for testing
   const apiUrlIdx = args.indexOf('--api-url');
   const apiUrl = apiUrlIdx !== -1 && args[apiUrlIdx + 1] ? args[apiUrlIdx + 1] : SEARCH_API_URL;
 
   console.log(`${TEXT}Scanning for installed skills...${RESET}`);
-  const installedSkills = getInstalledSkillNames();
+  const installedSkills = getInstalledSkillNames(global);
 
   if (installedSkills.length === 0) {
     console.log(`${DIM}No installed skills found.${RESET}`);
@@ -380,7 +387,7 @@ async function runGenerateLock(args: string[]): Promise<void> {
   console.log();
 
   // Read existing lock file
-  const existingLock = readSkillLock();
+  const existingLock = readSkillLock(global);
   const existingCount = Object.keys(existingLock.skills).length;
 
   // Filter skills not already in lock file
@@ -445,8 +452,9 @@ async function runGenerateLock(args: string[]): Promise<void> {
     console.log();
     console.log(JSON.stringify(updatedLock, null, 2));
   } else {
-    writeSkillLock(updatedLock);
-    console.log(`${TEXT}Lock file updated:${RESET} ${DIM}~/.agents/.skill-lock.json${RESET}`);
+    writeSkillLock(updatedLock, global);
+    const lockPath = global ? '~/.agents/.skill-lock.json' : './.agents/.skill-lock.json';
+    console.log(`${TEXT}Lock file updated:${RESET} ${DIM}${lockPath}${RESET}`);
   }
 }
 
