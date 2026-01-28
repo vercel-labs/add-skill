@@ -183,6 +183,7 @@ Skills can be installed to any of these agents:
 | Qoder | `qoder` | `.qoder/skills/` | `~/.qoder/skills/` |
 | Qwen Code | `qwen-code` | `.qwen/skills/` | `~/.qwen/skills/` |
 | Roo Code | `roo` | `.roo/skills/` | `~/.roo/skills/` |
+| Terramind | `terramind` | `.terramind/skills/` | `~/.terramind/skills/` |
 | Trae | `trae` | `.trae/skills/` | `~/.trae/skills/` |
 | Windsurf | `windsurf` | `.windsurf/skills/` | `~/.codeium/windsurf/skills/` |
 | Zencoder | `zencoder` | `.zencoder/skills/` | `~/.zencoder/skills/` |
@@ -284,6 +285,7 @@ The CLI searches for skills in these locations within a repository:
 - `.qoder/skills/`
 - `.qwen/skills/`
 - `.roo/skills/`
+- `.terramind/skills/`
 - `.trae/skills/`
 - `.windsurf/skills/`
 - `.zencoder/skills/`

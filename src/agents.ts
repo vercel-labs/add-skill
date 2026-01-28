@@ -264,6 +264,15 @@ export const agents: Record<AgentType, AgentConfig> = {
       return existsSync(join(home, '.roo'));
     },
   },
+  terramind: {
+    name: 'terramind',
+    displayName: 'Terramind',
+    skillsDir: '.terramind/skills',
+    globalSkillsDir: join(home, '.terramind/skills'),
+    detectInstalled: async () => {
+      return existsSync(join(home, '.terramind'));
+    },
+  },
   trae: {
     name: 'trae',
     displayName: 'Trae',

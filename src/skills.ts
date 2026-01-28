@@ -132,6 +132,7 @@ export async function discoverSkills(
     join(searchPath, '.pi/skills'),
     join(searchPath, '.qoder/skills'),
     join(searchPath, '.roo/skills'),
+    join(searchPath, '.terramind/skills'),
     join(searchPath, '.trae/skills'),
     join(searchPath, '.windsurf/skills'),
     join(searchPath, '.zencoder/skills'),

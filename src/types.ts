@@ -28,6 +28,7 @@ export type AgentType =
   | 'qoder'
   | 'qwen-code'
   | 'roo'
+  | 'terramind'
   | 'trae'
   | 'windsurf'
   | 'zencoder'
