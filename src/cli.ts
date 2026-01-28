@@ -112,7 +112,7 @@ ${BOLD}Add Options:${RESET}
   --all                  Install all skills to all agents without any prompts
 
 ${BOLD}List Options:${RESET}
-  -g, --global           List only global skills (default: both)
+  -g, --global           List global skills (default: project)
   -a, --agent <agents>   Filter by specific agents
 
 ${BOLD}Options:${RESET}

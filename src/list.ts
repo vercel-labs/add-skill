@@ -9,7 +9,6 @@ const DIM = '\x1b[38;5;102m';
 const TEXT = '\x1b[38;5;145m';
 const CYAN = '\x1b[36m';
 const YELLOW = '\x1b[33m';
-const GREEN = '\x1b[32m';
 
 interface ListOptions {
   global?: boolean;
@@ -64,8 +63,8 @@ export function parseListOptions(args: string[]): ListOptions {
 export async function runList(args: string[]): Promise<void> {
   const options = parseListOptions(args);
 
-  console.log(`${TEXT}Scanning for installed skills...${RESET}`);
-  console.log();
+  // Default to project only (local), use -g for global
+  const scope = options.global === true ? true : false;
 
   // Validate agent filter if provided
   let agentFilter: AgentType[] | undefined;
@@ -83,82 +82,36 @@ export async function runList(args: string[]): Promise<void> {
   }
 
   const installedSkills = await listInstalledSkills({
-    global: options.global,
+    global: scope,
     agentFilter,
   });
 
+  const cwd = process.cwd();
+  const scopeLabel = scope ? 'Global' : 'Project';
+
   if (installedSkills.length === 0) {
-    console.log(`${DIM}No installed skills found.${RESET}`);
-    if (options.global === true) {
-      console.log(`${DIM}Try listing project skills without --global${RESET}`);
-    } else if (options.global === false) {
-      console.log(`${DIM}Try listing global skills with --global${RESET}`);
+    console.log(`${DIM}No ${scopeLabel.toLowerCase()} skills found.${RESET}`);
+    if (scope) {
+      console.log(`${DIM}Try listing project skills without -g${RESET}`);
+    } else {
+      console.log(`${DIM}Try listing global skills with -g${RESET}`);
     }
-    console.log();
-    console.log(`${DIM}Install skills with${RESET} ${TEXT}npx skills add <package>${RESET}`);
     return;
   }
 
-  // Group by scope
-  const projectSkills = installedSkills.filter((s) => s.scope === 'project');
-  const globalSkills = installedSkills.filter((s) => s.scope === 'global');
-
-  const cwd = process.cwd();
-
-  function printSkill(skill: InstalledSkill, indent: string = ''): void {
+  function printSkill(skill: InstalledSkill): void {
     const shortPath = shortenPath(skill.canonicalPath, cwd);
-    console.log(`${indent}${CYAN}${skill.name}${RESET}`);
-    console.log(`${indent}  ${DIM}${skill.description}${RESET}`);
-    console.log(`${indent}  ${DIM}Path:${RESET} ${shortPath}`);
-    if (skill.agents.length > 0) {
-      const agentNames = skill.agents.map((a) => agents[a].displayName);
-      console.log(`${indent}  ${DIM}Agents:${RESET} ${formatList(agentNames)}`);
-    } else {
-      console.log(`${indent}  ${YELLOW}Not linked to any agents${RESET}`);
-    }
+    const agentNames = skill.agents.map((a) => agents[a].displayName);
+    const agentInfo =
+      skill.agents.length > 0 ? formatList(agentNames) : `${YELLOW}not linked${RESET}`;
+    console.log(`${CYAN}${skill.name}${RESET} ${DIM}${shortPath}${RESET}`);
+    console.log(`  ${DIM}Agents:${RESET} ${agentInfo}`);
   }
 
-  // Show both scopes if not filtered
-  if (options.global === undefined && projectSkills.length > 0 && globalSkills.length > 0) {
-    if (projectSkills.length > 0) {
-      console.log(`${BOLD}Project Skills${RESET} ${DIM}(${projectSkills.length})${RESET}`);
-      console.log();
-      for (const skill of projectSkills) {
-        printSkill(skill, '  ');
-        console.log();
-      }
-    }
-
-    if (globalSkills.length > 0) {
-      console.log(`${BOLD}Global Skills${RESET} ${DIM}(${globalSkills.length})${RESET}`);
-      console.log();
-      for (const skill of globalSkills) {
-        printSkill(skill, '  ');
-        console.log();
-      }
-    }
-  } else {
-    // Single scope or only one has results
-    const skills = installedSkills;
-    const scopeLabel =
-      options.global === true
-        ? 'Global'
-        : options.global === false
-          ? 'Project'
-          : projectSkills.length > 0
-            ? 'Project'
-            : 'Global';
-
-    console.log(`${BOLD}${scopeLabel} Skills${RESET} ${DIM}(${skills.length})${RESET}`);
-    console.log();
-    for (const skill of skills) {
-      printSkill(skill, '  ');
-      console.log();
-    }
+  console.log(`${BOLD}${scopeLabel} Skills${RESET}`);
+  console.log();
+  for (const skill of installedSkills) {
+    printSkill(skill);
   }
-
-  console.log(
-    `${GREEN}Found ${installedSkills.length} skill${installedSkills.length !== 1 ? 's' : ''}${RESET}`
-  );
   console.log();
 }

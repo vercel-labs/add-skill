@@ -66,21 +66,21 @@ describe('list command', () => {
   describe('CLI integration', () => {
     it('should run list command', () => {
       const result = runCli(['list'], testDir);
-      expect(result.stdout).toContain('Scanning for installed skills');
+      // Empty project dir shows "No project skills found"
+      expect(result.stdout).toContain('No project skills found');
       expect(result.exitCode).toBe(0);
     });
 
     it('should run ls alias', () => {
       const result = runCli(['ls'], testDir);
-      expect(result.stdout).toContain('Scanning for installed skills');
+      expect(result.stdout).toContain('No project skills found');
       expect(result.exitCode).toBe(0);
     });
 
     it('should show message when no project skills found', () => {
-      // Note: This test may still show global skills if any are installed
-      // We just verify the command runs successfully
       const result = runCli(['list'], testDir);
-      expect(result.stdout).toContain('Scanning for installed skills');
+      expect(result.stdout).toContain('No project skills found');
+      expect(result.stdout).toContain('Try listing global skills with -g');
       expect(result.exitCode).toBe(0);
     });
 
@@ -103,8 +103,9 @@ This is a test skill.
 
       const result = runCli(['list'], testDir);
       expect(result.stdout).toContain('test-skill');
-      expect(result.stdout).toContain('A test skill for listing');
       expect(result.stdout).toContain('Project Skills');
+      // Description should not be shown
+      expect(result.stdout).not.toContain('A test skill for listing');
       expect(result.exitCode).toBe(0);
     });
 
@@ -159,6 +160,7 @@ description: A project skill
       const result = runCli(['list', '-g'], testDir);
       // Should not show project skill when -g is specified
       expect(result.stdout).not.toContain('project-skill');
+      expect(result.stdout).toContain('Global Skills');
     });
 
     it('should show error for invalid agent filter', () => {
@@ -251,7 +253,7 @@ description: A test skill
       );
 
       const result = runCli(['list'], testDir);
-      expect(result.stdout).toContain('Path:');
+      // Path is shown inline with skill name
       expect(result.stdout).toContain('.agents/skills/test-skill');
     });
   });
