@@ -10,7 +10,7 @@ const SKILLS_SUBDIR = 'skills';
 
 export type InstallMode = 'symlink' | 'copy';
 
-interface InstallResult {
+export interface InstallResult {
   success: boolean;
   path: string;
   canonicalPath?: string;
