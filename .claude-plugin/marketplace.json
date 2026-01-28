@@ -1,0 +1,24 @@
+{
+  "name": "skills",
+  "owner": {
+    "name": "Vercel"
+  },
+  "metadata": {
+    "description": "The open agent skills ecosystem - discover, install, and manage agent skills",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "find-skills",
+      "source": "./skills/find-skills",
+      "description": "Helps discover and install agent skills when users ask about extending capabilities",
+      "version": "1.0.0",
+      "author": {
+        "name": "Vercel"
+      },
+      "license": "MIT",
+      "keywords": ["skills", "discovery", "install", "search"],
+      "category": "productivity"
+    }
+  ]
+}
