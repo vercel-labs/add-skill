@@ -3,6 +3,8 @@ name: Publish
 on:
   push:
     branches: [main]
+    tags:
+      - "v*"
     paths-ignore:
       - "**/*.md"
   workflow_dispatch:
@@ -48,6 +50,13 @@ jobs:
       - name: Determine version bump type
         id: version
         run: |
+          # If tag push, skip version bump (already versioned)
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            echo "bump=skip" >> $GITHUB_OUTPUT
+            echo "Tag push - skipping version bump, will publish directly"
+            exit 0
+          fi
+
           # If manually triggered, use the input value
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "bump=${{ inputs.bump }}" >> $GITHUB_OUTPUT
@@ -82,18 +91,18 @@ jobs:
           fi
 
       - name: Configure git
-        if: steps.version.outputs.bump != 'none'
+        if: steps.version.outputs.bump != 'none' && steps.version.outputs.bump != 'skip'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Bump version
-        if: steps.version.outputs.bump != 'none'
+        if: steps.version.outputs.bump != 'none' && steps.version.outputs.bump != 'skip'
         run: |
           npm version ${{ steps.version.outputs.bump }} -m "v%s"
 
       - name: Push changes
-        if: steps.version.outputs.bump != 'none'
+        if: steps.version.outputs.bump != 'none' && steps.version.outputs.bump != 'skip'
         run: |
           git push
           git push --tags
