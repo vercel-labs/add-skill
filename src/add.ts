@@ -1708,17 +1708,16 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
     const skillFiles: Record<string, string> = {};
     for (const skill of selectedSkills) {
       // skill.path is absolute, compute relative from tempDir (repo root)
-      let relativePath: string;
-      if (tempDir && skill.path === tempDir) {
-        // Skill is at root level of repo
-        relativePath = 'SKILL.md';
-      } else if (tempDir && skill.path.startsWith(tempDir + '/')) {
-        // Compute path relative to repo root (tempDir), not search path
-        relativePath = skill.path.slice(tempDir.length + 1) + '/SKILL.md';
-      } else {
+      // Use path.relative for cross-platform compatibility (handles both / and \)
+      if (!tempDir) {
         // Local path - skip telemetry for local installs
         continue;
       }
+      const { relative, sep } = await import('node:path');
+      const relativeDir = relative(tempDir, skill.path);
+      // Normalize to forward slashes for consistent storage
+      const normalizedDir = relativeDir.replace(new RegExp('\\' + sep, 'g'), '/');
+      const relativePath = normalizedDir === '' ? 'SKILL.md' : `${normalizedDir}/SKILL.md`;
       skillFiles[skill.name] = relativePath;
     }
 
