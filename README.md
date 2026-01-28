@@ -84,11 +84,27 @@ When installing interactively, you can choose:
 
 | Command                    | Description                                           |
 |----------------------------|-------------------------------------------------------|
+| `npx skills list`          | List installed skills (alias: `ls`)                   |
 | `npx skills find [query]`  | Search for skills interactively or by keyword         |
 | `npx skills check`         | Check for available skill updates                     |
 | `npx skills update`        | Update all installed skills to latest versions        |
 | `npx skills init [name]`   | Create a new SKILL.md template                        |
 | `npx skills generate-lock` | Match installed skills to sources for update tracking |
+
+### `skills list`
+
+List all installed skills. Similar to `npm ls`.
+
+```bash
+# List all installed skills (project and global)
+npx skills list
+
+# List only global skills
+npx skills ls -g
+
+# Filter by specific agents
+npx skills ls -a claude-code -a cursor
+```
 
 ### `skills find`
 
