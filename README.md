@@ -4,7 +4,7 @@ The CLI for the open agent skills ecosystem.
 
 <!-- agent-list:start -->
 
-Supports **OpenCode**, **Claude Code**, **Codex**, **Cursor**, and [29 more](#available-agents).
+Supports **OpenCode**, **Claude Code**, **Codex**, **Cursor**, and [29 more](#supported-agents).
 
 <!-- agent-list:end -->
 
@@ -41,7 +41,7 @@ npx skills add ./my-local-skills
 | Option                    | Description                                                                                                                                        |
 | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `-g, --global`            | Install to user directory instead of project                                                                                                       |
-| `-a, --agent <agents...>` | <!-- agent-names:start -->Target specific agents (e.g., `claude-code`, `codex`). See [Available Agents](#available-agents)<!-- agent-names:end --> |
+| `-a, --agent <agents...>` | <!-- agent-names:start -->Target specific agents (e.g., `claude-code`, `codex`). See [Available Agents](#supported-agents)<!-- agent-names:end --> |
 | `-s, --skill <skills...>` | Install specific skills by name (quote multi-word names: `--skill "My Skill"`)                                                                     |
 | `-l, --list`              | List available skills without installing                                                                                                           |
 | `-y, --yes`               | Skip all confirmation prompts                                                                                                                      |
@@ -205,7 +205,7 @@ Discover skills at **[skills.sh](https://skills.sh)**
 
 Skills can be installed to any of these agents:
 
-<!-- available-agents:start -->
+<!-- supported-agents:start -->
 
 | Agent              | `--agent`         | Project Path           | Global Path                            |
 | ------------------ | ----------------- | ---------------------- | -------------------------------------- |
@@ -242,7 +242,7 @@ Skills can be installed to any of these agents:
 | Neovate            | `neovate`         | `.neovate/skills/`     | `~/.neovate/skills/`                   |
 | Pochi              | `pochi`           | `.pochi/skills/`       | `~/.pochi/skills/`                     |
 
-<!-- available-agents:end -->
+<!-- supported-agents:end -->
 
 > [!NOTE]
 > **Kiro CLI users:** After installing skills, manually add them to your custom agent's `resources` in
