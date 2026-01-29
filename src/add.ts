@@ -28,7 +28,7 @@ import {
   type InstallMode,
 } from './installer.ts';
 import { detectInstalledAgents, agents } from './agents.ts';
-import { track, setVersion, isCI } from './telemetry.ts';
+import { track, setVersion } from './telemetry.ts';
 import { findProvider, wellKnownProvider, type WellKnownSkill } from './providers/index.ts';
 import { fetchMintlifySkill } from './mintlify.ts';
 import {
@@ -1918,10 +1918,9 @@ async function cleanup(tempDir: string | null) {
  * @param options - Installation options, used to check for -y/--yes flag
  */
 async function promptForFindSkills(options?: AddOptions): Promise<void> {
-  // Skip if already dismissed, not in interactive mode, or running in CI/-y mode
+  // Skip if already dismissed or not in interactive mode
   if (!process.stdin.isTTY) return;
   if (options?.yes) return;
-  if (isCI()) return;
 
   try {
     const dismissed = await isPromptDismissed('findSkillsPrompt');

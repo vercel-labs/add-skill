@@ -54,7 +54,7 @@ type TelemetryData =
 
 let cliVersion: string | null = null;
 
-export function isCI(): boolean {
+function isCI(): boolean {
   return !!(
     process.env.CI ||
     process.env.GITHUB_ACTIONS ||
