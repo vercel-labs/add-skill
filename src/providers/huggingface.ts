@@ -1,5 +1,6 @@
 import matter from 'gray-matter';
 import type { HostProvider, ProviderMatch, RemoteSkill } from './types.ts';
+import { isPrivateSkill, fetchAuthConfig } from '../auth.ts';
 
 /**
  * HuggingFace Spaces skills provider.
@@ -81,6 +82,13 @@ export class HuggingFaceProvider implements HostProvider {
       // Use metadata.install-name if provided, otherwise use repo name
       const installName = data.metadata?.['install-name'] || parsed.repo;
 
+      // Check for private skill and fetch auth config
+      let authConfig = undefined;
+      if (isPrivateSkill(data.metadata)) {
+        const authConfigUrl = rawUrl.replace(/SKILL\.md$/i, 'SKILL.auth.json');
+        authConfig = await fetchAuthConfig(authConfigUrl);
+      }
+
       return {
         name: data.name,
         description: data.description,
@@ -88,6 +96,7 @@ export class HuggingFaceProvider implements HostProvider {
         installName,
         sourceUrl: url,
         metadata: data.metadata,
+        authConfig,
       };
     } catch {
       return null;

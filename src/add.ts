@@ -1,7 +1,8 @@
 import * as p from '@clack/prompts';
 import pc from 'picocolors';
-import { existsSync } from 'fs';
+import { existsSync, readdirSync, readFileSync } from 'fs';
 import { homedir } from 'os';
+import { join, relative } from 'path';
 import { parseSource, getOwnerRepo } from './source-parser.ts';
 import { cloneRepo, cleanupTempDir, GitCloneError } from './git.ts';
 import { discoverSkills, getSkillDisplayName, filterSkills } from './skills.ts';
@@ -23,13 +24,59 @@ import {
   fetchSkillFolderHash,
   isPromptDismissed,
   dismissPrompt,
+  getSkillFromLock,
   getLastSelectedAgents,
   saveSelectedAgents,
 } from './skill-lock.ts';
-import type { Skill, AgentType, RemoteSkill } from './types.ts';
+import type { Skill, AgentType, RemoteSkill, SkillAuthConfig } from './types.ts';
+import {
+  isPrivateSkill,
+  verifyLicense,
+  fetchPrivateSkillContent,
+  cleanupExtractedDirectories,
+} from './auth.ts';
 import packageJson from '../package.json' with { type: 'json' };
 export function initTelemetry(version: string): void {
   setVersion(version);
+}
+
+/**
+ * Recursively read all files from a directory into a Map.
+ * @param dirPath - The directory to read
+ * @param basePath - Base path for relative file paths (defaults to dirPath)
+ * @returns Map of relative file path to file content
+ */
+function readDirectoryFiles(dirPath: string, basePath?: string): Map<string, string> {
+  const files = new Map<string, string>();
+  const base = basePath || dirPath;
+
+  const entries = readdirSync(dirPath, { withFileTypes: true });
+  for (const entry of entries) {
+    const fullPath = join(dirPath, entry.name);
+    const relativePath = relative(base, fullPath);
+
+    // Skip hidden files/directories and common excludes
+    if (entry.name.startsWith('.') || entry.name === 'node_modules') {
+      continue;
+    }
+
+    if (entry.isDirectory()) {
+      // Recursively read subdirectories
+      const subFiles = readDirectoryFiles(fullPath, base);
+      for (const [subPath, content] of subFiles) {
+        files.set(subPath, content);
+      }
+    } else if (entry.isFile()) {
+      try {
+        const content = readFileSync(fullPath, 'utf-8');
+        files.set(relativePath, content);
+      } catch {
+        // Skip files that can't be read as text
+      }
+    }
+  }
+
+  return files;
 }
 
 /**
@@ -208,6 +255,212 @@ async function selectAgentsInteractive(
 const version = packageJson.version;
 setVersion(version);
 
+/**
+ * Prompt user for license key interactively.
+ * @returns The license key or null if cancelled
+ */
+async function promptForLicenseKey(skillName: string): Promise<string | symbol> {
+  const result = await p.text({
+    message: `Enter license key for ${pc.cyan(skillName)}`,
+    placeholder: 'sk-...',
+    validate: (value) => {
+      if (!value || value.trim() === '') {
+        return 'License key is required for this private skill';
+      }
+    },
+  });
+
+  return result;
+}
+
+/**
+ * Get license key from CLI option, lock file, or prompt.
+ * @returns The license key or null if not available/cancelled
+ */
+async function getLicenseKey(
+  skillName: string,
+  options: AddOptions
+): Promise<{ key: string; source: 'cli' | 'lock' | 'prompt' } | null> {
+  // 1. Check CLI option first
+  if (options.licenseKey) {
+    return { key: options.licenseKey, source: 'cli' };
+  }
+
+  // 2. Check lock file for stored key
+  try {
+    const lockEntry = await getSkillFromLock(skillName);
+    if (lockEntry?.licenseKey) {
+      return { key: lockEntry.licenseKey, source: 'lock' };
+    }
+  } catch {
+    // Ignore lock file errors
+  }
+
+  // 3. Prompt if interactive
+  if (!process.stdin.isTTY) {
+    return null;
+  }
+
+  const result = await promptForLicenseKey(skillName);
+  if (p.isCancel(result)) {
+    return null;
+  }
+
+  return { key: result as string, source: 'prompt' };
+}
+
+/**
+ * Result of private skill license verification.
+ */
+interface PrivateSkillVerificationResult {
+  verified: boolean;
+  licenseKey?: string;
+  /** Plain text content (SKILL.md only) */
+  fetchedContent?: string;
+  /** Path to extracted tarball directory (multi-file skills) */
+  extractedPath?: string;
+}
+
+/**
+ * Verify license for a private skill and optionally fetch gated content.
+ * @returns verification result with optional license key and fetched content/path
+ */
+async function verifyPrivateSkillLicense(
+  skill: {
+    name: string;
+    installName?: string;
+    metadata?: Record<string, unknown>;
+    authConfig?: SkillAuthConfig;
+  },
+  options: AddOptions,
+  spinner: ReturnType<typeof p.spinner>
+): Promise<PrivateSkillVerificationResult> {
+  // Check if skill is private
+  if (!isPrivateSkill(skill.metadata)) {
+    return { verified: true };
+  }
+
+  // Check for auth config
+  if (!skill.authConfig) {
+    spinner.stop(pc.red('Missing auth configuration'));
+    p.log.error('This private skill is missing SKILL.auth.json');
+    return { verified: false };
+  }
+
+  // Use installName if available, otherwise fall back to name
+  const skillIdentifier = skill.installName || skill.name;
+
+  // Get license key
+  const licenseResult = await getLicenseKey(skillIdentifier, options);
+
+  if (!licenseResult) {
+    if (!process.stdin.isTTY) {
+      p.log.error('Use --license-key to provide a license key for private skills');
+    } else {
+      p.cancel('License key required');
+    }
+    return { verified: false };
+  }
+
+  // Verify license
+  spinner.start('Verifying license...');
+  const verification = await verifyLicense(skill.authConfig, licenseResult.key);
+
+  if (!verification.valid) {
+    spinner.stop(pc.red('License verification failed'));
+    p.log.error(verification.error || 'Invalid license key');
+    return { verified: false };
+  }
+
+  spinner.stop(pc.green('License verified'));
+
+  if (verification.expiresAt) {
+    const expiryDate = new Date(verification.expiresAt);
+    p.log.info(pc.dim(`License expires: ${expiryDate.toLocaleDateString()}`));
+  }
+
+  // If content endpoint is configured, fetch the protected content
+  let fetchedContent: string | undefined;
+  let extractedPath: string | undefined;
+  if (skill.authConfig.content) {
+    spinner.start('Fetching protected skill content...');
+    const contentResult = await fetchPrivateSkillContent(skill.authConfig, licenseResult.key);
+
+    if (!contentResult.success) {
+      spinner.stop(pc.red('Failed to fetch content'));
+      p.log.error(contentResult.error || 'Could not fetch protected skill content');
+      return { verified: false };
+    }
+
+    spinner.stop(pc.green('Content fetched'));
+    fetchedContent = contentResult.content;
+    extractedPath = contentResult.extractedPath;
+  }
+
+  return { verified: true, licenseKey: licenseResult.key, fetchedContent, extractedPath };
+}
+
+/**
+ * Configuration for verifying licenses across a list of skills.
+ */
+interface VerifySkillsLicenseConfig<T> {
+  /** Get the identifier used for logging and license key lookup */
+  getIdentifier: (skill: T) => string;
+  /** Get the key to store in the verified keys map */
+  getMapKey: (skill: T) => string;
+  /** Apply fetched content to the skill (mutates the skill) */
+  applyContent: (skill: T, verification: PrivateSkillVerificationResult) => void;
+  /** Called when verification fails (before process.exit) */
+  onFailure?: () => Promise<void>;
+}
+
+/**
+ * Verify licenses for all private skills in a list.
+ * This is a shared helper to avoid duplicate verification logic.
+ *
+ * @returns Map of skill key -> license key for successfully verified skills
+ */
+async function verifySkillsLicenses<
+  T extends {
+    name: string;
+    installName?: string;
+    metadata?: Record<string, unknown>;
+    authConfig?: SkillAuthConfig;
+  },
+>(
+  skills: T[],
+  options: AddOptions,
+  spinner: ReturnType<typeof p.spinner>,
+  config: VerifySkillsLicenseConfig<T>
+): Promise<Map<string, string>> {
+  const verifiedKeys = new Map<string, string>();
+
+  for (const skill of skills) {
+    if (isPrivateSkill(skill.metadata)) {
+      const identifier = config.getIdentifier(skill);
+      p.log.info(pc.yellow(`${identifier} is a private skill that requires a license key`));
+
+      const verification = await verifyPrivateSkillLicense(skill, options, spinner);
+
+      if (!verification.verified) {
+        if (config.onFailure) {
+          await config.onFailure();
+        }
+        process.exit(1);
+      }
+
+      if (verification.licenseKey) {
+        verifiedKeys.set(config.getMapKey(skill), verification.licenseKey);
+      }
+
+      // Apply fetched content to the skill
+      config.applyContent(skill, verification);
+    }
+  }
+
+  return verifiedKeys;
+}
+
 export interface AddOptions {
   global?: boolean;
   agent?: string[];
@@ -215,6 +468,7 @@ export interface AddOptions {
   skill?: string[];
   list?: boolean;
   all?: boolean;
+  licenseKey?: string;
 }
 
 /**
@@ -257,6 +511,7 @@ async function handleRemoteSkill(
     providerId: provider.id,
     sourceIdentifier: provider.getSourceIdentifier(url),
     metadata: providerSkill.metadata,
+    authConfig: providerSkill.authConfig,
   };
 
   spinner.stop(`Found skill: ${pc.cyan(remoteSkill.installName)}`);
@@ -275,6 +530,31 @@ async function handleRemoteSkill(
     console.log();
     p.outro('Run without --list to install');
     process.exit(0);
+  }
+
+  // Handle private skill license verification
+  let verifiedLicenseKey: string | undefined;
+  let extractedSkillFiles: Map<string, string> | undefined;
+  if (isPrivateSkill(remoteSkill.metadata)) {
+    p.log.info(pc.yellow('This is a private skill that requires a license key'));
+    const verification = await verifyPrivateSkillLicense(remoteSkill, options, spinner);
+    if (!verification.verified) {
+      process.exit(1);
+    }
+    verifiedLicenseKey = verification.licenseKey;
+    // Handle fetched content
+    if (verification.extractedPath) {
+      // Tarball was extracted - read all files from the extracted directory
+      extractedSkillFiles = readDirectoryFiles(verification.extractedPath);
+      // Update content from extracted SKILL.md
+      const skillMdContent = extractedSkillFiles.get('SKILL.md');
+      if (skillMdContent) {
+        remoteSkill.content = skillMdContent;
+      }
+    } else if (verification.fetchedContent) {
+      // Plain text content - just SKILL.md
+      remoteSkill.content = verification.fetchedContent;
+    }
   }
 
   // Detect agents
@@ -462,10 +742,34 @@ async function handleRemoteSkill(
   }[] = [];
 
   for (const agent of targetAgents) {
-    const result = await installRemoteSkillForAgent(remoteSkill, agent, {
-      global: installGlobally,
-      mode: installMode,
-    });
+    let result;
+    if (extractedSkillFiles) {
+      // Multi-file skill from tarball - use well-known installer
+      const wellKnownSkill: WellKnownSkill = {
+        name: remoteSkill.name,
+        description: remoteSkill.description,
+        content: remoteSkill.content,
+        installName: remoteSkill.installName,
+        sourceUrl: remoteSkill.sourceUrl,
+        metadata: remoteSkill.metadata,
+        files: extractedSkillFiles,
+        indexEntry: {
+          name: remoteSkill.installName,
+          description: remoteSkill.description,
+          files: Array.from(extractedSkillFiles.keys()),
+        },
+      };
+      result = await installWellKnownSkillForAgent(wellKnownSkill, agent, {
+        global: installGlobally,
+        mode: installMode,
+      });
+    } else {
+      // Single file skill - use remote installer
+      result = await installRemoteSkillForAgent(remoteSkill, agent, {
+        global: installGlobally,
+        mode: installMode,
+      });
+    }
     results.push({
       skill: remoteSkill.installName,
       agent: agents[agent].displayName,
@@ -505,6 +809,7 @@ async function handleRemoteSkill(
         sourceType: remoteSkill.providerId,
         sourceUrl: url,
         skillFolderHash,
+        ...(verifiedLicenseKey && { licenseKey: verifiedLicenseKey }),
       });
     } catch {
       // Don't fail installation if lock file update fails
@@ -568,6 +873,9 @@ async function handleRemoteSkill(
 
   console.log();
   p.outro(pc.green('Done!'));
+
+  // Clean up any extracted tarball directories
+  cleanupExtractedDirectories();
 
   // Prompt for find-skills after successful install
   await promptForFindSkills();
@@ -676,6 +984,30 @@ async function handleWellKnownSkills(
 
     selectedSkills = selected as WellKnownSkill[];
   }
+
+  // Verify licenses for private skills and fetch protected content
+  const verifiedLicenseKeys = await verifySkillsLicenses(selectedSkills, options, spinner, {
+    getIdentifier: (skill) => skill.installName,
+    getMapKey: (skill) => skill.installName,
+    applyContent: (skill, verification) => {
+      if (verification.extractedPath) {
+        // Tarball was extracted - read all files and replace skill.files
+        const extractedFiles = readDirectoryFiles(verification.extractedPath);
+        skill.files = extractedFiles;
+        // Update content from extracted SKILL.md
+        const skillMdContent = extractedFiles.get('SKILL.md');
+        if (skillMdContent) {
+          skill.content = skillMdContent;
+        }
+      } else if (verification.fetchedContent) {
+        // Plain text content - just SKILL.md
+        skill.content = verification.fetchedContent;
+        if (skill.files) {
+          skill.files.set('SKILL.md', verification.fetchedContent);
+        }
+      }
+    },
+  });
 
   // Detect agents
   let targetAgents: AgentType[];
@@ -920,11 +1252,13 @@ async function handleWellKnownSkills(
     for (const skill of selectedSkills) {
       if (successfulSkillNames.has(skill.installName)) {
         try {
+          const licenseKey = verifiedLicenseKeys.get(skill.installName);
           await addSkillToLock(skill.installName, {
             source: sourceIdentifier,
             sourceType: 'well-known',
             sourceUrl: skill.sourceUrl,
             skillFolderHash: '', // Well-known skills don't have a folder hash
+            ...(licenseKey && { licenseKey }),
           });
         } catch {
           // Don't fail installation if lock file update fails
@@ -1003,6 +1337,9 @@ async function handleWellKnownSkills(
 
   console.log();
   p.outro(pc.green('Done!'));
+
+  // Clean up any extracted tarball directories
+  cleanupExtractedDirectories();
 
   // Prompt for find-skills after successful install
   await promptForFindSkills();
@@ -1482,6 +1819,29 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
       selectedSkills = selected as Skill[];
     }
 
+    // Verify licenses for private skills and fetch protected content
+    const verifiedLicenseKeysLocal = await verifySkillsLicenses(selectedSkills, options, spinner, {
+      getIdentifier: (skill) => skill.name,
+      getMapKey: (skill) => skill.name,
+      applyContent: (skill, verification) => {
+        if (verification.extractedPath) {
+          // Tarball was extracted - use extracted path for installation
+          skill.path = verification.extractedPath;
+          // Update rawContent from extracted SKILL.md
+          const skillMdPath = join(verification.extractedPath, 'SKILL.md');
+          if (existsSync(skillMdPath)) {
+            skill.rawContent = readFileSync(skillMdPath, 'utf-8');
+          }
+        } else if (verification.fetchedContent) {
+          // Plain text content - just SKILL.md
+          skill.rawContent = verification.fetchedContent;
+        }
+      },
+      onFailure: async () => {
+        await cleanup(tempDir);
+      },
+    });
+
     let targetAgents: AgentType[];
     const validAgents = Object.keys(agents);
 
@@ -1752,12 +2112,14 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
               if (hash) skillFolderHash = hash;
             }
 
+            const licenseKey = verifiedLicenseKeysLocal.get(skill.name);
             await addSkillToLock(skill.name, {
               source: normalizedSource,
               sourceType: parsed.type,
               sourceUrl: parsed.url,
               skillPath: skillPathValue,
               skillFolderHash,
+              ...(licenseKey && { licenseKey }),
             });
           } catch {
             // Don't fail installation if lock file update fails
@@ -1858,6 +2220,9 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
 }
 
 async function cleanup(tempDir: string | null) {
+  // Clean up extracted tarball directories
+  cleanupExtractedDirectories();
+
   if (tempDir) {
     try {
       await cleanupTempDir(tempDir);
@@ -1969,6 +2334,12 @@ export function parseAddOptions(args: string[]): { source: string[]; options: Ad
         nextArg = args[i];
       }
       i--; // Back up one since the loop will increment
+    } else if (arg === '-k' || arg === '--license-key') {
+      i++;
+      const nextArg = args[i];
+      if (nextArg && !nextArg.startsWith('-')) {
+        options.licenseKey = nextArg;
+      }
     } else if (arg && !arg.startsWith('-')) {
       source.push(arg);
     }
