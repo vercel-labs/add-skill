@@ -3,6 +3,50 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { runCliOutput, stripLogo, hasLogo } from './test-utils.ts';
 import { formatSkippedMessage } from './cli.ts';
+import { stripAnsi } from './string-utils.ts';
+
+// Check that multi-column lines in the output are aligned
+// Detects contiguous blocks of lines with 2+ spaces between columns and verifies alignment
+function expectColumnsAligned(output: string): void {
+  const lines = stripAnsi(output).split('\n');
+
+  // Group contiguous table lines (lines with 2+ spaces separating columns)
+  const groups: string[][] = [];
+  let currentGroup: string[] = [];
+
+  for (const line of lines) {
+    if (/\S\s{2,}\S/.test(line)) {
+      currentGroup.push(line);
+    } else if (currentGroup.length > 0) {
+      groups.push(currentGroup);
+      currentGroup = [];
+    }
+  }
+  if (currentGroup.length > 0) {
+    groups.push(currentGroup);
+  }
+
+  // For each group, check that the second column starts at the same position
+  for (const group of groups) {
+    if (group.length < 2) continue;
+
+    const columnStarts = group.map((line) => {
+      // Find where the second column starts (after 2+ spaces)
+      const match = line.match(/\S(\s{2,})\S/);
+      if (!match?.[1]) return -1;
+      return line.indexOf(match[0]) + match[1].length + 1;
+    });
+
+    const validStarts = columnStarts.filter((s) => s > 0);
+    if (validStarts.length < 2) continue;
+
+    const uniqueStarts = [...new Set(validStarts)];
+    expect(
+      uniqueStarts.length,
+      `Columns not aligned in group:\n${group.join('\n')}\nColumn starts: ${validStarts.join(', ')}`
+    ).toBe(1);
+  }
+}
 
 describe('skills CLI', () => {
   describe('--help', () => {
@@ -28,6 +72,11 @@ describe('skills CLI', () => {
       const helpOutput = runCliOutput(['--help']);
       const hOutput = runCliOutput(['-h']);
       expect(hOutput).toBe(helpOutput);
+    });
+
+    it('should have aligned columns in help', () => {
+      const output = runCliOutput(['--help']);
+      expectColumnsAligned(output);
     });
   });
 
@@ -55,6 +104,24 @@ describe('skills CLI', () => {
       expect(output).toContain('npx skills update');
       expect(output).toContain('npx skills init');
       expect(output).toContain('skills.sh');
+    });
+
+    it('should have aligned columns in banner', () => {
+      const output = stripLogo(runCliOutput([]));
+      expectColumnsAligned(output);
+    });
+  });
+
+  describe('remove --help', () => {
+    it('should display remove help', () => {
+      const output = runCliOutput(['remove', '--help']);
+      expect(output).toContain('Usage: skills remove');
+      expect(output).toContain('Examples:');
+    });
+
+    it('should have aligned columns in remove help', () => {
+      const output = runCliOutput(['remove', '--help']);
+      expectColumnsAligned(output);
     });
   });
 

@@ -11,6 +11,7 @@ import { runFind } from './find.ts';
 import { runList } from './list.ts';
 import { removeCommand, parseRemoveOptions } from './remove.ts';
 import { track } from './telemetry.ts';
+import { stripAnsi, visualLength, padEnd, alignTable } from './string-utils.ts';
 
 export function formatSkippedMessage(skippedSkills: string[]): string | null {
   if (skippedSkills.length === 0) return null;
@@ -41,43 +42,6 @@ const BOLD = '\x1b[1m';
 // 256-color grays - visible on both light and dark backgrounds
 const DIM = '\x1b[38;5;102m'; // darker gray for secondary text
 const TEXT = '\x1b[38;5;145m'; // lighter gray for primary text
-
-// Strip ANSI escape codes to get the visual display length of a string
-function stripAnsi(str: string): string {
-  return str.replace(/\x1b\[[0-9;]*m/g, '');
-}
-
-function visualLength(str: string): number {
-  return stripAnsi(str).length;
-}
-
-// Pad a string (which may contain ANSI codes) to a target visual width
-function padEnd(str: string, width: number): string {
-  const padding = Math.max(0, width - visualLength(str));
-  return str + ' '.repeat(padding);
-}
-
-// Align a multi-column table, padding each column based on visual width
-function alignTable(rows: ReadonlyArray<readonly string[]>, minPadding: number = 2): string {
-  const firstRow = rows[0];
-  if (!firstRow) return '';
-
-  const numCols = firstRow.length;
-
-  // Calculate max width for each column (except the last)
-  const colWidths: number[] = [];
-  for (let col = 0; col < numCols - 1; col++) {
-    const maxWidth = Math.max(...rows.map((row) => visualLength(row[col] ?? '')));
-    colWidths.push(maxWidth + minPadding);
-  }
-
-  // Format each row, padding all columns except the last
-  return rows
-    .map((row) =>
-      row.map((cell, i) => (i < row.length - 1 ? padEnd(cell, colWidths[i] ?? 0) : cell)).join('')
-    )
-    .join('\n');
-}
 
 const LOGO_LINES = [
   '███████╗██╗  ██╗██╗██╗     ██╗     ███████╗',
