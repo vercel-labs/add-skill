@@ -108,13 +108,14 @@ jobs:
           git push --tags
 
       - name: Publish to npm
+        id: publish
         if: steps.version.outputs.bump != 'none'
         run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Create GitHub Release
-        if: steps.version.outputs.bump != 'none'
+        if: steps.publish.outcome == 'success'
         run: |
           VERSION=$(node -p "require('./package.json').version")
 
