@@ -1,12 +1,12 @@
 import { homedir } from 'os';
 import { join } from 'path';
 import { existsSync } from 'fs';
-import envPaths from 'env-paths';
+import { xdgConfig } from 'xdg-basedir';
 import type { AgentConfig, AgentType } from './types.ts';
 
 const home = homedir();
-const paths = envPaths('agents', { suffix: '' });
-const configHome = paths.config;
+// Use xdg-basedir (not env-paths) to match OpenCode/Amp/Goose behavior on all platforms.
+const configHome = xdgConfig ?? join(home, '.config');
 const codexHome = process.env.CODEX_HOME?.trim() || join(home, '.codex');
 const claudeHome = process.env.CLAUDE_CONFIG_DIR?.trim() || join(home, '.claude');
 

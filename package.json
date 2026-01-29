@@ -81,7 +81,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "env-paths": "^3.0.0"
+    "xdg-basedir": "^5.1.0"
   },
   "devDependencies": {
     "@clack/prompts": "^0.11.0",
