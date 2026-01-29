@@ -1347,14 +1347,10 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
     process.exit(1);
   }
 
-  // --all implies both allSkills and allAgents
+  // --all implies both allSkills, allAgents, and -y (skip all prompts)
   if (options.all) {
     options.allSkills = true;
     options.allAgents = true;
-  }
-
-  // allSkills or allAgents implies -y (skip prompts)
-  if (options.allSkills || options.allAgents) {
     options.yes = true;
   }
 
