@@ -109,56 +109,68 @@ function showHelp(): void {
 ${BOLD}Usage:${RESET} skills <command> [options]
 
 ${BOLD}Commands:${RESET}
-  add <package>     Add a skill package
-                    e.g. vercel-labs/agent-skills
-                         https://github.com/vercel-labs/agent-skills
-  remove [skills]   Remove installed skills
-  list, ls          List installed skills
-  find [query]      Search for skills interactively
-  init [name]       Initialize a skill (creates <name>/SKILL.md or ./SKILL.md)
-  check             Check for available skill updates
-  update            Update all skills to latest versions
-  generate-lock     Generate lock file from installed skills
+${alignTable([
+  ['  add <package>', 'Add a skill package'],
+  ['', 'e.g. vercel-labs/agent-skills'],
+  ['', '     https://github.com/vercel-labs/agent-skills'],
+  ['  remove [skills]', 'Remove installed skills'],
+  ['  list, ls', 'List installed skills'],
+  ['  find [query]', 'Search for skills interactively'],
+  ['  init [name]', 'Initialize a skill (creates <name>/SKILL.md or ./SKILL.md)'],
+  ['  check', 'Check for available skill updates'],
+  ['  update', 'Update all skills to latest versions'],
+  ['  generate-lock', 'Generate lock file from installed skills'],
+])}
 
 ${BOLD}Add Options:${RESET}
-  -g, --global           Install skill globally (user-level) instead of project-level
-  -a, --agent <agents>   Specify agents to install to
-  -s, --skill <skills>   Specify skill names to install (skip selection prompt)
-  -l, --list             List available skills in the repository without installing
-  -y, --yes              Skip confirmation prompts
-  --all                  Install all skills to all agents without any prompts
+${alignTable([
+  ['  -g, --global', 'Install skill globally (user-level) instead of project-level'],
+  ['  -a, --agent <agents>', 'Specify agents to install to'],
+  ['  -s, --skill <skills>', 'Specify skill names to install (skip selection prompt)'],
+  ['  -l, --list', 'List available skills in the repository without installing'],
+  ['  -y, --yes', 'Skip confirmation prompts'],
+  ['  --all', 'Install all skills to all agents without any prompts'],
+])}
 
 ${BOLD}Remove Options:${RESET}
-  -g, --global           Remove from global scope
-  -a, --agent <agents>   Remove from specific agents
-  -y, --yes              Skip confirmation prompts
-  --all                  Remove all installed skills
-  
+${alignTable([
+  ['  -g, --global', 'Remove from global scope'],
+  ['  -a, --agent <agents>', 'Remove from specific agents'],
+  ['  -y, --yes', 'Skip confirmation prompts'],
+  ['  --all', 'Remove all installed skills'],
+])}
+
 ${BOLD}List Options:${RESET}
-  -g, --global           List global skills (default: project)
-  -a, --agent <agents>   Filter by specific agents
+${alignTable([
+  ['  -g, --global', 'List global skills (default: project)'],
+  ['  -a, --agent <agents>', 'Filter by specific agents'],
+])}
 
 ${BOLD}Options:${RESET}
-  --help, -h        Show this help message
-  --version, -v     Show version number
-  --dry-run         Preview changes without writing (generate-lock)
+${alignTable([
+  ['  --help, -h', 'Show this help message'],
+  ['  --version, -v', 'Show version number'],
+  ['  --dry-run', 'Preview changes without writing (generate-lock)'],
+])}
 
 ${BOLD}Examples:${RESET}
-  ${DIM}$${RESET} skills add vercel-labs/agent-skills
-  ${DIM}$${RESET} skills add vercel-labs/agent-skills -g
-  ${DIM}$${RESET} skills add vercel-labs/agent-skills --agent claude-code cursor
-  ${DIM}$${RESET} skills add vercel-labs/agent-skills --skill pr-review commit
-  ${DIM}$${RESET} skills remove                   ${DIM}# interactive remove${RESET}
-  ${DIM}$${RESET} skills remove web-design        ${DIM}# remove by name${RESET}
-  ${DIM}$${RESET} skills rm --global frontend-design
-  ${DIM}$${RESET} skills list                     ${DIM}# list all installed skills${RESET}
-  ${DIM}$${RESET} skills ls -g                    ${DIM}# list global skills only${RESET}
-  ${DIM}$${RESET} skills ls -a claude-code        ${DIM}# filter by agent${RESET}
-  ${DIM}$${RESET} skills find                     ${DIM}# interactive search${RESET}
-  ${DIM}$${RESET} skills find typescript          ${DIM}# search by keyword${RESET}
-  ${DIM}$${RESET} skills init my-skill
-  ${DIM}$${RESET} skills check
-  ${DIM}$${RESET} skills update
+${alignTable([
+  [`  ${DIM}$${RESET} skills add vercel-labs/agent-skills`, ''],
+  [`  ${DIM}$${RESET} skills add vercel-labs/agent-skills -g`, ''],
+  [`  ${DIM}$${RESET} skills add vercel-labs/agent-skills --agent claude-code cursor`, ''],
+  [`  ${DIM}$${RESET} skills add vercel-labs/agent-skills --skill pr-review commit`, ''],
+  [`  ${DIM}$${RESET} skills remove`, `${DIM}# interactive remove${RESET}`],
+  [`  ${DIM}$${RESET} skills remove web-design`, `${DIM}# remove by name${RESET}`],
+  [`  ${DIM}$${RESET} skills rm --global frontend-design`, ''],
+  [`  ${DIM}$${RESET} skills list`, `${DIM}# list all installed skills${RESET}`],
+  [`  ${DIM}$${RESET} skills ls -g`, `${DIM}# list global skills only${RESET}`],
+  [`  ${DIM}$${RESET} skills ls -a claude-code`, `${DIM}# filter by agent${RESET}`],
+  [`  ${DIM}$${RESET} skills find`, `${DIM}# interactive search${RESET}`],
+  [`  ${DIM}$${RESET} skills find typescript`, `${DIM}# search by keyword${RESET}`],
+  [`  ${DIM}$${RESET} skills init my-skill`, ''],
+  [`  ${DIM}$${RESET} skills check`, ''],
+  [`  ${DIM}$${RESET} skills update`, ''],
+])}
 
 Discover more skills at ${TEXT}https://skills.sh/${RESET}
 `);
@@ -173,13 +185,15 @@ ${BOLD}Description:${RESET}
   an interactive selection menu will be shown.
 
 ${BOLD}Arguments:${RESET}
-  skills             Optional skill names to remove (space-separated)
+${alignTable([['  skills', 'Optional skill names to remove (space-separated)']])}
 
 ${BOLD}Options:${RESET}
-  -g, --global       Remove from global scope (~/) instead of project scope
-  -a, --agent        Remove from specific agents only
-  -y, --yes          Skip confirmation prompts
-  --all              Remove all installed skills
+${alignTable([
+  ['  -g, --global', 'Remove from global scope (~/) instead of project scope'],
+  ['  -a, --agent', 'Remove from specific agents only'],
+  ['  -y, --yes', 'Skip confirmation prompts'],
+  ['  --all', 'Remove all installed skills'],
+])}
 
 ${BOLD}Examples:${RESET}
 ${alignTable([
