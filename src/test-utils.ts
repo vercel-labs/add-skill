@@ -53,12 +53,15 @@ export function runCliWithInput(
   cwd?: string
 ): { stdout: string; stderr: string; exitCode: number } {
   try {
-    const output = execSync(`echo "${input}" | node ${CLI_PATH} ${args.join(' ')}`, {
-      encoding: 'utf-8',
-      cwd,
-      stdio: ['pipe', 'pipe', 'pipe'],
-      shell: true,
-    });
+    const output = execSync(
+      `echo "${input}" | node --experimental-strip-types ${CLI_PATH} ${args.join(' ')}`,
+      {
+        encoding: 'utf-8',
+        cwd,
+        stdio: ['pipe', 'pipe', 'pipe'],
+        shell: '/bin/sh',
+      }
+    );
     return { stdout: stripAnsi(output), stderr: '', exitCode: 0 };
   } catch (error: any) {
     return {
