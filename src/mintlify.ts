@@ -15,11 +15,7 @@ import type { MintlifySkill } from './types.ts';
  */
 export async function fetchMintlifySkill(url: string): Promise<MintlifySkill | null> {
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30000);
-
-    const response = await fetch(url, { signal: controller.signal });
-    clearTimeout(timeout);
+    const response = await fetch(url, { signal: AbortSignal.timeout(30000) });
 
     if (!response.ok) {
       return null;
