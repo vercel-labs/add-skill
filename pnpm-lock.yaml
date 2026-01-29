@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      env-paths:
+        specifier: ^3.0.0
+        version: 3.0.0
     devDependencies:
       '@clack/prompts':
         specifier: ^0.11.0
@@ -629,6 +633,10 @@ packages:
 
   emoji-regex@10.6.0:
     resolution: {integrity: sha512-toUI84YS5YmxW219erniWD0CIVOo46xGKColeNQRgOzDorgBi1v4D71/OFzgD9GO2UGKIv1C3Sp8DAn0+j5w7A==}
+
+  env-paths@3.0.0:
+    resolution: {integrity: sha512-dtJUTepzMW3Lm/NPxRf3wP4642UWhjL2sQxc+ym2YMj1m/H2zDNQOlezafzkHwn6sMstjHTwG6iQQsctDW/b1A==}
+    engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
 
   environment@1.1.0:
     resolution: {integrity: sha512-xUtoPkMggbz0MPyPiIWr1Kp4aeWJjDZ6SMvURhimjdZgsRuDplF5/s9hcgGhyXMhs+6vpnuoiZ2kFiu3FMnS8Q==}
@@ -1480,6 +1488,8 @@ snapshots:
   dts-resolver@2.1.3: {}
 
   emoji-regex@10.6.0: {}
+
+  env-paths@3.0.0: {}
 
   environment@1.1.0: {}
 
