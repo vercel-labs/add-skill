@@ -328,3 +328,77 @@ describe('shouldInstallInternalSkills', () => {
     expect(shouldInstallInternalSkills()).toBe(false);
   });
 });
+
+describe('find-skills prompt in CI mode', () => {
+  let testDir: string;
+
+  beforeEach(() => {
+    testDir = join(tmpdir(), `skills-ci-test-${Date.now()}`);
+    mkdirSync(testDir, { recursive: true });
+  });
+
+  afterEach(() => {
+    if (existsSync(testDir)) {
+      rmSync(testDir, { recursive: true, force: true });
+    }
+  });
+
+  it('should skip find-skills prompt when CI=true is set', () => {
+    // Create a test skill
+    const skillDir = join(testDir, 'test-skill');
+    mkdirSync(skillDir, { recursive: true });
+    writeFileSync(
+      join(skillDir, 'SKILL.md'),
+      `---
+name: ci-test-skill
+description: A test skill for CI testing
+---
+
+# CI Test Skill
+
+This is a test skill for CI mode testing.
+`
+    );
+
+    // Run with CI=true and -y flag - should complete without hanging
+    const result = runCli(['add', testDir, '-g', '-y', '--skill', 'ci-test-skill'], testDir, {
+      env: { ...process.env, CI: 'true' },
+      timeout: 30000,
+    });
+
+    // Should not contain the find-skills prompt
+    expect(result.stdout).not.toContain('Install the find-skills skill');
+    expect(result.stdout).not.toContain("One-time prompt - you won't be asked again");
+    // Should complete successfully
+    expect(result.exitCode).toBe(0);
+  });
+
+  it('should skip find-skills prompt when -y flag is passed', () => {
+    // Create a test skill
+    const skillDir = join(testDir, 'test-skill');
+    mkdirSync(skillDir, { recursive: true });
+    writeFileSync(
+      join(skillDir, 'SKILL.md'),
+      `---
+name: yes-flag-test-skill
+description: A test skill for -y flag testing
+---
+
+# Yes Flag Test Skill
+
+This is a test skill for -y flag mode testing.
+`
+    );
+
+    // Run with -y flag - should complete without hanging
+    const result = runCli(['add', testDir, '-g', '-y', '--skill', 'yes-flag-test-skill'], testDir, {
+      timeout: 30000,
+    });
+
+    // Should not contain the find-skills prompt
+    expect(result.stdout).not.toContain('Install the find-skills skill');
+    expect(result.stdout).not.toContain("One-time prompt - you won't be asked again");
+    // Should complete successfully
+    expect(result.exitCode).toBe(0);
+  });
+});
