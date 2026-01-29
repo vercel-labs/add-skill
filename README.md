@@ -237,6 +237,7 @@ Skills can be installed to any of these agents:
 | Qwen Code          | `qwen-code`       | `.qwen/skills/`        | `~/.qwen/skills/`                      |
 | Roo Code           | `roo`             | `.roo/skills/`         | `~/.roo/skills/`                       |
 | Trae               | `trae`            | `.trae/skills/`        | `~/.trae/skills/`                      |
+| Trae CN            | `trae-cn`         | `.trae/skills/`        | `~/.trae-cn/skills/`                   |
 | Windsurf           | `windsurf`        | `.windsurf/skills/`    | `~/.codeium/windsurf/skills/`          |
 | Zencoder           | `zencoder`        | `.zencoder/skills/`    | `~/.zencoder/skills/`                  |
 | Neovate            | `neovate`         | `.neovate/skills/`     | `~/.neovate/skills/`                   |

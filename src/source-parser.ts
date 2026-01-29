@@ -39,13 +39,13 @@ export function parseOwnerRepo(ownerRepo: string): { owner: string; repo: string
 export async function isRepoPrivate(owner: string, repo: string): Promise<boolean | null> {
   try {
     const res = await fetch(`https://api.github.com/repos/${owner}/${repo}`);
-    
+
     // If repo doesn't exist or we don't have access, assume private to be safe
     if (!res.ok) {
       return null; // Unable to determine
     }
-    
-    const data = await res.json() as { private?: boolean };
+
+    const data = (await res.json()) as { private?: boolean };
     return data.private === true;
   } catch {
     // On error, return null to indicate we couldn't determine

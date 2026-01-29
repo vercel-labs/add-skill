@@ -29,6 +29,7 @@ export type AgentType =
   | 'qwen-code'
   | 'roo'
   | 'trae'
+  | 'trae-cn'
   | 'windsurf'
   | 'zencoder'
   | 'pochi';
