@@ -42,6 +42,43 @@ const BOLD = '\x1b[1m';
 const DIM = '\x1b[38;5;102m'; // darker gray for secondary text
 const TEXT = '\x1b[38;5;145m'; // lighter gray for primary text
 
+// Strip ANSI escape codes to get the visual display length of a string
+function stripAnsi(str: string): string {
+  return str.replace(/\x1b\[[0-9;]*m/g, '');
+}
+
+function visualLength(str: string): number {
+  return stripAnsi(str).length;
+}
+
+// Pad a string (which may contain ANSI codes) to a target visual width
+function padEnd(str: string, width: number): string {
+  const padding = Math.max(0, width - visualLength(str));
+  return str + ' '.repeat(padding);
+}
+
+// Align a multi-column table, padding each column based on visual width
+function alignTable(rows: ReadonlyArray<readonly string[]>, minPadding: number = 2): string {
+  const firstRow = rows[0];
+  if (!firstRow) return '';
+
+  const numCols = firstRow.length;
+
+  // Calculate max width for each column (except the last)
+  const colWidths: number[] = [];
+  for (let col = 0; col < numCols - 1; col++) {
+    const maxWidth = Math.max(...rows.map((row) => visualLength(row[col] ?? '')));
+    colWidths.push(maxWidth + minPadding);
+  }
+
+  // Format each row, padding all columns except the last
+  return rows
+    .map((row) =>
+      row.map((cell, i) => (i < row.length - 1 ? padEnd(cell, colWidths[i] ?? 0) : cell)).join('')
+    )
+    .join('\n');
+}
+
 const LOGO_LINES = [
   '███████╗██╗  ██╗██╗██╗     ██╗     ███████╗',
   '██╔════╝██║ ██╔╝██║██║     ██║     ██╔════╝',
@@ -74,25 +111,27 @@ function showBanner(): void {
   console.log(`${DIM}The open agent skills ecosystem${RESET}`);
   console.log();
   console.log(
-    `  ${DIM}$${RESET} ${TEXT}npx skills add ${DIM}<package>${RESET}   ${DIM}Install a skill${RESET}`
-  );
-  console.log(
-    `  ${DIM}$${RESET} ${TEXT}npx skills list${RESET}            ${DIM}List installed skills${RESET}`
-  );
-  console.log(
-    `  ${DIM}$${RESET} ${TEXT}npx skills find ${DIM}[query]${RESET}    ${DIM}Search for skills${RESET}`
-  );
-  console.log(
-    `  ${DIM}$${RESET} ${TEXT}npx skills check${RESET}           ${DIM}Check for updates${RESET}`
-  );
-  console.log(
-    `  ${DIM}$${RESET} ${TEXT}npx skills update${RESET}          ${DIM}Update all skills${RESET}`
-  );
-  console.log(
-    `  ${DIM}$${RESET} ${TEXT}npx skills remove${RESET}          ${DIM}Remove installed skills${RESET}`
-  );
-  console.log(
-    `  ${DIM}$${RESET} ${TEXT}npx skills init ${DIM}[name]${RESET}     ${DIM}Create a new skill${RESET}`
+    alignTable([
+      [
+        `  ${DIM}$${RESET} ${TEXT}npx skills add ${DIM}<package>${RESET}`,
+        `${DIM}Install a skill${RESET}`,
+      ],
+      [`  ${DIM}$${RESET} ${TEXT}npx skills list${RESET}`, `${DIM}List installed skills${RESET}`],
+      [
+        `  ${DIM}$${RESET} ${TEXT}npx skills find ${DIM}[query]${RESET}`,
+        `${DIM}Search for skills${RESET}`,
+      ],
+      [`  ${DIM}$${RESET} ${TEXT}npx skills check${RESET}`, `${DIM}Check for updates${RESET}`],
+      [`  ${DIM}$${RESET} ${TEXT}npx skills update${RESET}`, `${DIM}Update all skills${RESET}`],
+      [
+        `  ${DIM}$${RESET} ${TEXT}npx skills remove${RESET}`,
+        `${DIM}Remove installed skills${RESET}`,
+      ],
+      [
+        `  ${DIM}$${RESET} ${TEXT}npx skills init ${DIM}[name]${RESET}`,
+        `${DIM}Create a new skill${RESET}`,
+      ],
+    ])
   );
   console.log();
   console.log(`${DIM}try:${RESET} npx skills add vercel-labs/agent-skills`);
@@ -170,7 +209,7 @@ ${BOLD}Description:${RESET}
   an interactive selection menu will be shown.
 
 ${BOLD}Arguments:${RESET}
-  skills            Optional skill names to remove (space-separated)
+  skills             Optional skill names to remove (space-separated)
 
 ${BOLD}Options:${RESET}
   -g, --global       Remove from global scope (~/) instead of project scope
@@ -179,12 +218,17 @@ ${BOLD}Options:${RESET}
   --all              Remove all installed skills
 
 ${BOLD}Examples:${RESET}
-  ${DIM}$${RESET} skills remove                           ${DIM}# interactive selection${RESET}
-  ${DIM}$${RESET} skills remove my-skill                   ${DIM}# remove specific skill${RESET}
-  ${DIM}$${RESET} skills remove skill1 skill2 -y           ${DIM}# remove multiple skills${RESET}
-  ${DIM}$${RESET} skills remove --global my-skill          ${DIM}# remove from global scope${RESET}
-  ${DIM}$${RESET} skills rm --agent claude-code my-skill   ${DIM}# remove from specific agent${RESET}
-  ${DIM}$${RESET} skills remove --all -y                   ${DIM}# remove all skills${RESET}
+${alignTable([
+  [`  ${DIM}$${RESET} skills remove`, `${DIM}# interactive selection${RESET}`],
+  [`  ${DIM}$${RESET} skills remove my-skill`, `${DIM}# remove specific skill${RESET}`],
+  [`  ${DIM}$${RESET} skills remove skill1 skill2 -y`, `${DIM}# remove multiple skills${RESET}`],
+  [`  ${DIM}$${RESET} skills remove --global my-skill`, `${DIM}# remove from global scope${RESET}`],
+  [
+    `  ${DIM}$${RESET} skills rm --agent claude-code my-skill`,
+    `${DIM}# remove from specific agent${RESET}`,
+  ],
+  [`  ${DIM}$${RESET} skills remove --all -y`, `${DIM}# remove all skills${RESET}`],
+])}
 
 Discover more skills at ${TEXT}https://skills.sh/${RESET}
 `);
