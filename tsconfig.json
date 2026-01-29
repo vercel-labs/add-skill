@@ -26,6 +26,6 @@
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "tests/auth.test.ts", "tests/cli.test.ts", "tests/init.test.ts", "tests/add.test.ts", "tests/auth.integration.test.ts"],
   "exclude": ["node_modules", "dist"]
 }

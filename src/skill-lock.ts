@@ -29,6 +29,8 @@ export interface SkillLockEntry {
   installedAt: string;
   /** ISO timestamp when the skill was last updated */
   updatedAt: string;
+  /** License key for private/paid skills */
+  licenseKey?: string;
 }
 
 /**

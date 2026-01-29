@@ -1,3 +1,5 @@
+import type { SkillAuthConfig } from '../types.ts';
+
 /**
  * Represents a parsed skill from a remote host.
  * Different hosts may have different ways of identifying skills.
@@ -15,6 +17,8 @@ export interface RemoteSkill {
   sourceUrl: string;
   /** Any additional metadata from frontmatter */
   metadata?: Record<string, unknown>;
+  /** Auth configuration for private skills */
+  authConfig?: SkillAuthConfig;
 }
 
 /**

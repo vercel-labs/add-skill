@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { runCliOutput, stripLogo, hasLogo } from './test-utils.ts';
-import { formatSkippedMessage } from './cli.ts';
+import { runCliOutput, stripLogo, hasLogo } from '../src/test-utils.ts';
+import { formatSkippedMessage } from '../src/cli.ts';
 
 describe('skills CLI', () => {
   describe('--help', () => {

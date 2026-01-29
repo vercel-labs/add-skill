@@ -26,7 +26,7 @@ export function runCli(
   env?: Record<string, string>
 ): { stdout: string; stderr: string; exitCode: number } {
   try {
-    const output = execSync(`node ${CLI_PATH} ${args.join(' ')}`, {
+    const output = execSync(`node --experimental-strip-types ${CLI_PATH} ${args.join(' ')}`, {
       encoding: 'utf-8',
       cwd,
       stdio: ['pipe', 'pipe', 'pipe'],
