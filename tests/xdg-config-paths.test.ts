@@ -1,5 +1,5 @@
 /**
- * Tests for XDG config path handling.
+ * Tests for XDG config path handling (cross-platform).
  *
  * These tests verify that agents using XDG Base Directory specification
  * (OpenCode, Amp, Goose) use ~/.config paths consistently across all platforms,
@@ -23,48 +23,51 @@ describe('XDG config paths', () => {
 
   describe('OpenCode', () => {
     it('uses ~/.config/opencode/skills for global skills (not ~/Library/Preferences)', () => {
-      const expected = join(home, '.config/opencode/skills');
+      const expected = join(home, '.config', 'opencode', 'skills');
       expect(agents.opencode.globalSkillsDir).toBe(expected);
     });
 
     it('does NOT use platform-specific paths like ~/Library/Preferences', () => {
-      expect(agents.opencode.globalSkillsDir).not.toContain('Library/Preferences');
+      expect(agents.opencode.globalSkillsDir).not.toContain('Library');
+      expect(agents.opencode.globalSkillsDir).not.toContain('Preferences');
       expect(agents.opencode.globalSkillsDir).not.toContain('AppData');
     });
   });
 
   describe('Amp', () => {
     it('uses ~/.config/agents/skills for global skills', () => {
-      const expected = join(home, '.config/agents/skills');
+      const expected = join(home, '.config', 'agents', 'skills');
       expect(agents.amp.globalSkillsDir).toBe(expected);
     });
 
     it('does NOT use platform-specific paths', () => {
-      expect(agents.amp.globalSkillsDir).not.toContain('Library/Preferences');
+      expect(agents.amp.globalSkillsDir).not.toContain('Library');
+      expect(agents.amp.globalSkillsDir).not.toContain('Preferences');
       expect(agents.amp.globalSkillsDir).not.toContain('AppData');
     });
   });
 
   describe('Goose', () => {
     it('uses ~/.config/goose/skills for global skills', () => {
-      const expected = join(home, '.config/goose/skills');
+      const expected = join(home, '.config', 'goose', 'skills');
       expect(agents.goose.globalSkillsDir).toBe(expected);
     });
 
     it('does NOT use platform-specific paths', () => {
-      expect(agents.goose.globalSkillsDir).not.toContain('Library/Preferences');
+      expect(agents.goose.globalSkillsDir).not.toContain('Library');
+      expect(agents.goose.globalSkillsDir).not.toContain('Preferences');
       expect(agents.goose.globalSkillsDir).not.toContain('AppData');
     });
   });
 
   describe('non-XDG agents', () => {
     it('cursor uses ~/.cursor/skills (home-based, not XDG)', () => {
-      const expected = join(home, '.cursor/skills');
+      const expected = join(home, '.cursor', 'skills');
       expect(agents.cursor.globalSkillsDir).toBe(expected);
     });
 
     it('cline uses ~/.cline/skills (home-based, not XDG)', () => {
-      const expected = join(home, '.cline/skills');
+      const expected = join(home, '.cline', 'skills');
       expect(agents.cline.globalSkillsDir).toBe(expected);
     });
   });
