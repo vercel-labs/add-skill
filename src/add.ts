@@ -17,6 +17,7 @@ async function isSourcePrivate(source: string): Promise<boolean | null> {
   return isRepoPrivate(ownerRepo.owner, ownerRepo.repo);
 }
 import { cloneRepo, cleanupTempDir, GitCloneError } from './git.ts';
+import { downloadNpmPackage, NpmDownloadError } from './npm.ts';
 import { discoverSkills, getSkillDisplayName, filterSkills } from './skills.ts';
 import {
   installSkillForAgent,
@@ -228,6 +229,7 @@ export interface AddOptions {
   skill?: string[];
   list?: boolean;
   all?: boolean;
+  registry?: string;
 }
 
 /**
@@ -1381,10 +1383,14 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
     const spinner = p.spinner();
 
     spinner.start('Parsing source...');
-    const parsed = parseSource(source);
+    const parsed = parseSource(source, { registry: options.registry });
     spinner.stop(
       `Source: ${parsed.type === 'local' ? parsed.localPath! : parsed.url}${parsed.ref ? ` @ ${pc.yellow(parsed.ref)}` : ''}${parsed.subpath ? ` (${parsed.subpath})` : ''}${parsed.skillFilter ? ` ${pc.dim('@')}${pc.cyan(parsed.skillFilter)}` : ''}`
     );
+
+    if (options.registry && parsed.type !== 'npm') {
+      p.log.warn('--registry is only used with npm: sources (e.g., npm:@scope/pkg)');
+    }
 
     // Handle direct URL skills (Mintlify, HuggingFace, etc.) via provider system
     if (parsed.type === 'direct-url') {
@@ -1400,7 +1406,26 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
 
     let skillsDir: string;
 
-    if (parsed.type === 'local') {
+    if (parsed.type === 'npm') {
+      spinner.start(`Downloading npm package ${parsed.packageName}...`);
+      try {
+        const result = await downloadNpmPackage(
+          parsed.packageName!,
+          parsed.version,
+          parsed.registry
+        );
+        skillsDir = result.dir;
+        tempDir = result.tempDir;
+      } catch (error) {
+        if (error instanceof NpmDownloadError) {
+          spinner.stop(pc.red('Download failed'));
+          p.outro(pc.red(error.message));
+          process.exit(1);
+        }
+        throw error;
+      }
+      spinner.stop('Package downloaded');
+    } else if (parsed.type === 'local') {
       // Use local path directly, no cloning needed
       spinner.start('Validating local path...');
       if (!existsSync(parsed.localPath!)) {
@@ -2012,6 +2037,11 @@ export function parseAddOptions(args: string[]): { source: string[]; options: Ad
         nextArg = args[i];
       }
       i--; // Back up one since the loop will increment
+    } else if (arg === '--registry') {
+      i++;
+      options.registry = args[i];
+    } else if (arg?.startsWith('--registry=')) {
+      options.registry = arg.slice('--registry='.length);
     } else if (arg && !arg.startsWith('-')) {
       source.push(arg);
     }

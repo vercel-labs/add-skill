@@ -51,13 +51,19 @@ export interface AgentConfig {
 }
 
 export interface ParsedSource {
-  type: 'github' | 'gitlab' | 'git' | 'local' | 'direct-url' | 'well-known';
+  type: 'github' | 'gitlab' | 'git' | 'local' | 'direct-url' | 'well-known' | 'npm';
   url: string;
   subpath?: string;
   localPath?: string;
   ref?: string;
   /** Skill name extracted from @skill syntax (e.g., owner/repo@skill-name) */
   skillFilter?: string;
+  /** npm package name (e.g., @vercel/skills) — only for type 'npm' */
+  packageName?: string;
+  /** npm package version (e.g., 1.2.3) — only for type 'npm' */
+  version?: string;
+  /** npm registry URL — only for type 'npm' */
+  registry?: string;
 }
 
 export interface MintlifySkill {

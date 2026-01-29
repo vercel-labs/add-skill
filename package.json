@@ -90,10 +90,14 @@
     "prettier": "^3.8.1",
     "simple-git": "^3.27.0",
     "typescript": "^5.9.3",
-    "vitest": "^4.0.17"
+    "vitest": "^4.0.17",
+    "@types/tar": "^6.1.13"
   },
   "engines": {
     "node": ">=18"
   },
-  "packageManager": "pnpm@10.17.1"
+  "packageManager": "pnpm@10.17.1",
+  "dependencies": {
+    "tar": "^7.5.7"
+  }
 }

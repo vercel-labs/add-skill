@@ -136,6 +136,54 @@ describe('parseSource', () => {
     });
   });
 
+  describe('npm package tests', () => {
+    it('npm: prefix - simple package', () => {
+      const result = parseSource('npm:foo');
+      expect(result.type).toBe('npm');
+      expect(result.packageName).toBe('foo');
+      expect(result.version).toBeUndefined();
+      expect(result.url).toBe('npm:foo');
+    });
+
+    it('npm: prefix - scoped package', () => {
+      const result = parseSource('npm:@scope/foo');
+      expect(result.type).toBe('npm');
+      expect(result.packageName).toBe('@scope/foo');
+      expect(result.version).toBeUndefined();
+      expect(result.url).toBe('npm:@scope/foo');
+    });
+
+    it('npm: prefix - scoped package with version', () => {
+      const result = parseSource('npm:@scope/foo@1.2.3');
+      expect(result.type).toBe('npm');
+      expect(result.packageName).toBe('@scope/foo');
+      expect(result.version).toBe('1.2.3');
+      expect(result.url).toBe('npm:@scope/foo@1.2.3');
+    });
+
+    it('npm: prefix - simple package with version', () => {
+      const result = parseSource('npm:foo@2.0.0');
+      expect(result.type).toBe('npm');
+      expect(result.packageName).toBe('foo');
+      expect(result.version).toBe('2.0.0');
+      expect(result.url).toBe('npm:foo@2.0.0');
+    });
+
+    it('npm: prefix - package with latest tag', () => {
+      const result = parseSource('npm:foo@latest');
+      expect(result.type).toBe('npm');
+      expect(result.packageName).toBe('foo');
+      expect(result.version).toBe('latest');
+    });
+
+    it('npm: prefix - with registry option', () => {
+      const result = parseSource('npm:foo', { registry: 'https://my-registry.com' });
+      expect(result.type).toBe('npm');
+      expect(result.packageName).toBe('foo');
+      expect(result.registry).toBe('https://my-registry.com');
+    });
+  });
+
   describe('Git URL fallback tests', () => {
     it('Git URL - SSH format', () => {
       const result = parseSource('git@github.com:owner/repo.git');
