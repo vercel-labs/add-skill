@@ -10,10 +10,7 @@ import { describe, it, expect } from 'vitest';
 /**
  * Simulates the relativePath calculation from add.ts
  */
-function calculateRelativePath(
-  tempDir: string | null,
-  skillPath: string
-): string | null {
+function calculateRelativePath(tempDir: string | null, skillPath: string): string | null {
   if (tempDir && skillPath === tempDir) {
     // Skill is at root level of repo
     return 'SKILL.md';

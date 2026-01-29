@@ -16,6 +16,15 @@ interface InstallTelemetryData {
   sourceType?: string;
 }
 
+interface RemoveTelemetryData {
+  event: 'remove';
+  source?: string;
+  skills: string;
+  agents: string;
+  global?: '1';
+  sourceType?: string;
+}
+
 interface CheckTelemetryData {
   event: 'check';
   skillCount: string;
@@ -38,6 +47,7 @@ interface FindTelemetryData {
 
 type TelemetryData =
   | InstallTelemetryData
+  | RemoveTelemetryData
   | CheckTelemetryData
   | UpdateTelemetryData
   | FindTelemetryData;

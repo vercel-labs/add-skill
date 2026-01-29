@@ -1,6 +1,6 @@
 {
   "name": "skills",
-  "version": "1.1.7",
+  "version": "1.2.0",
   "description": "The open agent skills ecosystem",
   "type": "module",
   "bin": {
@@ -37,7 +37,7 @@
     "amp",
     "antigravity",
     "claude-code",
-    "clawdbot",
+    "moltbot",
     "cline",
     "codebuddy",
     "codex",
@@ -49,8 +49,11 @@
     "gemini-cli",
     "github-copilot",
     "goose",
+    "junie",
     "kilo",
+    "kimi-cli",
     "kiro-cli",
+    "kode",
     "mcpjam",
     "mux",
     "opencode",
@@ -62,7 +65,8 @@
     "trae",
     "windsurf",
     "zencoder",
-    "neovate"
+    "neovate",
+    "pochi"
   ],
   "repository": {
     "type": "git",

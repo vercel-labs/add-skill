@@ -163,8 +163,19 @@ export function parseSource(input: string): ParsedSource {
     };
   }
 
-  // GitHub shorthand: owner/repo or owner/repo/path/to/skill
+  // GitHub shorthand: owner/repo, owner/repo/path/to/skill, or owner/repo@skill-name
   // Exclude paths that start with . or / to avoid matching local paths
+  // First check for @skill syntax: owner/repo@skill-name
+  const atSkillMatch = input.match(/^([^/]+)\/([^/@]+)@(.+)$/);
+  if (atSkillMatch && !input.includes(':') && !input.startsWith('.') && !input.startsWith('/')) {
+    const [, owner, repo, skillFilter] = atSkillMatch;
+    return {
+      type: 'github',
+      url: `https://github.com/${owner}/${repo}.git`,
+      skillFilter,
+    };
+  }
+
   const shorthandMatch = input.match(/^([^/]+)\/([^/]+)(?:\/(.+))?$/);
   if (shorthandMatch && !input.includes(':') && !input.startsWith('.') && !input.startsWith('/')) {
     const [, owner, repo, subpath] = shorthandMatch;
