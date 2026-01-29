@@ -76,7 +76,11 @@ function resolveSymlinkTarget(linkPath: string, linkTarget: string): string {
  *    when canonical and agent paths resolve to the same location
  */
 async function cleanAndCreateDirectory(path: string): Promise<void> {
-  await rm(path, { recursive: true, force: true });
+  try {
+    await rm(path, { recursive: true, force: true });
+  } catch {
+    // Ignore cleanup errors - mkdir will fail if there's a real problem
+  }
   await mkdir(path, { recursive: true });
 }
 
