@@ -103,4 +103,50 @@ describe('alignTable', () => {
     const result = alignTable([['col1', 'col2']]);
     expect(result).toBe('col1  col2');
   });
+
+  it('should allow overflow into empty right columns', () => {
+    const result = alignTable([
+      ['very long text that spans multiple columns', '', ''],
+      ['short', 'medium', 'end'],
+    ]);
+    // Row 1 has no right content, so it doesn't affect column widths
+    // Row 2 determines widths: col0=5+2=7, col1=6+2=8
+    // Row 1 outputs without padding since all right cols are empty
+    expect(result).toBe('very long text that spans multiple columns\n' + 'short  medium  end');
+  });
+
+  it('should allow partial overflow into adjacent empty column', () => {
+    const result = alignTable([
+      ['much shorter', '42', '1000'],
+      ['a bit longer, but not bad', '', '2000'],
+    ]);
+    // col0 width: max(12, 25) + 2 = 27 (both rows have right content)
+    // col1 width: max(2, 0) + 2 = 4 (only row 1 counts, row 2 col1 is empty)
+    // Row 2 col0 can use col0+col1 space (31) since col1 is empty
+    expect(result).toBe(
+      'much shorter               42  1000\n' + 'a bit longer, but not bad      2000'
+    );
+  });
+
+  it('should handle mix of overflow and normal rows', () => {
+    const result = alignTable([
+      ['command with no comment', ''],
+      ['cmd', '# has comment'],
+      ['another long command here', ''],
+    ]);
+    // Only row 2 has right content, so col0 width = 3 + 2 = 5
+    // Rows 1 and 3 overflow (no padding)
+    expect(result).toBe(
+      'command with no comment\n' + 'cmd  # has comment\n' + 'another long command here'
+    );
+  });
+
+  it('should handle all rows having empty right columns', () => {
+    const result = alignTable([
+      ['line one', ''],
+      ['line two', ''],
+    ]);
+    // No row has right content, so no padding anywhere
+    expect(result).toBe('line one\nline two');
+  });
 });
