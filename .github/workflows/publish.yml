@@ -112,3 +112,26 @@ jobs:
         run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create GitHub Release
+        if: steps.version.outputs.bump != 'none'
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+
+          # Get changelog from commits since last tag
+          LATEST_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -z "$LATEST_TAG" ]; then
+            CHANGELOG=$(git log --format="- %s" HEAD)
+            CONTRIBUTORS=$(git log --format="@%an" HEAD | sort -u | paste -sd ', ' -)
+          else
+            CHANGELOG=$(git log --format="- %s" ${LATEST_TAG}..HEAD)
+            CONTRIBUTORS=$(git log --format="@%an" ${LATEST_TAG}..HEAD | sort -u | paste -sd ', ' -)
+          fi
+
+          # Generate release notes from template
+          export VERSION CHANGELOG CONTRIBUTORS
+          envsubst < .github/RELEASE_TEMPLATE.md > release-notes.md
+
+          gh release create "v${VERSION}" --notes-file release-notes.md
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
