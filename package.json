@@ -10,10 +10,12 @@
   "files": [
     "dist",
     "bin",
-    "README.md"
+    "README.md",
+    "ThirdPartyNoticeText.txt"
   ],
   "scripts": {
-    "build": "obuild",
+    "build": "node scripts/generate-licenses.ts && obuild",
+    "generate-licenses": "node scripts/generate-licenses.ts",
     "dev": "node src/cli.ts",
     "exec:test": "node scripts/execute-tests.ts",
     "prepublishOnly": "npm run build",
