@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdir, writeFile, rm } from 'fs/promises';
-import { join } from 'path';
-import { tmpdir } from 'os';
-import { listInstalledSkills } from '../src/installer.ts';
+import { mkdir, writeFile, rm, symlink } from 'fs/promises';
+import { join, relative, dirname } from 'path';
+import { tmpdir, platform } from 'os';
+import { listInstalledSkills, installSkillForAgent } from '../src/installer.ts';
+import type { Skill } from '../src/types.ts';
 
 describe('listInstalledSkills', () => {
   let testDir: string;
@@ -138,5 +139,81 @@ ${skillData.description}
     });
     expect(skills).toHaveLength(1);
     expect(skills[0]!.name).toBe('test-skill');
+  });
+
+  it('should list skills installed with symlink-passthrough mode', async () => {
+    const sourceDir = join(testDir, 'source-skill');
+    await mkdir(sourceDir, { recursive: true });
+    const skillContent = `---
+name: passthrough-skill
+description: Skill installed via symlink-passthrough
+---
+
+# Passthrough Skill
+
+This skill was installed using symlink-passthrough mode.
+`;
+    await writeFile(join(sourceDir, 'SKILL.md'), skillContent);
+
+    const skill: Skill = {
+      name: 'passthrough-skill',
+      description: 'Skill installed via symlink-passthrough',
+      path: sourceDir,
+    };
+
+    const result = await installSkillForAgent(skill, 'cursor', {
+      cwd: testDir,
+      mode: 'symlink-passthrough',
+      sourceType: 'local',
+      global: false,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.canonicalPath).toBeDefined();
+
+    // Verify the canonical path exists
+    const canonicalPath = join(testDir, '.agents/skills/passthrough-skill');
+    const { lstat } = await import('fs/promises');
+    const canonicalStats = await lstat(canonicalPath);
+
+    // Canonical location should be a symlink pointing to source
+    expect(canonicalStats.isSymbolicLink()).toBe(true);
+
+    const skills = await listInstalledSkills({ global: false, cwd: testDir });
+
+    expect(skills).toHaveLength(1);
+    expect(skills[0]!.name).toBe('passthrough-skill');
+    expect(skills[0]!.description).toBe('Skill installed via symlink-passthrough');
+    expect(skills[0]!.scope).toBe('project');
+    expect(skills[0]!.canonicalPath).toBe(canonicalPath);
+
+    expect(skills[0]!.agents).toContain('cursor');
+  });
+
+  it('should list skills with symlink chain (source → canonical → agent)', async () => {
+    const sourceDir = join(testDir, 'local-source');
+    await mkdir(sourceDir, { recursive: true });
+    await writeFile(
+      join(sourceDir, 'SKILL.md'),
+      '---\nname: chain-skill\ndescription: Skill with symlink chain\n---\n'
+    );
+
+    const canonicalPath = join(testDir, '.agents/skills/chain-skill');
+    await mkdir(dirname(canonicalPath), { recursive: true });
+
+    const relativePath = relative(dirname(canonicalPath), sourceDir);
+    const symlinkType = platform() === 'win32' ? 'junction' : undefined;
+    await symlink(relativePath, canonicalPath, symlinkType);
+
+    const agentPath = join(testDir, '.cursor/skills/chain-skill');
+    await mkdir(dirname(agentPath), { recursive: true });
+    const relativeCanonical = relative(dirname(agentPath), canonicalPath);
+    await symlink(relativeCanonical, agentPath, symlinkType);
+
+    const skills = await listInstalledSkills({ global: false, cwd: testDir });
+    expect(skills).toHaveLength(1);
+    expect(skills[0]!.name).toBe('chain-skill');
+    expect(skills[0]!.description).toBe('Skill with symlink chain');
+    expect(skills[0]!.agents).toContain('cursor');
   });
 });

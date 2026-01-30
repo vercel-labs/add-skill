@@ -1651,7 +1651,7 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
     let installMode: InstallMode = 'symlink';
 
     if (!options.yes) {
-      const modeChoice = await p.select({
+      const modeChoice = await p.select<InstallMode>({
         message: 'Installation method',
         options: [
           {
@@ -1659,7 +1659,20 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
             label: 'Symlink (Recommended)',
             hint: 'Single source of truth, easy updates',
           },
-          { value: 'copy', label: 'Copy to all agents', hint: 'Independent copies for each agent' },
+          ...(parsed.type === 'local'
+            ? [
+                {
+                  value: 'symlink-passthrough' as const,
+                  label: 'Symlink Passthrough',
+                  hint: 'Single source of truth, from your local source, easy updates',
+                },
+              ]
+            : []),
+          {
+            value: 'copy',
+            label: 'Copy to all agents',
+            hint: 'Independent copies for each agent',
+          },
         ],
       });
 
@@ -1669,7 +1682,7 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
         process.exit(0);
       }
 
-      installMode = modeChoice as InstallMode;
+      installMode = modeChoice;
     }
 
     const cwd = process.cwd();
@@ -1699,7 +1712,14 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
     for (const skill of selectedSkills) {
       if (summaryLines.length > 0) summaryLines.push('');
 
-      if (installMode === 'symlink') {
+      if (installMode === 'symlink-passthrough') {
+        const localPath = shortenPath(skill.path, cwd);
+        const canonicalPath = getCanonicalPath(skill.name, { global: installGlobally });
+        const shortCanonical = shortenPath(canonicalPath, cwd);
+        summaryLines.push(`${pc.cyan(localPath)} ${pc.dim('(local source)')}`);
+        summaryLines.push(`  ${pc.dim('↓ symlink to')} ${shortCanonical}`);
+        summaryLines.push(`  ${pc.dim('↓ symlink to')} ${formatList(agentNames)}`);
+      } else if (installMode === 'symlink') {
         const canonicalPath = getCanonicalPath(skill.name, { global: installGlobally });
         const shortCanonical = shortenPath(canonicalPath, cwd);
         summaryLines.push(`${pc.cyan(shortCanonical)}`);
@@ -1750,6 +1770,7 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
         const result = await installSkillForAgent(skill, agent, {
           global: installGlobally,
           mode: installMode,
+          sourceType: parsed.type,
         });
         results.push({
           skill: getSkillDisplayName(skill),
@@ -1875,6 +1896,23 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
           for (const r of skillResults) {
             const shortPath = shortenPath(r.path, cwd);
             resultLines.push(`  ${pc.dim('→')} ${shortPath}`);
+          }
+        } else if (firstResult.mode === 'symlink-passthrough') {
+          // Symlink passthrough mode: local → canonical → agents
+          if (firstResult.canonicalPath) {
+            const shortPath = shortenPath(firstResult.canonicalPath, cwd);
+            resultLines.push(`${pc.green('✓')} ${shortPath} ${pc.dim('(linked to local source)')}`);
+          } else {
+            resultLines.push(`${pc.green('✓')} ${skillName} ${pc.dim('(direct symlink)')}`);
+          }
+          const symlinked = skillResults.filter((r) => !r.symlinkFailed).map((r) => r.agent);
+          const copied = skillResults.filter((r) => r.symlinkFailed).map((r) => r.agent);
+
+          if (symlinked.length > 0) {
+            resultLines.push(`  ${pc.dim('symlink →')} ${formatList(symlinked)}`);
+          }
+          if (copied.length > 0) {
+            resultLines.push(`  ${pc.yellow('copied →')} ${formatList(copied)}`);
           }
         } else {
           // Symlink mode: show canonical path and symlinked agents

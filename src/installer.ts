@@ -12,13 +12,13 @@ import {
 } from 'fs/promises';
 import { join, basename, normalize, resolve, sep, relative, dirname } from 'path';
 import { homedir, platform } from 'os';
-import type { Skill, AgentType, MintlifySkill, RemoteSkill } from './types.ts';
+import type { Skill, AgentType, MintlifySkill, RemoteSkill, ParsedSource } from './types.ts';
 import type { WellKnownSkill } from './providers/wellknown.ts';
 import { agents } from './agents.ts';
 import { AGENTS_DIR, SKILLS_SUBDIR } from './constants.ts';
 import { parseSkillMd } from './skills.ts';
 
-export type InstallMode = 'symlink' | 'copy';
+export type InstallMode = 'symlink' | 'copy' | 'symlink-passthrough';
 
 interface InstallResult {
   success: boolean;
@@ -149,7 +149,12 @@ async function createSymlink(target: string, linkPath: string): Promise<boolean>
 export async function installSkillForAgent(
   skill: Skill,
   agentType: AgentType,
-  options: { global?: boolean; cwd?: string; mode?: InstallMode } = {}
+  options: {
+    global?: boolean;
+    cwd?: string;
+    mode?: InstallMode;
+    sourceType?: ParsedSource['type'];
+  } = {}
 ): Promise<InstallResult> {
   const agent = agents[agentType];
   const isGlobal = options.global ?? false;
@@ -199,6 +204,37 @@ export async function installSkillForAgent(
   }
 
   try {
+    if (installMode === 'symlink-passthrough' && options.sourceType === 'local') {
+      const canonicalSymlinkCreated = await createSymlink(skill.path, canonicalDir);
+
+      if (!canonicalSymlinkCreated) {
+        await cleanAndCreateDirectory(canonicalDir);
+        await copyDirectory(skill.path, canonicalDir);
+      }
+
+      const agentSymlinkCreated = await createSymlink(canonicalDir, agentDir);
+
+      if (!agentSymlinkCreated) {
+        await cleanAndCreateDirectory(agentDir);
+        await copyDirectory(canonicalDir, agentDir);
+
+        return {
+          success: true,
+          path: agentDir,
+          canonicalPath: canonicalDir,
+          mode: 'symlink-passthrough',
+          symlinkFailed: true,
+        };
+      }
+
+      return {
+        success: true,
+        path: agentDir,
+        canonicalPath: canonicalDir,
+        mode: 'symlink-passthrough',
+      };
+    }
+
     // For copy mode, skip canonical directory and copy directly to agent location
     if (installMode === 'copy') {
       await cleanAndCreateDirectory(agentDir);
@@ -743,7 +779,8 @@ export async function listInstalledSkills(
       const entries = await readdir(scope.path, { withFileTypes: true });
 
       for (const entry of entries) {
-        if (!entry.isDirectory()) {
+        // Skip files, but allow both directories and symlinks (which may point to directories)
+        if (!entry.isDirectory() && !entry.isSymbolicLink()) {
           continue;
         }
 
