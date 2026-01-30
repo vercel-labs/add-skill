@@ -3,6 +3,7 @@ export type AgentType =
   | 'antigravity'
   | 'claude-code'
   | 'moltbot'
+  | 'clawdbot'
   | 'cline'
   | 'codebuddy'
   | 'codex'

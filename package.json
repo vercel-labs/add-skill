@@ -38,6 +38,7 @@
     "antigravity",
     "claude-code",
     "moltbot",
+    "clawdbot",
     "cline",
     "codebuddy",
     "codex",
@@ -69,7 +70,8 @@
     "windsurf",
     "zencoder",
     "neovate",
-    "pochi"
+    "pochi",
+    "adal"
   ],
   "repository": {
     "type": "git",

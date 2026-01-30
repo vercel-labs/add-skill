@@ -3,7 +3,7 @@
 The CLI for the open agent skills ecosystem.
 
 <!-- agent-list:start -->
-Supports **OpenCode**, **Claude Code**, **Codex**, **Cursor**, and [32 more](#available-agents).
+Supports **OpenCode**, **Claude Code**, **Codex**, **Cursor**, and [34 more](#available-agents).
 <!-- agent-list:end -->
 
 ## Install a Skill
@@ -39,7 +39,7 @@ npx skills add ./my-local-skills
 | Option                    | Description                                                                                                                                        |
 | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `-g, --global`            | Install to user directory instead of project                                                                                                       |
-| `-a, --agent <agents...>` | <!-- agent-names:start -->Target specific agents (e.g., `claude-code`, `codex`). Use `'*'` for all agents<!-- agent-names:end -->                  |
+| `-a, --agent <agents...>` | <!-- agent-names:start -->Target specific agents (e.g., `claude-code`, `codex`). See [Available Agents](#available-agents)<!-- agent-names:end -->                  |
 | `-s, --skill <skills...>` | Install specific skills by name (use `'*'` for all skills)                                                                                         |
 | `-l, --list`              | List available skills without installing                                                                                                           |
 | `-y, --yes`               | Skip all confirmation prompts                                                                                                                      |
@@ -213,6 +213,7 @@ Skills can be installed to any of these agents:
 | Antigravity        | `antigravity`     | `.agent/skills/`       | `~/.gemini/antigravity/global_skills/` |
 | Claude Code        | `claude-code`     | `.claude/skills/`      | `~/.claude/skills/`                    |
 | Moltbot            | `moltbot`         | `skills/`              | `~/.moltbot/skills/`                   |
+| Clawdbot           | `clawdbot`        | `skills/`              | `~/.clawdbot/skills/`                  |
 | Cline              | `cline`           | `.cline/skills/`       | `~/.cline/skills/`                     |
 | CodeBuddy          | `codebuddy`       | `.codebuddy/skills/`   | `~/.codebuddy/skills/`                 |
 | Codex              | `codex`           | `.codex/skills/`       | `~/.codex/skills/`                     |
@@ -244,6 +245,7 @@ Skills can be installed to any of these agents:
 | OpenClaude IDE     | `openclaude`      | `.openclaude/skills/`  | `~/.openclaude/skills/`                |
 | Neovate            | `neovate`         | `.neovate/skills/`     | `~/.neovate/skills/`                   |
 | Pochi              | `pochi`           | `.pochi/skills/`       | `~/.pochi/skills/`                     |
+| AdaL               | `adal`            | `.adal/skills/`        | `~/.adal/skills/`                      |
 
 <!-- supported-agents:end -->
 
@@ -347,6 +349,7 @@ The CLI searches for skills in these locations within a repository:
 - `.zencoder/skills/`
 - `.neovate/skills/`
 - `.pochi/skills/`
+- `.adal/skills/`
 <!-- skill-discovery:end -->
 
 If no skills are found in standard locations, a recursive search is performed.

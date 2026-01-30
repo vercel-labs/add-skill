@@ -23,11 +23,16 @@ function generateAvailableAgentsTable(): string {
   // Group agents by their paths
   const pathGroups = new Map<
     string,
-    { keys: string[]; displayNames: string[]; skillsDir: string; globalSkillsDir: string }
+    {
+      keys: string[];
+      displayNames: string[];
+      skillsDir: string;
+      globalSkillsDir: string | undefined;
+    }
   >();
 
   for (const [key, a] of Object.entries(agents)) {
-    const pathKey = `${a.skillsDir}|${a.globalSkillsDir}`;
+    const pathKey = `${a.skillsDir}|${a.globalSkillsDir ?? ''}`;
     if (!pathGroups.has(pathKey)) {
       pathGroups.set(pathKey, {
         keys: [],
@@ -42,10 +47,12 @@ function generateAvailableAgentsTable(): string {
   }
 
   const rows = Array.from(pathGroups.values()).map((group) => {
-    const globalPath = group.globalSkillsDir.replace(homedir(), '~');
+    const globalPath = group.globalSkillsDir
+      ? group.globalSkillsDir.replace(homedir(), '~')
+      : 'N/A';
     const names = group.displayNames.join(', ');
     const keys = group.keys.map((k) => `\`${k}\``).join(', ');
-    return `| ${names} | ${keys} | \`${group.skillsDir}/\` | \`${globalPath}/\` |`;
+    return `| ${names} | ${keys} | \`${group.skillsDir}/\` | \`${globalPath}${globalPath === 'N/A' ? '' : '/'}\` |`;
   });
   return [
     '| Agent | `--agent` | Project Path | Global Path |',
