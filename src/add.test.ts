@@ -4,6 +4,7 @@ import { join } from 'path';
 import { tmpdir } from 'os';
 import { runCli } from './test-utils.ts';
 import { shouldInstallInternalSkills } from './skills.ts';
+import { parseAddOptions } from './add.ts';
 
 describe('add command', () => {
   let testDir: string;
@@ -326,5 +327,47 @@ describe('shouldInstallInternalSkills', () => {
 
     process.env.INSTALL_INTERNAL_SKILLS = 'yes';
     expect(shouldInstallInternalSkills()).toBe(false);
+  });
+});
+
+describe('parseAddOptions', () => {
+  it('should parse --all flag', () => {
+    const result = parseAddOptions(['source', '--all']);
+    expect(result.source).toEqual(['source']);
+    expect(result.options.all).toBe(true);
+  });
+
+  it('should parse --skill with wildcard', () => {
+    const result = parseAddOptions(['source', '--skill', '*']);
+    expect(result.source).toEqual(['source']);
+    expect(result.options.skill).toEqual(['*']);
+  });
+
+  it('should parse --agent with wildcard', () => {
+    const result = parseAddOptions(['source', '--agent', '*']);
+    expect(result.source).toEqual(['source']);
+    expect(result.options.agent).toEqual(['*']);
+  });
+
+  it('should parse --skill wildcard with specific agents', () => {
+    const result = parseAddOptions(['source', '--skill', '*', '--agent', 'claude-code']);
+    expect(result.source).toEqual(['source']);
+    expect(result.options.skill).toEqual(['*']);
+    expect(result.options.agent).toEqual(['claude-code']);
+  });
+
+  it('should parse --agent wildcard with specific skills', () => {
+    const result = parseAddOptions(['source', '--agent', '*', '--skill', 'my-skill']);
+    expect(result.source).toEqual(['source']);
+    expect(result.options.agent).toEqual(['*']);
+    expect(result.options.skill).toEqual(['my-skill']);
+  });
+
+  it('should parse combined flags with wildcards', () => {
+    const result = parseAddOptions(['source', '-g', '--skill', '*', '-y']);
+    expect(result.source).toEqual(['source']);
+    expect(result.options.global).toBe(true);
+    expect(result.options.skill).toEqual(['*']);
+    expect(result.options.yes).toBe(true);
   });
 });

@@ -119,19 +119,18 @@ ${BOLD}Commands:${RESET}
 
 ${BOLD}Add Options:${RESET}
   -g, --global           Install skill globally (user-level) instead of project-level
-  -a, --agent <agents>   Specify agents to install to
-  -s, --skill <skills>   Specify skill names to install (skip selection prompt)
+  -a, --agent <agents>   Specify agents to install to (use '*' for all agents)
+  -s, --skill <skills>   Specify skill names to install (use '*' for all skills)
   -l, --list             List available skills in the repository without installing
   -y, --yes              Skip confirmation prompts
-  --all                  Install all skills to all agents without any prompts
-  --all-skills           Select all skills without prompts
-  --all-agents           Install to all agents without prompts
+  --all                  Shorthand for --skill '*' --agent '*' -y
 
 ${BOLD}Remove Options:${RESET}
   -g, --global           Remove from global scope
-  -a, --agent <agents>   Remove from specific agents
+  -a, --agent <agents>   Remove from specific agents (use '*' for all agents)
+  -s, --skill <skills>   Specify skills to remove (use '*' for all skills)
   -y, --yes              Skip confirmation prompts
-  --all                  Remove all installed skills
+  --all                  Shorthand for --skill '*' --agent '*' -y
   
 ${BOLD}List Options:${RESET}
   -g, --global           List global skills (default: project)
@@ -176,9 +175,10 @@ ${BOLD}Arguments:${RESET}
 
 ${BOLD}Options:${RESET}
   -g, --global       Remove from global scope (~/) instead of project scope
-  -a, --agent        Remove from specific agents only
+  -a, --agent        Remove from specific agents (use '*' for all agents)
+  -s, --skill        Specify skills to remove (use '*' for all skills)
   -y, --yes          Skip confirmation prompts
-  --all              Remove all installed skills
+  --all              Shorthand for --skill '*' --agent '*' -y
 
 ${BOLD}Examples:${RESET}
   ${DIM}$${RESET} skills remove                           ${DIM}# interactive selection${RESET}
@@ -186,7 +186,8 @@ ${BOLD}Examples:${RESET}
   ${DIM}$${RESET} skills remove skill1 skill2 -y           ${DIM}# remove multiple skills${RESET}
   ${DIM}$${RESET} skills remove --global my-skill          ${DIM}# remove from global scope${RESET}
   ${DIM}$${RESET} skills rm --agent claude-code my-skill   ${DIM}# remove from specific agent${RESET}
-  ${DIM}$${RESET} skills remove --all -y                   ${DIM}# remove all skills${RESET}
+  ${DIM}$${RESET} skills remove --all                      ${DIM}# remove all skills${RESET}
+  ${DIM}$${RESET} skills remove --skill '*' -a cursor      ${DIM}# remove all skills from cursor${RESET}
 
 Discover more skills at ${TEXT}https://skills.sh/${RESET}
 `);

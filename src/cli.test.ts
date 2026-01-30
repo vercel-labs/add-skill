@@ -22,8 +22,6 @@ describe('skills CLI', () => {
       expect(output).toContain('-l, --list');
       expect(output).toContain('-y, --yes');
       expect(output).toContain('--all');
-      expect(output).toContain('--all-skills');
-      expect(output).toContain('--all-agents');
     });
 
     it('should show same output for -h alias', () => {
