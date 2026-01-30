@@ -2,7 +2,42 @@ import { homedir } from 'os';
 import { join } from 'path';
 import { existsSync } from 'fs';
 import { xdgConfig } from 'xdg-basedir';
+import { exec } from 'child_process';
+import { promisify } from 'util';
 import type { AgentConfig, AgentType } from './types.ts';
+
+const execAsync = promisify(exec);
+
+/**
+ * Check if a command exists in PATH (cross-platform)
+ * Uses 'which' on Unix/macOS and 'where' on Windows
+ */
+async function commandExists(binName: string): Promise<boolean> {
+  try {
+    const command = process.platform === 'win32' ? 'where' : 'command -v';
+    await execAsync(`${command} ${binName}`);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Create isValidInstalled that reads binName from config automatically
+ * - If binName exists (string): checks if binary is in PATH
+ * - If binName is null (IDE-only) or undefined: falls back to detectInstalled
+ */
+function createIsValidInstalled(): (config: AgentConfig) => Promise<boolean> {
+  return async (config: AgentConfig) => {
+    const binName = config.binName;
+    // IDE-only agents (null) or unknown binary (undefined) use detectInstalled
+    if (binName === null || binName === undefined) {
+      return config.detectInstalled();
+    }
+    // CLI agents check if binary exists
+    return commandExists(binName);
+  };
+}
 
 const home = homedir();
 // Use xdg-basedir (not env-paths) to match OpenCode/Amp/Goose behavior on all platforms.
@@ -10,44 +45,46 @@ const configHome = xdgConfig ?? join(home, '.config');
 const codexHome = process.env.CODEX_HOME?.trim() || join(home, '.codex');
 const claudeHome = process.env.CLAUDE_CONFIG_DIR?.trim() || join(home, '.claude');
 
+// Shared isValidInstalled function for all agents
+const isValidInstalledFn = createIsValidInstalled();
+
 export const agents: Record<AgentType, AgentConfig> = {
   amp: {
     name: 'amp',
     displayName: 'Amp',
     skillsDir: '.agents/skills',
     globalSkillsDir: join(configHome, 'agents/skills'),
-    detectInstalled: async () => {
-      return existsSync(join(configHome, 'amp'));
-    },
+    binName: 'amp',
+    detectInstalled: async () => existsSync(join(configHome, 'amp')),
+    isValidInstalled: isValidInstalledFn,
   },
   antigravity: {
     name: 'antigravity',
     displayName: 'Antigravity',
     skillsDir: '.agent/skills',
     globalSkillsDir: join(home, '.gemini/antigravity/global_skills'),
-    detectInstalled: async () => {
-      return (
-        existsSync(join(process.cwd(), '.agent')) || existsSync(join(home, '.gemini/antigravity'))
-      );
-    },
+    binName: null, // Google Antigravity is IDE-only, no CLI
+    detectInstalled: async () =>
+      existsSync(join(process.cwd(), '.agent')) || existsSync(join(home, '.gemini/antigravity')),
+    isValidInstalled: isValidInstalledFn,
   },
   augment: {
     name: 'augment',
     displayName: 'Augment',
     skillsDir: '.augment/rules',
     globalSkillsDir: join(home, '.augment/rules'),
-    detectInstalled: async () => {
-      return existsSync(join(home, '.augment'));
-    },
+    binName: 'auggie',
+    detectInstalled: async () => existsSync(join(home, '.augment')),
+    isValidInstalled: isValidInstalledFn,
   },
   'claude-code': {
     name: 'claude-code',
     displayName: 'Claude Code',
     skillsDir: '.claude/skills',
     globalSkillsDir: join(claudeHome, 'skills'),
-    detectInstalled: async () => {
-      return existsSync(claudeHome);
-    },
+    binName: 'claude',
+    detectInstalled: async () => existsSync(claudeHome),
+    isValidInstalled: isValidInstalledFn,
   },
   openclaw: {
     name: 'openclaw',
@@ -58,121 +95,123 @@ export const agents: Record<AgentType, AgentConfig> = {
       : existsSync(join(home, '.clawdbot'))
         ? join(home, '.clawdbot/skills')
         : join(home, '.moltbot/skills'),
-    detectInstalled: async () => {
-      return (
-        existsSync(join(home, '.openclaw')) ||
-        existsSync(join(home, '.clawdbot')) ||
-        existsSync(join(home, '.moltbot'))
-      );
-    },
+    binName: 'openclaw',
+    detectInstalled: async () =>
+      existsSync(join(home, '.openclaw')) ||
+      existsSync(join(home, '.clawdbot')) ||
+      existsSync(join(home, '.moltbot')),
+    isValidInstalled: isValidInstalledFn,
   },
   cline: {
     name: 'cline',
     displayName: 'Cline',
     skillsDir: '.cline/skills',
     globalSkillsDir: join(home, '.cline/skills'),
-    detectInstalled: async () => {
-      return existsSync(join(home, '.cline'));
-    },
+    binName: 'cline',
+    detectInstalled: async () => existsSync(join(home, '.cline')),
+    isValidInstalled: isValidInstalledFn,
   },
   codebuddy: {
     name: 'codebuddy',
     displayName: 'CodeBuddy',
     skillsDir: '.codebuddy/skills',
     globalSkillsDir: join(home, '.codebuddy/skills'),
-    detectInstalled: async () => {
-      return existsSync(join(process.cwd(), '.codebuddy')) || existsSync(join(home, '.codebuddy'));
-    },
+    binName: 'codebuddy',
+    detectInstalled: async () =>
+      existsSync(join(process.cwd(), '.codebuddy')) || existsSync(join(home, '.codebuddy')),
+    isValidInstalled: isValidInstalledFn,
   },
   codex: {
     name: 'codex',
     displayName: 'Codex',
     skillsDir: '.codex/skills',
     globalSkillsDir: join(codexHome, 'skills'),
-    detectInstalled: async () => {
-      return existsSync(codexHome) || existsSync('/etc/codex');
-    },
+    binName: 'codex',
+    detectInstalled: async () => existsSync(codexHome) || existsSync('/etc/codex'),
+    isValidInstalled: isValidInstalledFn,
   },
   'command-code': {
     name: 'command-code',
     displayName: 'Command Code',
     skillsDir: '.commandcode/skills',
     globalSkillsDir: join(home, '.commandcode/skills'),
-    detectInstalled: async () => {
-      return existsSync(join(home, '.commandcode'));
-    },
+    binName: 'cmd',
+    detectInstalled: async () => existsSync(join(home, '.commandcode')),
+    isValidInstalled: isValidInstalledFn,
   },
   continue: {
     name: 'continue',
     displayName: 'Continue',
     skillsDir: '.continue/skills',
     globalSkillsDir: join(home, '.continue/skills'),
-    detectInstalled: async () => {
-      return existsSync(join(process.cwd(), '.continue')) || existsSync(join(home, '.continue'));
-    },
+    binName: 'cn',
+    detectInstalled: async () =>
+      existsSync(join(process.cwd(), '.continue')) || existsSync(join(home, '.continue')),
+    isValidInstalled: isValidInstalledFn,
   },
   crush: {
     name: 'crush',
     displayName: 'Crush',
     skillsDir: '.crush/skills',
     globalSkillsDir: join(home, '.config/crush/skills'),
-    detectInstalled: async () => {
-      return existsSync(join(home, '.config/crush'));
-    },
+    binName: 'crush',
+    detectInstalled: async () => existsSync(join(home, '.config/crush')),
+    isValidInstalled: isValidInstalledFn,
   },
   cursor: {
     name: 'cursor',
     displayName: 'Cursor',
     skillsDir: '.cursor/skills',
     globalSkillsDir: join(home, '.cursor/skills'),
-    detectInstalled: async () => {
-      return existsSync(join(home, '.cursor'));
-    },
+    binName: 'cursor',
+    detectInstalled: async () => existsSync(join(home, '.cursor')),
+    isValidInstalled: isValidInstalledFn,
   },
   droid: {
     name: 'droid',
     displayName: 'Droid',
     skillsDir: '.factory/skills',
     globalSkillsDir: join(home, '.factory/skills'),
-    detectInstalled: async () => {
-      return existsSync(join(home, '.factory'));
-    },
+    binName: 'droid',
+    detectInstalled: async () => existsSync(join(home, '.factory')),
+    isValidInstalled: isValidInstalledFn,
   },
   'gemini-cli': {
     name: 'gemini-cli',
     displayName: 'Gemini CLI',
     skillsDir: '.gemini/skills',
     globalSkillsDir: join(home, '.gemini/skills'),
-    detectInstalled: async () => {
-      return existsSync(join(home, '.gemini'));
-    },
+    binName: 'gemini',
+    detectInstalled: async () => existsSync(join(home, '.gemini')),
+    isValidInstalled: isValidInstalledFn,
   },
   'github-copilot': {
     name: 'github-copilot',
     displayName: 'GitHub Copilot',
     skillsDir: '.github/skills',
     globalSkillsDir: join(home, '.copilot/skills'),
-    detectInstalled: async () => {
-      return existsSync(join(process.cwd(), '.github')) || existsSync(join(home, '.copilot'));
-    },
+    binName: null, // bin name code, use vscode to run, ignore it fallback to detectInstalled
+    detectInstalled: async () =>
+      existsSync(join(process.cwd(), '.github')) || existsSync(join(home, '.copilot')),
+    isValidInstalled: isValidInstalledFn,
   },
   goose: {
     name: 'goose',
     displayName: 'Goose',
     skillsDir: '.goose/skills',
     globalSkillsDir: join(configHome, 'goose/skills'),
-    detectInstalled: async () => {
-      return existsSync(join(configHome, 'goose'));
-    },
+    binName: 'goose',
+    detectInstalled: async () => existsSync(join(configHome, 'goose')),
+    isValidInstalled: isValidInstalledFn,
   },
   junie: {
     name: 'junie',
     displayName: 'Junie',
     skillsDir: '.junie/skills',
     globalSkillsDir: join(home, '.junie/skills'),
-    detectInstalled: async () => {
-      return existsSync(join(home, '.junie'));
-    },
+    binName: null, // Junie is JetBrains IDE-only, no CLI
+    detectInstalled: async () => existsSync(join(home, '.junie')),
+    isValidInstalled: isValidInstalledFn,
   },
   'iflow-cli': {
     name: 'iflow-cli',
@@ -188,200 +227,200 @@ export const agents: Record<AgentType, AgentConfig> = {
     displayName: 'Kilo Code',
     skillsDir: '.kilocode/skills',
     globalSkillsDir: join(home, '.kilocode/skills'),
-    detectInstalled: async () => {
-      return existsSync(join(home, '.kilocode'));
-    },
+    binName: 'kilocode',
+    detectInstalled: async () => existsSync(join(home, '.kilocode')),
+    isValidInstalled: isValidInstalledFn,
   },
   'kimi-cli': {
     name: 'kimi-cli',
     displayName: 'Kimi Code CLI',
     skillsDir: '.agents/skills',
     globalSkillsDir: join(home, '.config/agents/skills'),
-    detectInstalled: async () => {
-      return existsSync(join(home, '.kimi'));
-    },
+    binName: 'kimi',
+    detectInstalled: async () => existsSync(join(home, '.kimi')),
+    isValidInstalled: isValidInstalledFn,
   },
   'kiro-cli': {
     name: 'kiro-cli',
     displayName: 'Kiro CLI',
     skillsDir: '.kiro/skills',
     globalSkillsDir: join(home, '.kiro/skills'),
-    detectInstalled: async () => {
-      return existsSync(join(home, '.kiro'));
-    },
+    binName: 'kiro',
+    detectInstalled: async () => existsSync(join(home, '.kiro')),
+    isValidInstalled: isValidInstalledFn,
   },
   kode: {
     name: 'kode',
     displayName: 'Kode',
     skillsDir: '.kode/skills',
     globalSkillsDir: join(home, '.kode/skills'),
-    detectInstalled: async () => {
-      return existsSync(join(home, '.kode'));
-    },
+    binName: 'kode',
+    detectInstalled: async () => existsSync(join(home, '.kode')),
+    isValidInstalled: isValidInstalledFn,
   },
   mcpjam: {
     name: 'mcpjam',
     displayName: 'MCPJam',
     skillsDir: '.mcpjam/skills',
     globalSkillsDir: join(home, '.mcpjam/skills'),
-    detectInstalled: async () => {
-      return existsSync(join(home, '.mcpjam'));
-    },
+    binName: 'mcpjam',
+    detectInstalled: async () => existsSync(join(home, '.mcpjam')),
+    isValidInstalled: isValidInstalledFn,
   },
   'mistral-vibe': {
     name: 'mistral-vibe',
     displayName: 'Mistral Vibe',
     skillsDir: '.vibe/skills',
     globalSkillsDir: join(home, '.vibe/skills'),
-    detectInstalled: async () => {
-      return existsSync(join(home, '.vibe'));
-    },
+    binName: 'vibe',
+    detectInstalled: async () => existsSync(join(home, '.vibe')),
+    isValidInstalled: isValidInstalledFn,
   },
   mux: {
     name: 'mux',
     displayName: 'Mux',
     skillsDir: '.mux/skills',
     globalSkillsDir: join(home, '.mux/skills'),
-    detectInstalled: async () => {
-      return existsSync(join(home, '.mux'));
-    },
+    binName: 'mux',
+    detectInstalled: async () => existsSync(join(home, '.mux')),
+    isValidInstalled: isValidInstalledFn,
   },
   opencode: {
     name: 'opencode',
     displayName: 'OpenCode',
     skillsDir: '.opencode/skills',
     globalSkillsDir: join(configHome, 'opencode/skills'),
-    detectInstalled: async () => {
-      return existsSync(join(configHome, 'opencode')) || existsSync(join(claudeHome, 'skills'));
-    },
+    binName: 'opencode',
+    detectInstalled: async () =>
+      existsSync(join(configHome, 'opencode')) || existsSync(join(claudeHome, 'skills')),
+    isValidInstalled: isValidInstalledFn,
   },
   openclaude: {
     name: 'openclaude',
     displayName: 'OpenClaude IDE',
     skillsDir: '.openclaude/skills',
     globalSkillsDir: join(home, '.openclaude/skills'),
-    detectInstalled: async () => {
-      return (
-        existsSync(join(home, '.openclaude')) || existsSync(join(process.cwd(), '.openclaude'))
-      );
-    },
+    binName: 'openclaude',
+    detectInstalled: async () =>
+      existsSync(join(home, '.openclaude')) || existsSync(join(process.cwd(), '.openclaude')),
+    isValidInstalled: isValidInstalledFn,
   },
   openhands: {
     name: 'openhands',
     displayName: 'OpenHands',
     skillsDir: '.openhands/skills',
     globalSkillsDir: join(home, '.openhands/skills'),
-    detectInstalled: async () => {
-      return existsSync(join(home, '.openhands'));
-    },
+    binName: 'openhands',
+    detectInstalled: async () => existsSync(join(home, '.openhands')),
+    isValidInstalled: isValidInstalledFn,
   },
   pi: {
     name: 'pi',
     displayName: 'Pi',
     skillsDir: '.pi/skills',
     globalSkillsDir: join(home, '.pi/agent/skills'),
-    detectInstalled: async () => {
-      return existsSync(join(home, '.pi/agent'));
-    },
+    binName: 'pi',
+    detectInstalled: async () => existsSync(join(home, '.pi/agent')),
+    isValidInstalled: isValidInstalledFn,
   },
   qoder: {
     name: 'qoder',
     displayName: 'Qoder',
     skillsDir: '.qoder/skills',
     globalSkillsDir: join(home, '.qoder/skills'),
-    detectInstalled: async () => {
-      return existsSync(join(home, '.qoder'));
-    },
+    binName: 'qoder',
+    detectInstalled: async () => existsSync(join(home, '.qoder')),
+    isValidInstalled: isValidInstalledFn,
   },
   'qwen-code': {
     name: 'qwen-code',
     displayName: 'Qwen Code',
     skillsDir: '.qwen/skills',
     globalSkillsDir: join(home, '.qwen/skills'),
-    detectInstalled: async () => {
-      return existsSync(join(home, '.qwen'));
-    },
+    binName: 'qwen',
+    detectInstalled: async () => existsSync(join(home, '.qwen')),
+    isValidInstalled: isValidInstalledFn,
   },
   replit: {
     name: 'replit',
     displayName: 'Replit',
     skillsDir: '.agent/skills',
     globalSkillsDir: undefined,
-    detectInstalled: async () => {
-      return existsSync(join(process.cwd(), '.agent'));
-    },
+    binName: null, // Replit is cloud IDE only, no CLI
+    detectInstalled: async () => existsSync(join(process.cwd(), '.agent')),
+    isValidInstalled: isValidInstalledFn,
   },
   roo: {
     name: 'roo',
     displayName: 'Roo Code',
     skillsDir: '.roo/skills',
     globalSkillsDir: join(home, '.roo/skills'),
-    detectInstalled: async () => {
-      return existsSync(join(home, '.roo'));
-    },
+    binName: 'roo',
+    detectInstalled: async () => existsSync(join(home, '.roo')),
+    isValidInstalled: isValidInstalledFn,
   },
   trae: {
     name: 'trae',
     displayName: 'Trae',
     skillsDir: '.trae/skills',
     globalSkillsDir: join(home, '.trae/skills'),
-    detectInstalled: async () => {
-      return existsSync(join(home, '.trae'));
-    },
+    binName: null, // different cn or en use same bin name, ignore it fallback to detectInstalled
+    detectInstalled: async () => existsSync(join(home, '.trae')),
+    isValidInstalled: isValidInstalledFn,
   },
   'trae-cn': {
     name: 'trae-cn',
     displayName: 'Trae CN',
     skillsDir: '.trae/skills',
     globalSkillsDir: join(home, '.trae-cn/skills'),
-    detectInstalled: async () => {
-      return existsSync(join(home, '.trae-cn'));
-    },
+    binName: null,
+    detectInstalled: async () => existsSync(join(home, '.trae-cn')),
+    isValidInstalled: isValidInstalledFn,
   },
   windsurf: {
     name: 'windsurf',
     displayName: 'Windsurf',
     skillsDir: '.windsurf/skills',
     globalSkillsDir: join(home, '.codeium/windsurf/skills'),
-    detectInstalled: async () => {
-      return existsSync(join(home, '.codeium/windsurf'));
-    },
+    binName: 'windsurf',
+    detectInstalled: async () => existsSync(join(home, '.codeium/windsurf')),
+    isValidInstalled: isValidInstalledFn,
   },
   zencoder: {
     name: 'zencoder',
     displayName: 'Zencoder',
     skillsDir: '.zencoder/skills',
     globalSkillsDir: join(home, '.zencoder/skills'),
-    detectInstalled: async () => {
-      return existsSync(join(home, '.zencoder'));
-    },
+    binName: null,
+    detectInstalled: async () => existsSync(join(home, '.zencoder')),
+    isValidInstalled: isValidInstalledFn,
   },
   neovate: {
     name: 'neovate',
     displayName: 'Neovate',
     skillsDir: '.neovate/skills',
     globalSkillsDir: join(home, '.neovate/skills'),
-    detectInstalled: async () => {
-      return existsSync(join(home, '.neovate'));
-    },
+    binName: 'neovate',
+    detectInstalled: async () => existsSync(join(home, '.neovate')),
+    isValidInstalled: isValidInstalledFn,
   },
   pochi: {
     name: 'pochi',
     displayName: 'Pochi',
     skillsDir: '.pochi/skills',
     globalSkillsDir: join(home, '.pochi/skills'),
-    detectInstalled: async () => {
-      return existsSync(join(home, '.pochi'));
-    },
+    binName: 'pochi',
+    detectInstalled: async () => existsSync(join(home, '.pochi')),
+    isValidInstalled: isValidInstalledFn,
   },
   adal: {
     name: 'adal',
     displayName: 'AdaL',
     skillsDir: '.adal/skills',
     globalSkillsDir: join(home, '.adal/skills'),
-    detectInstalled: async () => {
-      return existsSync(join(home, '.adal'));
-    },
+    binName: 'adal',
+    detectInstalled: async () => existsSync(join(home, '.adal')),
+    isValidInstalled: isValidInstalledFn,
   },
 };
 
@@ -390,6 +429,20 @@ export async function detectInstalledAgents(): Promise<AgentType[]> {
     Object.entries(agents).map(async ([type, config]) => ({
       type: type as AgentType,
       installed: await config.detectInstalled(),
+    }))
+  );
+  return results.filter((r) => r.installed).map((r) => r.type);
+}
+
+/**
+ * Detect agents that are validly installed (binary exists, or detectInstalled for IDE-only)
+ * This should be used for "All detected" selection
+ */
+export async function detectValidInstalledAgents(): Promise<AgentType[]> {
+  const results = await Promise.all(
+    Object.entries(agents).map(async ([type, config]) => ({
+      type: type as AgentType,
+      installed: await config.isValidInstalled(config),
     }))
   );
   return results.filter((r) => r.installed).map((r) => r.type);

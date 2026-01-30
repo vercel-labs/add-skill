@@ -32,7 +32,7 @@ import {
   installWellKnownSkillForAgent,
   type InstallMode,
 } from './installer.ts';
-import { detectInstalledAgents, agents } from './agents.ts';
+import { detectInstalledAgents, detectValidInstalledAgents, agents } from './agents.ts';
 import { track, setVersion } from './telemetry.ts';
 import { findProvider, wellKnownProvider, type WellKnownSkill } from './providers/index.ts';
 import { fetchMintlifySkill } from './mintlify.ts';
@@ -236,8 +236,10 @@ async function handleRemoteSkill(
 
   if (options.agent?.includes('*')) {
     // --agent '*' selects all agents
-    targetAgents = validAgents as AgentType[];
-    p.log.info(`Installing to all ${targetAgents.length} agents`);
+    // Confirm install all just for validly installed agents (binary exists)
+    const validInstalledAgents = await detectValidInstalledAgents();
+    targetAgents = validInstalledAgents as AgentType[];
+    p.log.info(`Installing to all validly installed ${targetAgents.length} agents`);
   } else if (options.agent && options.agent.length > 0) {
     const invalidAgents = options.agent.filter((a) => !validAgents.includes(a));
 
@@ -649,9 +651,10 @@ async function handleWellKnownSkills(
   const validAgents = Object.keys(agents);
 
   if (options.agent?.includes('*')) {
-    // --agent '*' selects all agents
-    targetAgents = validAgents as AgentType[];
-    p.log.info(`Installing to all ${targetAgents.length} agents`);
+    // --agent '*' selects all validly installed agents (binary exists)
+    const validInstalledAgents = await detectValidInstalledAgents();
+    targetAgents = validInstalledAgents;
+    p.log.info(`Installing to all validly installed ${targetAgents.length} agents`);
   } else if (options.agent && options.agent.length > 0) {
     const invalidAgents = options.agent.filter((a) => !validAgents.includes(a));
 
@@ -1037,9 +1040,10 @@ async function handleDirectUrlSkillLegacy(
   const validAgents = Object.keys(agents);
 
   if (options.agent?.includes('*')) {
-    // --agent '*' selects all agents
-    targetAgents = validAgents as AgentType[];
-    p.log.info(`Installing to all ${targetAgents.length} agents`);
+    // --agent '*' selects all validly installed agents (binary exists)
+    const validInstalledAgents = await detectValidInstalledAgents();
+    targetAgents = validInstalledAgents;
+    p.log.info(`Installing to all validly installed ${targetAgents.length} agents`);
   } else if (options.agent && options.agent.length > 0) {
     const invalidAgents = options.agent.filter((a) => !validAgents.includes(a));
 
@@ -1475,9 +1479,10 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
     const validAgents = Object.keys(agents);
 
     if (options.agent?.includes('*')) {
-      // --agent '*' selects all agents
-      targetAgents = validAgents as AgentType[];
-      p.log.info(`Installing to all ${targetAgents.length} agents`);
+      // --agent '*' selects all validly installed agents (binary exists)
+      const validInstalledAgents = await detectValidInstalledAgents();
+      targetAgents = validInstalledAgents;
+      p.log.info(`Installing to all validly installed ${targetAgents.length} agents`);
     } else if (options.agent && options.agent.length > 0) {
       const invalidAgents = options.agent.filter((a) => !validAgents.includes(a));
 

@@ -55,7 +55,17 @@ export interface AgentConfig {
   skillsDir: string;
   /** Global skills directory. Set to undefined if the agent doesn't support global installation. */
   globalSkillsDir: string | undefined;
+  /**
+   * Binary name for CLI command (e.g., 'cursor', 'claude', 'code').
+   * - string: the binary name to check in PATH
+   * - null: agent is IDE-only, no CLI binary available
+   * - undefined: binary name is unknown/needs research
+   */
+  binName?: string | null;
+  /** Check if agent can be installed to (directory exists for skill installation) */
   detectInstalled: () => Promise<boolean>;
+  /** Check if agent is validly installed (reads binName automatically) */
+  isValidInstalled: (config: AgentConfig) => Promise<boolean>;
 }
 
 export interface ParsedSource {
