@@ -32,6 +32,7 @@ export type AgentType =
   | 'qwen-code'
   | 'replit'
   | 'roo'
+  | 'terramind'
   | 'trae'
   | 'trae-cn'
   | 'windsurf'
