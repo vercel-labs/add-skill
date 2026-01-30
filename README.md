@@ -188,6 +188,27 @@ npx skills rm my-skill
 | `-y, --yes`         | Skip confirmation prompts                            |
 | `--all`             | Shorthand for `--skill '*' --agent '*' -y`           |
 
+## Programmatic API
+
+The `skills` package exports programmatic APIs for installing skills from Node.js applications, CLIs, or build scripts.
+
+### Usage
+
+```typescript
+import { installSkill } from 'skills';
+
+await installSkill({
+  url: 'vercel-labs/agent-skills',
+  skills: ['frontend-design'],
+  agents: ['claude-code'],
+  global: true,
+});
+```
+
+### API Reference
+
+See [src/index.ts](src/index.ts) for all exported functions and types.
+
 ## What are Agent Skills?
 
 Agent skills are reusable instruction sets that extend your coding agent's capabilities. They're defined in `SKILL.md`

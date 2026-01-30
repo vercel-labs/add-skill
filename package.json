@@ -3,6 +3,12 @@
   "version": "1.3.1",
   "description": "The open agent skills ecosystem",
   "type": "module",
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": { "import": "./dist/index.mjs", "types": "./dist/index.d.ts" }
+  },
   "bin": {
     "skills": "./bin/cli.mjs",
     "add-skill": "./bin/cli.mjs"

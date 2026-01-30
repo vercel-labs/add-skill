@@ -2,5 +2,8 @@ import { defineBuildConfig } from 'obuild/config';
 
 // https://github.com/unjs/obuild
 export default defineBuildConfig({
-  entries: [{ type: 'bundle', input: './src/cli.ts' }],
+  entries: [
+    { type: 'bundle', input: './src/cli.ts' },
+    { type: 'bundle', input: './src/index.ts' },
+  ],
 });
