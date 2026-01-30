@@ -168,6 +168,7 @@ export interface AddOptions {
   list?: boolean;
   all?: boolean;
   fullDepth?: boolean;
+  branch?: string;
 }
 
 /**
@@ -1339,7 +1340,7 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
     const spinner = p.spinner();
 
     spinner.start('Parsing source...');
-    const parsed = parseSource(source);
+    const parsed = parseSource(source, options.branch);
     spinner.stop(
       `Source: ${parsed.type === 'local' ? parsed.localPath! : parsed.url}${parsed.ref ? ` @ ${pc.yellow(parsed.ref)}` : ''}${parsed.subpath ? ` (${parsed.subpath})` : ''}${parsed.skillFilter ? ` ${pc.dim('@')}${pc.cyan(parsed.skillFilter)}` : ''}`
     );
@@ -1999,6 +2000,11 @@ export function parseAddOptions(args: string[]): { source: string[]; options: Ad
         nextArg = args[i];
       }
       i--; // Back up one since the loop will increment
+    } else if (arg === '-b' || arg === '--branch') {
+      i++;
+      if (i < args.length && args[i] && !args[i]!.startsWith('-')) {
+        options.branch = args[i];
+      }
     } else if (arg === '--full-depth') {
       options.fullDepth = true;
     } else if (arg && !arg.startsWith('-')) {

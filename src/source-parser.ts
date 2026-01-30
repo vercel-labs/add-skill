@@ -106,8 +106,10 @@ function isDirectSkillUrl(input: string): boolean {
 /**
  * Parse a source string into a structured format
  * Supports: local paths, GitHub URLs, GitLab URLs, GitHub shorthand, direct skill.md URLs, and direct git URLs
+ * @param input - The source string to parse
+ * @param explicitBranch - Optional explicit branch name (useful for branches with slashes like feature/some-skill)
  */
-export function parseSource(input: string): ParsedSource {
+export function parseSource(input: string, explicitBranch?: string): ParsedSource {
   // Local path: absolute, relative, or current directory
   if (isLocalPath(input)) {
     const resolvedPath = resolve(input);
@@ -125,6 +127,38 @@ export function parseSource(input: string): ParsedSource {
       type: 'direct-url',
       url: input,
     };
+  }
+
+  // If explicitBranch is provided, handle GitHub URLs and shorthand specially
+  // Extract owner/repo and use the explicit branch, ignoring any path-like segments
+  if (explicitBranch) {
+    // Handle GitHub URLs
+    const githubMatch = input.match(/github\.com\/([^/]+)\/([^/]+)/);
+    if (githubMatch) {
+      const [, owner, repo] = githubMatch;
+      const cleanRepo = repo!.replace(/\.git$/, '').replace(/\/.*$/, '');
+      return {
+        type: 'github',
+        url: `https://github.com/${owner}/${cleanRepo}.git`,
+        ref: explicitBranch,
+      };
+    }
+
+    // Handle GitHub shorthand: owner/repo
+    const shorthandMatch = input.match(/^([^/]+)\/([^/]+)(?:\/.*)?$/);
+    if (
+      shorthandMatch &&
+      !input.includes(':') &&
+      !input.startsWith('.') &&
+      !input.startsWith('/')
+    ) {
+      const [, owner, repo] = shorthandMatch;
+      return {
+        type: 'github',
+        url: `https://github.com/${owner}/${repo}.git`,
+        ref: explicitBranch,
+      };
+    }
   }
 
   // GitHub URL with path: https://github.com/owner/repo/tree/branch/path/to/skill

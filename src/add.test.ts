@@ -384,6 +384,32 @@ describe('parseAddOptions', () => {
     expect(result.options.list).toBe(true);
     expect(result.options.global).toBe(true);
   });
+
+  it('should parse --branch flag', () => {
+    const result = parseAddOptions(['source', '--branch', 'feature/some-skill']);
+    expect(result.source).toEqual(['source']);
+    expect(result.options.branch).toBe('feature/some-skill');
+  });
+
+  it('should parse -b flag (branch shorthand)', () => {
+    const result = parseAddOptions(['source', '-b', 'develop']);
+    expect(result.source).toEqual(['source']);
+    expect(result.options.branch).toBe('develop');
+  });
+
+  it('should parse branch with complex names', () => {
+    const result = parseAddOptions(['source', '-b', 'feature/my-feature/sub-task']);
+    expect(result.source).toEqual(['source']);
+    expect(result.options.branch).toBe('feature/my-feature/sub-task');
+  });
+
+  it('should parse branch with other flags', () => {
+    const result = parseAddOptions(['source', '-b', 'main', '-g', '-y']);
+    expect(result.source).toEqual(['source']);
+    expect(result.options.branch).toBe('main');
+    expect(result.options.global).toBe(true);
+    expect(result.options.yes).toBe(true);
+  });
 });
 
 describe('find-skills prompt with -y flag', () => {

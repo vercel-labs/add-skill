@@ -32,6 +32,9 @@ npx skills add git@github.com:vercel-labs/agent-skills.git
 
 # Local path
 npx skills add ./my-local-skills
+
+# Branch with slashes (use --branch flag)
+npx skills add owner/repo --branch feature/some-skill
 ```
 
 ### Options
@@ -41,6 +44,7 @@ npx skills add ./my-local-skills
 | `-g, --global`            | Install to user directory instead of project                                                                                                       |
 | `-a, --agent <agents...>` | <!-- agent-names:start -->Target specific agents (e.g., `claude-code`, `codex`). See [Supported Agents](#supported-agents)<!-- agent-names:end -->                  |
 | `-s, --skill <skills...>` | Install specific skills by name (use `'*'` for all skills)                                                                                         |
+| `-b, --branch <branch>`   | Specify branch name explicitly (useful for branches with slashes like `feature/some-skill`)                                                            |
 | `-l, --list`              | List available skills without installing                                                                                                           |
 | `-y, --yes`               | Skip all confirmation prompts                                                                                                                      |
 | `--all`                   | Install all skills to all agents without prompts                                                                                                   |
@@ -71,6 +75,10 @@ npx skills add vercel-labs/agent-skills --skill '*' -a claude-code
 
 # Install specific skills to all agents
 npx skills add vercel-labs/agent-skills --agent '*' --skill frontend-design
+
+# Install from a branch with slashes in the name
+npx skills add owner/repo --branch feature/some-skill
+npx skills add https://github.com/owner/repo -b develop/some-skill
 ```
 
 ### Installation Scope
