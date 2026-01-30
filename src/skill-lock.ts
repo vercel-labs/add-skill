@@ -126,13 +126,17 @@ export async function fetchSkillFolderHash(
   ownerRepo: string,
   skillPath: string
 ): Promise<string | null> {
-  // Normalize the skill path - remove SKILL.md suffix to get folder path
-  let folderPath = skillPath;
+  // Normalize to forward slashes first (for GitHub API compatibility)
+  let folderPath = skillPath.replace(/\\/g, '/');
+
+  // Remove SKILL.md suffix to get folder path
   if (folderPath.endsWith('/SKILL.md')) {
     folderPath = folderPath.slice(0, -9);
   } else if (folderPath.endsWith('SKILL.md')) {
     folderPath = folderPath.slice(0, -8);
   }
+
+  // Remove trailing slash
   if (folderPath.endsWith('/')) {
     folderPath = folderPath.slice(0, -1);
   }

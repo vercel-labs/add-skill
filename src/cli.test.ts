@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { runCliOutput, stripLogo } from './test-utils.ts';
+import { runCliOutput, stripLogo, hasLogo } from './test-utils.ts';
+import { formatSkippedMessage } from './cli.ts';
 
 describe('skills CLI', () => {
   describe('--help', () => {
@@ -66,5 +67,43 @@ describe('skills CLI', () => {
         "
       `);
     });
+  });
+
+  describe('logo display', () => {
+    it('should not display logo for list command', () => {
+      const output = runCliOutput(['list']);
+      expect(hasLogo(output)).toBe(false);
+    });
+
+    it('should not display logo for check command', () => {
+      const output = runCliOutput(['check']);
+      expect(hasLogo(output)).toBe(false);
+    });
+
+    it('should not display logo for update command', () => {
+      const output = runCliOutput(['update']);
+      expect(hasLogo(output)).toBe(false);
+    });
+
+    it('should not display logo for generate-lock command', () => {
+      const output = runCliOutput(['generate-lock']);
+      expect(hasLogo(output)).toBe(false);
+    });
+  });
+});
+
+describe('formatSkippedMessage', () => {
+  it('should return null for empty array', () => {
+    expect(formatSkippedMessage([])).toBeNull();
+  });
+
+  it('should format single skill', () => {
+    expect(formatSkippedMessage(['my-skill'])).toBe('Skipped 1 (reinstall needed):\n  - my-skill');
+  });
+
+  it('should format multiple skills', () => {
+    expect(formatSkippedMessage(['skill-a', 'skill-b', 'skill-c'])).toBe(
+      'Skipped 3 (reinstall needed):\n  - skill-a\n  - skill-b\n  - skill-c'
+    );
   });
 });

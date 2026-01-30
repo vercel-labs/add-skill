@@ -51,7 +51,8 @@ export class MintlifyProvider implements HostProvider {
 
   async fetchSkill(url: string): Promise<RemoteSkill | null> {
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, { signal: AbortSignal.timeout(30000) });
+
       if (!response.ok) {
         return null;
       }

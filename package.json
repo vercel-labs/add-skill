@@ -1,6 +1,6 @@
 {
   "name": "skills",
-  "version": "1.1.7",
+  "version": "1.2.2",
   "description": "The open agent skills ecosystem",
   "type": "module",
   "bin": {
@@ -37,7 +37,7 @@
     "amp",
     "antigravity",
     "claude-code",
-    "clawdbot",
+    "moltbot",
     "cline",
     "codebuddy",
     "codex",
@@ -49,11 +49,15 @@
     "gemini-cli",
     "github-copilot",
     "goose",
+    "junie",
     "kilo",
+    "kimi-cli",
     "kiro-cli",
+    "kode",
     "mcpjam",
     "mux",
     "opencode",
+    "openclaude",
     "openhands",
     "pi",
     "qoder",
@@ -61,9 +65,11 @@
     "replit",
     "roo",
     "trae",
+    "trae-cn",
     "windsurf",
     "zencoder",
-    "neovate"
+    "neovate",
+    "pochi"
   ],
   "repository": {
     "type": "git",
@@ -75,6 +81,9 @@
   },
   "author": "",
   "license": "MIT",
+  "dependencies": {
+    "xdg-basedir": "^5.1.0"
+  },
   "devDependencies": {
     "@clack/prompts": "^0.11.0",
     "@types/bun": "latest",

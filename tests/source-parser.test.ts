@@ -7,7 +7,10 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import { platform } from 'os';
 import { parseSource, getOwnerRepo } from '../src/source-parser.ts';
+
+const isWindows = platform() === 'win32';
 
 describe('parseSource', () => {
   describe('GitHub URL tests', () => {
@@ -93,6 +96,21 @@ describe('parseSource', () => {
       expect(result.url).toBe('https://github.com/owner/repo.git');
       expect(result.subpath).toBe('skills/my-skill');
     });
+
+    it('GitHub shorthand - owner/repo@skill (skill filter syntax)', () => {
+      const result = parseSource('owner/repo@my-skill');
+      expect(result.type).toBe('github');
+      expect(result.url).toBe('https://github.com/owner/repo.git');
+      expect(result.skillFilter).toBe('my-skill');
+      expect(result.subpath).toBeUndefined();
+    });
+
+    it('GitHub shorthand - owner/repo@skill with hyphenated skill name', () => {
+      const result = parseSource('vercel-labs/agent-skills@find-skills');
+      expect(result.type).toBe('github');
+      expect(result.url).toBe('https://github.com/vercel-labs/agent-skills.git');
+      expect(result.skillFilter).toBe('find-skills');
+    });
   });
 
   describe('Local path tests', () => {
@@ -115,9 +133,11 @@ describe('parseSource', () => {
     });
 
     it('Local path - absolute path', () => {
-      const result = parseSource('/home/user/skills');
+      // Use platform-specific absolute path
+      const testPath = isWindows ? 'C:\\Users\\test\\skills' : '/home/user/skills';
+      const result = parseSource(testPath);
       expect(result.type).toBe('local');
-      expect(result.localPath).toBe('/home/user/skills');
+      expect(result.localPath).toBe(testPath);
     });
   });
 

@@ -1,0 +1,7 @@
+## Changelog
+
+${CHANGELOG}
+
+## Contributors
+
+${CONTRIBUTORS}

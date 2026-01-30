@@ -1,0 +1,146 @@
+name: Publish
+
+on:
+  push:
+    branches: [main]
+    tags:
+      - "v*"
+    paths-ignore:
+      - "**/*.md"
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version bump type"
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: lts/*
+          cache: pnpm
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Determine version bump type
+        id: version
+        run: |
+          # If tag push, skip version bump (already versioned)
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            echo "bump=skip" >> $GITHUB_OUTPUT
+            echo "Tag push - skipping version bump, will publish directly"
+            exit 0
+          fi
+
+          # If manually triggered, use the input value
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "bump=${{ inputs.bump }}" >> $GITHUB_OUTPUT
+            echo "Manual trigger - will bump ${{ inputs.bump }} version"
+            exit 0
+          fi
+
+          # Get the latest version tag
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+
+          if [ -z "$LATEST_TAG" ]; then
+            # No tags found, use all commits
+            COMMITS=$(git log --format=%s)
+          else
+            # Get commits since the latest tag
+            COMMITS=$(git log ${LATEST_TAG}..HEAD --format=%s)
+          fi
+
+          echo "Commits since last tag:"
+          echo "$COMMITS"
+
+          # Check for explicit version bump markers
+          if echo "$COMMITS" | grep -q "\[minor\]"; then
+            echo "bump=minor" >> $GITHUB_OUTPUT
+            echo "Found [minor] - will bump minor version"
+          elif echo "$COMMITS" | grep -q "\[patch\]"; then
+            echo "bump=patch" >> $GITHUB_OUTPUT
+            echo "Found [patch] - will bump patch version"
+          else
+            echo "bump=none" >> $GITHUB_OUTPUT
+            echo "No version marker found - skipping release"
+          fi
+
+      - name: Configure git
+        if: steps.version.outputs.bump != 'none' && steps.version.outputs.bump != 'skip'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump version
+        if: steps.version.outputs.bump != 'none' && steps.version.outputs.bump != 'skip'
+        run: |
+          npm version ${{ steps.version.outputs.bump }} -m "v%s"
+
+      - name: Push changes
+        if: steps.version.outputs.bump != 'none' && steps.version.outputs.bump != 'skip'
+        run: |
+          git push
+          git push --tags
+
+      - name: Publish to npm
+        id: publish
+        if: steps.version.outputs.bump != 'none'
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create GitHub Release
+        if: steps.publish.outcome == 'success'
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+
+          # Get changelog from merged PRs since last tag
+          LATEST_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -z "$LATEST_TAG" ]; then
+            SINCE=""
+          else
+            SINCE=$(git log -1 --format=%cI ${LATEST_TAG})
+          fi
+
+          # Fetch merged PRs and format as changelog
+          if [ -z "$SINCE" ]; then
+            PRS=$(gh pr list --state merged --json number,title,author --limit 100)
+          else
+            PRS=$(gh pr list --state merged --search "merged:>=${SINCE}" --json number,title,author --limit 100)
+          fi
+
+          CHANGELOG=$(echo "$PRS" | jq -r '.[] | "- \(.title) (#\(.number))"')
+          CONTRIBUTORS=$(echo "$PRS" | jq -r '.[].author.login' | sort -u | sed 's/^/@/' | paste -sd ', ' -)
+
+          # Generate release notes from template
+          export VERSION CHANGELOG CONTRIBUTORS
+          envsubst < .github/RELEASE_TEMPLATE.md > release-notes.md
+
+          gh release create "v${VERSION}" --notes-file release-notes.md
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -2,7 +2,7 @@ export type AgentType =
   | 'amp'
   | 'antigravity'
   | 'claude-code'
-  | 'clawdbot'
+  | 'moltbot'
   | 'cline'
   | 'codebuddy'
   | 'codex'
@@ -14,8 +14,11 @@ export type AgentType =
   | 'gemini-cli'
   | 'github-copilot'
   | 'goose'
+  | 'junie'
   | 'kilo'
+  | 'kimi-cli'
   | 'kiro-cli'
+  | 'kode'
   | 'mcpjam'
   | 'mux'
   | 'neovate'
@@ -27,8 +30,11 @@ export type AgentType =
   | 'replit'
   | 'roo'
   | 'trae'
+  | 'trae-cn'
   | 'windsurf'
-  | 'zencoder';
+  | 'zencoder'
+  | 'openclaude'
+  | 'pochi';
 
 export interface Skill {
   name: string;
@@ -43,7 +49,8 @@ export interface AgentConfig {
   name: string;
   displayName: string;
   skillsDir: string;
-  globalSkillsDir: string;
+  /** Global skills directory. Set to undefined if the agent doesn't support global installation. */
+  globalSkillsDir: string | undefined;
   detectInstalled: () => Promise<boolean>;
 }
 
@@ -53,6 +60,8 @@ export interface ParsedSource {
   subpath?: string;
   localPath?: string;
   ref?: string;
+  /** Skill name extracted from @skill syntax (e.g., owner/repo@skill-name) */
+  skillFilter?: string;
 }
 
 export interface MintlifySkill {

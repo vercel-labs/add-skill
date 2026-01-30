@@ -20,6 +20,40 @@ export function getOwnerRepo(parsed: ParsedSource): string | null {
 }
 
 /**
+ * Extract owner and repo from an owner/repo string.
+ * Returns null if the format is invalid.
+ */
+export function parseOwnerRepo(ownerRepo: string): { owner: string; repo: string } | null {
+  const match = ownerRepo.match(/^([^/]+)\/([^/]+)$/);
+  if (match) {
+    return { owner: match[1]!, repo: match[2]! };
+  }
+  return null;
+}
+
+/**
+ * Check if a GitHub repository is private.
+ * Returns true if private, false if public, null if unable to determine.
+ * Only works for GitHub repositories (GitLab not supported).
+ */
+export async function isRepoPrivate(owner: string, repo: string): Promise<boolean | null> {
+  try {
+    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}`);
+
+    // If repo doesn't exist or we don't have access, assume private to be safe
+    if (!res.ok) {
+      return null; // Unable to determine
+    }
+
+    const data = (await res.json()) as { private?: boolean };
+    return data.private === true;
+  } catch {
+    // On error, return null to indicate we couldn't determine
+    return null;
+  }
+}
+
+/**
  * Check if a string represents a local file system path
  */
 function isLocalPath(input: string): boolean {
@@ -127,32 +161,39 @@ export function parseSource(input: string): ParsedSource {
     };
   }
 
-  // GitLab URL with path: https://gitlab.com/owner/repo/-/tree/branch/path
+  // GitLab URL with path (any GitLab instance): https://gitlab.com/owner/repo/-/tree/branch/path
+  // Key identifier is the "/-/tree/" path pattern unique to GitLab.
+  // Supports subgroups by using a non-greedy match for the repository path.
   const gitlabTreeWithPathMatch = input.match(
-    /gitlab\.com\/([^/]+)\/([^/]+)\/-\/tree\/([^/]+)\/(.+)/
+    /^(https?):\/\/([^/]+)\/(.+?)\/-\/tree\/([^/]+)\/(.+)/
   );
   if (gitlabTreeWithPathMatch) {
-    const [, owner, repo, ref, subpath] = gitlabTreeWithPathMatch;
-    return {
-      type: 'gitlab',
-      url: `https://gitlab.com/${owner}/${repo}.git`,
-      ref,
-      subpath,
-    };
+    const [, protocol, hostname, repoPath, ref, subpath] = gitlabTreeWithPathMatch;
+    if (hostname !== 'github.com' && repoPath) {
+      return {
+        type: 'gitlab',
+        url: `${protocol}://${hostname}/${repoPath.replace(/\.git$/, '')}.git`,
+        ref,
+        subpath,
+      };
+    }
   }
 
-  // GitLab URL with branch only: https://gitlab.com/owner/repo/-/tree/branch
-  const gitlabTreeMatch = input.match(/gitlab\.com\/([^/]+)\/([^/]+)\/-\/tree\/([^/]+)$/);
+  // GitLab URL with branch only (any GitLab instance): https://gitlab.com/owner/repo/-/tree/branch
+  const gitlabTreeMatch = input.match(/^(https?):\/\/([^/]+)\/(.+?)\/-\/tree\/([^/]+)$/);
   if (gitlabTreeMatch) {
-    const [, owner, repo, ref] = gitlabTreeMatch;
-    return {
-      type: 'gitlab',
-      url: `https://gitlab.com/${owner}/${repo}.git`,
-      ref,
-    };
+    const [, protocol, hostname, repoPath, ref] = gitlabTreeMatch;
+    if (hostname !== 'github.com' && repoPath) {
+      return {
+        type: 'gitlab',
+        url: `${protocol}://${hostname}/${repoPath.replace(/\.git$/, '')}.git`,
+        ref,
+      };
+    }
   }
 
-  // GitLab URL: https://gitlab.com/owner/repo
+  // GitLab.com URL: https://gitlab.com/owner/repo
+  // Only for the official gitlab.com domain for user convenience.
   const gitlabRepoMatch = input.match(/gitlab\.com\/([^/]+)\/([^/]+)/);
   if (gitlabRepoMatch) {
     const [, owner, repo] = gitlabRepoMatch;
@@ -163,8 +204,19 @@ export function parseSource(input: string): ParsedSource {
     };
   }
 
-  // GitHub shorthand: owner/repo or owner/repo/path/to/skill
+  // GitHub shorthand: owner/repo, owner/repo/path/to/skill, or owner/repo@skill-name
   // Exclude paths that start with . or / to avoid matching local paths
+  // First check for @skill syntax: owner/repo@skill-name
+  const atSkillMatch = input.match(/^([^/]+)\/([^/@]+)@(.+)$/);
+  if (atSkillMatch && !input.includes(':') && !input.startsWith('.') && !input.startsWith('/')) {
+    const [, owner, repo, skillFilter] = atSkillMatch;
+    return {
+      type: 'github',
+      url: `https://github.com/${owner}/${repo}.git`,
+      skillFilter,
+    };
+  }
+
   const shorthandMatch = input.match(/^([^/]+)\/([^/]+)(?:\/(.+))?$/);
   if (shorthandMatch && !input.includes(':') && !input.startsWith('.') && !input.startsWith('/')) {
     const [, owner, repo, subpath] = shorthandMatch;

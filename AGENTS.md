@@ -8,16 +8,17 @@ This file provides guidance to AI coding agents working on the `skills` CLI code
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `skills` | Show banner with available commands |
-| `skills init [name]` | Create a new SKILL.md template |
-| `skills add <pkg>` | Install skills from git repos, URLs, or local paths |
-| `skills check` | Check for available skill updates |
-| `skills update` | Update all skills to latest versions |
-| `skills generate-lock` | Match installed skills to sources via API |
+| Command                | Description                                         |
+| ---------------------- | --------------------------------------------------- |
+| `skills`               | Show banner with available commands                 |
+| `skills init [name]`   | Create a new SKILL.md template                      |
+| `skills add <pkg>`     | Install skills from git repos, URLs, or local paths |
+| `skills list`          | List installed skills (alias: `ls`)                 |
+| `skills check`         | Check for available skill updates                   |
+| `skills update`        | Update all skills to latest versions                |
+| `skills generate-lock` | Match installed skills to sources via API           |
 
-Aliases: `skills a`, `skills i`, `skills install` all work for `add`.
+Aliases: `skills a`, `skills i`, `skills install` all work for `add`. `skills ls` works for `list`.
 
 ## Architecture
 
@@ -27,8 +28,10 @@ src/
 ├── cli.test.ts      # CLI tests
 ├── add.ts           # Core add command logic
 ├── add.test.ts      # Add command tests
+├── list.ts          # List installed skills command
+├── list.test.ts     # List command tests
 ├── agents.ts        # Agent definitions and detection
-├── installer.ts     # Skill installation logic (symlink/copy)
+├── installer.ts     # Skill installation logic (symlink/copy) + listInstalledSkills
 ├── skills.ts        # Skill discovery and parsing
 ├── skill-lock.ts    # Lock file management
 ├── source-parser.ts # Parse git URLs, GitHub shorthand, local paths
@@ -44,6 +47,16 @@ src/
 │   └── mintlify.ts
 ├── init.test.ts     # Init command tests
 └── test-utils.ts    # Test utilities
+
+tests/
+├── sanitize-name.test.ts     # Tests for sanitizeName (path traversal prevention)
+├── skill-matching.test.ts    # Tests for filterSkills (multi-word skill name matching)
+├── source-parser.test.ts     # Tests for URL/path parsing
+├── installer-symlink.test.ts # Tests for symlink installation
+├── list-installed.test.ts    # Tests for listing installed skills
+├── skill-path.test.ts        # Tests for skill path handling
+├── wellknown-provider.test.ts # Tests for well-known provider
+└── dist.test.ts              # Tests for built distribution
 ```
 
 ## Update Checking System
@@ -78,12 +91,12 @@ If reading an older lock file version, it's wiped. Users must reinstall skills t
 
 ## Key Integration Points
 
-| Feature | Implementation |
-|---------|---------------|
-| `skills add` | `src/add.ts` - full implementation |
-| `skills check` | `POST /check-updates` API |
-| `skills update` | `POST /check-updates` + reinstall per skill |
-| `skills generate-lock` | `POST /api/skills/search` on skills.sh |
+| Feature                | Implementation                              |
+| ---------------------- | ------------------------------------------- |
+| `skills add`           | `src/add.ts` - full implementation          |
+| `skills check`         | `POST /check-updates` API                   |
+| `skills update`        | `POST /check-updates` + reinstall per skill |
+| `skills generate-lock` | `POST /api/skills/search` on skills.sh      |
 
 ## Development
 
@@ -100,8 +113,12 @@ pnpm dev check
 pnpm dev update
 pnpm dev init my-skill
 
-# Run tests
+# Run all tests
 pnpm test
+
+# Run specific test file(s)
+pnpm test tests/sanitize-name.test.ts
+pnpm test tests/skill-matching.test.ts tests/source-parser.test.ts
 
 # Type check
 pnpm type-check
@@ -109,6 +126,20 @@ pnpm type-check
 # Format code
 pnpm format
 ```
+
+## Code Style
+
+This project uses Prettier for code formatting. **Always run `pnpm format` before committing changes** to ensure consistent formatting.
+
+```bash
+# Format all files
+pnpm format
+
+# Check formatting without fixing
+pnpm prettier --check .
+```
+
+CI will fail if code is not properly formatted.
 
 ## Publishing
 
