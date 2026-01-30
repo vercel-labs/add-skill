@@ -212,7 +212,7 @@ Skills can be installed to any of these agents:
 | Amp, Kimi Code CLI | `amp`, `kimi-cli` | `.agents/skills/`      | `~/.config/agents/skills/`             |
 | Antigravity        | `antigravity`     | `.agent/skills/`       | `~/.gemini/antigravity/global_skills/` |
 | Claude Code        | `claude-code`     | `.claude/skills/`      | `~/.claude/skills/`                    |
-| Moltbot            | `moltbot`         | `skills/`              | `~/.moltbot/skills/`                   |
+| OpenClaw           | `openclaw`        | `skills/`              | `~/.openclaw/skills/`                  |
 | Cline              | `cline`           | `.cline/skills/`       | `~/.cline/skills/`                     |
 | CodeBuddy          | `codebuddy`       | `.codebuddy/skills/`   | `~/.codebuddy/skills/`                 |
 | Codex              | `codex`           | `.codex/skills/`       | `~/.codex/skills/`                     |
