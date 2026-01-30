@@ -2,16 +2,20 @@ import { isAbsolute, resolve } from 'path';
 import type { ParsedSource } from './types.ts';
 
 /**
- * Extract owner/repo from a parsed source for telemetry.
+ * Extract owner/repo from a parsed source for lockfile tracking and telemetry.
  * Returns null for local paths or unparseable sources.
+ * Supports any Git host with an owner/repo URL structure.
  */
 export function getOwnerRepo(parsed: ParsedSource): string | null {
   if (parsed.type === 'local') {
     return null;
   }
 
-  // Extract from git URL: https://github.com/owner/repo.git or similar
-  const match = parsed.url.match(/(?:github|gitlab)\.com\/([^/]+)\/([^/]+?)(?:\.git)?$/);
+  // Extract from any git URL with owner/repo structure:
+  // https://github.com/owner/repo.git
+  // https://gitlab.com/owner/repo.git
+  // https://git.example.com/owner/repo.git
+  const match = parsed.url.match(/^https?:\/\/[^/]+\/([^/]+)\/([^/]+?)(?:\.git)?$/);
   if (match) {
     return `${match[1]}/${match[2]}`;
   }
