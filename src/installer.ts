@@ -97,6 +97,55 @@ async function cleanAndCreateDirectory(path: string): Promise<void> {
 }
 
 /**
+ * Creates a directory with symlinks to files from the target directory.
+ * This works around agents (like Cursor) that don't follow directory symlinks.
+ * Returns true if successful, false if fallback to copy is needed.
+ */
+async function createFileSymlinks(target: string, linkPath: string): Promise<boolean> {
+  try {
+    const resolvedTarget = resolve(target);
+    const resolvedLinkPath = resolve(linkPath);
+
+    if (resolvedTarget === resolvedLinkPath) {
+      return true;
+    }
+
+    // Clean up existing linkPath if it exists
+    try {
+      await rm(linkPath, { recursive: true, force: true });
+    } catch {
+      // Ignore cleanup errors
+    }
+
+    // Create the directory
+    await mkdir(linkPath, { recursive: true });
+
+    // Read all entries from target directory
+    const entries = await readdir(target, { withFileTypes: true });
+
+    // Create symlinks for all files and recurse for directories
+    for (const entry of entries) {
+      const sourcePath = join(target, entry.name);
+      const destPath = join(linkPath, entry.name);
+
+      if (entry.isDirectory()) {
+        // Recursively handle subdirectories
+        await createFileSymlinks(sourcePath, destPath);
+      } else if (entry.isFile()) {
+        // Create relative symlink to the file
+        const relativeSource = relative(linkPath, sourcePath);
+        await symlink(relativeSource, destPath, 'file');
+      }
+      // Skip other types (symlinks, etc.)
+    }
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Creates a symlink, handling cross-platform differences
  * Returns true if symlink was created, false if fallback to copy is needed
  */
@@ -201,11 +250,11 @@ export async function installSkillForAgent(
       };
     }
 
-    // Symlink mode: copy to canonical location and symlink to agent location
+    // Symlink mode: copy to canonical location and create file symlinks to agent location
     await cleanAndCreateDirectory(canonicalDir);
     await copyDirectory(skill.path, canonicalDir);
 
-    const symlinkCreated = await createSymlink(canonicalDir, agentDir);
+    const symlinkCreated = await createFileSymlinks(canonicalDir, agentDir);
 
     if (!symlinkCreated) {
       // Symlink failed, fall back to copy
@@ -401,12 +450,12 @@ export async function installMintlifySkillForAgent(
       };
     }
 
-    // Symlink mode: write to canonical location and symlink to agent location
+    // Symlink mode: write to canonical location and create file symlinks to agent location
     await cleanAndCreateDirectory(canonicalDir);
     const skillMdPath = join(canonicalDir, 'SKILL.md');
     await writeFile(skillMdPath, skill.content, 'utf-8');
 
-    const symlinkCreated = await createSymlink(canonicalDir, agentDir);
+    const symlinkCreated = await createFileSymlinks(canonicalDir, agentDir);
 
     if (!symlinkCreated) {
       // Symlink failed, fall back to copy
@@ -499,12 +548,12 @@ export async function installRemoteSkillForAgent(
       };
     }
 
-    // Symlink mode: write to canonical location and symlink to agent location
+    // Symlink mode: write to canonical location and create file symlinks to agent location
     await cleanAndCreateDirectory(canonicalDir);
     const skillMdPath = join(canonicalDir, 'SKILL.md');
     await writeFile(skillMdPath, skill.content, 'utf-8');
 
-    const symlinkCreated = await createSymlink(canonicalDir, agentDir);
+    const symlinkCreated = await createFileSymlinks(canonicalDir, agentDir);
 
     if (!symlinkCreated) {
       // Symlink failed, fall back to copy
@@ -618,11 +667,11 @@ export async function installWellKnownSkillForAgent(
       };
     }
 
-    // Symlink mode: write to canonical location and symlink to agent location
+    // Symlink mode: write to canonical location and create file symlinks to agent location
     await cleanAndCreateDirectory(canonicalDir);
     await writeSkillFiles(canonicalDir);
 
-    const symlinkCreated = await createSymlink(canonicalDir, agentDir);
+    const symlinkCreated = await createFileSymlinks(canonicalDir, agentDir);
 
     if (!symlinkCreated) {
       // Symlink failed, fall back to copy
@@ -761,7 +810,8 @@ export async function listInstalledSkills(
             try {
               const agentEntries = await readdir(agentBase, { withFileTypes: true });
               for (const agentEntry of agentEntries) {
-                if (!agentEntry.isDirectory()) {
+                // Check both directories and symlinks (symlinks to directories show as symlinks, not directories)
+                if (!agentEntry.isDirectory() && !agentEntry.isSymbolicLink()) {
                   continue;
                 }
 
