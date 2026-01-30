@@ -31,6 +31,15 @@ export const agents: Record<AgentType, AgentConfig> = {
       );
     },
   },
+  augment: {
+    name: 'augment',
+    displayName: 'Augment',
+    skillsDir: '.augment/rules',
+    globalSkillsDir: join(home, '.augment/rules'),
+    detectInstalled: async () => {
+      return existsSync(join(home, '.augment'));
+    },
+  },
   'claude-code': {
     name: 'claude-code',
     displayName: 'Claude Code',

@@ -1,6 +1,7 @@
 export type AgentType =
   | 'amp'
   | 'antigravity'
+  | 'augment'
   | 'claude-code'
   | 'moltbot'
   | 'cline'
