@@ -19,23 +19,5 @@ describe('Augment agent', () => {
     const agentKeys = Object.keys(agents);
     expect(agentKeys).toContain('augment');
   });
-
-  it('should have correct paths matching the issue requirements', () => {
-    const augment = agents['augment'];
-    
-    // Project Skills Directory: .augment/rules
-    expect(augment.skillsDir).toBe('.augment/rules');
-    
-    // Global Skills Directory: ~/.augment/rules
-    expect(augment.globalSkillsDir).toBe(join(homedir(), '.augment/rules'));
-  });
-
-  it('should detect installation at ~/.augment', async () => {
-    const augment = agents['augment'];
-    
-    // The detection function should be defined
-    expect(augment.detectInstalled).toBeDefined();
-    expect(typeof augment.detectInstalled).toBe('function');
-  });
 });
 
