@@ -65,7 +65,7 @@ function showBanner(): void {
   console.log(`${DIM}The open agent skills ecosystem${RESET}`);
   console.log();
   console.log(
-    `  ${DIM}$${RESET} ${TEXT}npx skills add ${DIM}<package>${RESET}   ${DIM}Install a skill${RESET}`
+    `  ${DIM}$${RESET} ${TEXT}npx skills add ${DIM}[package]${RESET}   ${DIM}Install a skill (or from lockfile)${RESET}`
   );
   console.log(
     `  ${DIM}$${RESET} ${TEXT}npx skills list${RESET}            ${DIM}List installed skills${RESET}`
@@ -97,9 +97,10 @@ function showHelp(): void {
 ${BOLD}Usage:${RESET} skills <command> [options]
 
 ${BOLD}Commands:${RESET}
-  add <package>     Add a skill package
+  add [package]     Add a skill package (or install from lockfile if no package)
                     e.g. vercel-labs/agent-skills
                          https://github.com/vercel-labs/agent-skills
+                    Without arguments: installs skills from lockfile
   remove [skills]   Remove installed skills
   list, ls          List installed skills
   find [query]      Search for skills interactively
@@ -115,6 +116,7 @@ ${BOLD}Add Options:${RESET}
   -y, --yes              Skip confirmation prompts
   --all                  Shorthand for --skill '*' --agent '*' -y
   --full-depth           Search all subdirectories even when a root SKILL.md exists
+  --lock           Use project lock file (./skill-lock.json)
 
 ${BOLD}Remove Options:${RESET}
   -g, --global           Remove from global scope
@@ -122,10 +124,15 @@ ${BOLD}Remove Options:${RESET}
   -s, --skill <skills>   Specify skills to remove (use '*' for all skills)
   -y, --yes              Skip confirmation prompts
   --all                  Shorthand for --skill '*' --agent '*' -y
-  
+  --lock                Use project lock file (./skill-lock.json)
+
 ${BOLD}List Options:${RESET}
   -g, --global           List global skills (default: project)
   -a, --agent <agents>   Filter by specific agents
+  --lock                Use project lock file (./skill-lock.json)
+
+${BOLD}Check/Update Options:${RESET}
+  --lock                Use project lock file (./skill-lock.json)
 
 ${BOLD}Options:${RESET}
   --help, -h        Show this help message
@@ -136,6 +143,8 @@ ${BOLD}Examples:${RESET}
   ${DIM}$${RESET} skills add vercel-labs/agent-skills -g
   ${DIM}$${RESET} skills add vercel-labs/agent-skills --agent claude-code cursor
   ${DIM}$${RESET} skills add vercel-labs/agent-skills --skill pr-review commit
+  ${DIM}$${RESET} skills add vercel-labs/agent-skills --lock  ${DIM}# use project lock file${RESET}
+  ${DIM}$${RESET} skills add --lock                          ${DIM}# install all skills from lockfile${RESET}
   ${DIM}$${RESET} skills remove                   ${DIM}# interactive remove${RESET}
   ${DIM}$${RESET} skills remove web-design        ${DIM}# remove by name${RESET}
   ${DIM}$${RESET} skills rm --global frontend-design
@@ -146,7 +155,9 @@ ${BOLD}Examples:${RESET}
   ${DIM}$${RESET} skills find typescript          ${DIM}# search by keyword${RESET}
   ${DIM}$${RESET} skills init my-skill
   ${DIM}$${RESET} skills check
+  ${DIM}$${RESET} skills check --lock      ${DIM}# use project lock file${RESET}
   ${DIM}$${RESET} skills update
+  ${DIM}$${RESET} skills update --lock     ${DIM}# use project lock file${RESET}
 
 Discover more skills at ${TEXT}https://skills.sh/${RESET}
 `);
@@ -169,6 +180,7 @@ ${BOLD}Options:${RESET}
   -s, --skill        Specify skills to remove (use '*' for all skills)
   -y, --yes          Skip confirmation prompts
   --all              Shorthand for --skill '*' --agent '*' -y
+  --lock            Use project lock file (./skill-lock.json)
 
 ${BOLD}Examples:${RESET}
   ${DIM}$${RESET} skills remove                           ${DIM}# interactive selection${RESET}
@@ -294,12 +306,15 @@ interface CheckUpdatesResponse {
   }>;
 }
 
-function getSkillLockPath(): string {
+function getSkillLockPath(localLock = false): string {
+  if (localLock) {
+    return join(process.cwd(), 'skill-lock.json');
+  }
   return join(homedir(), AGENTS_DIR, LOCK_FILE);
 }
 
-function readSkillLock(): SkillLockFile {
-  const lockPath = getSkillLockPath();
+function readSkillLock(localLock = false): SkillLockFile {
+  const lockPath = getSkillLockPath(localLock);
   try {
     const content = readFileSync(lockPath, 'utf-8');
     const parsed = JSON.parse(content) as SkillLockFile;
@@ -326,11 +341,11 @@ function writeSkillLock(lock: SkillLockFile): void {
   writeFileSync(lockPath, JSON.stringify(lock, null, 2), 'utf-8');
 }
 
-async function runCheck(args: string[] = []): Promise<void> {
+async function runCheck(localLock = false): Promise<void> {
   console.log(`${TEXT}Checking for skill updates...${RESET}`);
   console.log();
 
-  const lock = readSkillLock();
+  const lock = readSkillLock(localLock);
   const skillNames = Object.keys(lock.skills);
 
   if (skillNames.length === 0) {
@@ -420,11 +435,11 @@ async function runCheck(args: string[] = []): Promise<void> {
   console.log();
 }
 
-async function runUpdate(): Promise<void> {
+async function runUpdate(localLock = false): Promise<void> {
   console.log(`${TEXT}Checking for skill updates...${RESET}`);
   console.log();
 
-  const lock = readSkillLock();
+  const lock = readSkillLock(localLock);
   const skillNames = Object.keys(lock.skills);
 
   if (skillNames.length === 0) {
@@ -589,13 +604,17 @@ async function main(): Promise<void> {
     case 'ls':
       await runList(restArgs);
       break;
-    case 'check':
-      runCheck(restArgs);
+    case 'check': {
+      const localLock = restArgs.includes('--lock');
+      runCheck(localLock);
       break;
+    }
     case 'update':
-    case 'upgrade':
-      runUpdate();
+    case 'upgrade': {
+      const localLock = restArgs.includes('--lock');
+      runUpdate(localLock);
       break;
+    }
     case '--help':
     case '-h':
       showHelp();

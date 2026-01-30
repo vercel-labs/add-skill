@@ -39,6 +39,8 @@ import {
   dismissPrompt,
   getLastSelectedAgents,
   saveSelectedAgents,
+  getAllLockedSkills,
+  type SkillLockEntry,
 } from './skill-lock.ts';
 import type { Skill, AgentType, RemoteSkill } from './types.ts';
 import packageJson from '../package.json' with { type: 'json' };
@@ -99,12 +101,13 @@ function multiselect<Value>(opts: {
 export async function promptForAgents(
   message: string,
   choices: Array<{ value: AgentType; label: string; hint?: string }>,
-  defaultToAll: boolean = false
+  defaultToAll: boolean = false,
+  localLock: boolean = false
 ): Promise<AgentType[] | symbol> {
   // Get last selected agents to pre-select, or default to all if specified
   let lastSelected: string[] | undefined;
   try {
-    lastSelected = await getLastSelectedAgents();
+    lastSelected = await getLastSelectedAgents(localLock);
   } catch {
     // Silently ignore errors reading lock file
   }
@@ -136,7 +139,7 @@ export async function promptForAgents(
   if (!p.isCancel(selected)) {
     // Save selection for next time
     try {
-      await saveSelectedAgents(selected as string[]);
+      await saveSelectedAgents(selected as string[], localLock);
     } catch {
       // Silently ignore errors writing lock file
     }
@@ -151,12 +154,12 @@ export async function promptForAgents(
  */
 async function selectAgentsInteractive(
   availableAgents: AgentType[],
-  options: { global?: boolean }
+  options: { global?: boolean; localLock?: boolean }
 ): Promise<AgentType[] | symbol> {
   // Check if we have previously selected agents
   let lastSelected: string[] | undefined;
   try {
-    lastSelected = await getLastSelectedAgents();
+    lastSelected = await getLastSelectedAgents(options.localLock);
   } catch {
     // Silently ignore errors reading lock file
   }
@@ -218,7 +221,12 @@ async function selectAgentsInteractive(
   }));
 
   // Use helper to prompt with memory
-  return promptForAgents('Select agents to install skills to', agentChoices, false);
+  return promptForAgents(
+    'Select agents to install skills to',
+    agentChoices,
+    false,
+    options.localLock
+  );
 }
 
 const version = packageJson.version;
@@ -232,6 +240,7 @@ export interface AddOptions {
   list?: boolean;
   all?: boolean;
   fullDepth?: boolean;
+  localLock?: boolean;
 }
 
 /**
@@ -335,7 +344,8 @@ async function handleRemoteSkill(
         const selected = await promptForAgents(
           'Select agents to install skills to',
           allAgentChoices,
-          true
+          true,
+          options.localLock
         );
 
         if (p.isCancel(selected)) {
@@ -356,7 +366,10 @@ async function handleRemoteSkill(
         );
       }
     } else {
-      const selected = await selectAgentsInteractive(installedAgents, { global: options.global });
+      const selected = await selectAgentsInteractive(installedAgents, {
+        global: options.global,
+        localLock: options.localLock,
+      });
 
       if (p.isCancel(selected)) {
         p.cancel('Installation cancelled');
@@ -519,8 +532,8 @@ async function handleRemoteSkill(
     });
   }
 
-  // Add to skill lock file for update tracking (only for global installs)
-  if (successful.length > 0 && installGlobally) {
+  // Add to skill lock file for update tracking
+  if (successful.length > 0 && (installGlobally || options.localLock)) {
     try {
       // Try to fetch the folder hash from GitHub Trees API
       let skillFolderHash = '';
@@ -529,12 +542,16 @@ async function handleRemoteSkill(
         if (hash) skillFolderHash = hash;
       }
 
-      await addSkillToLock(remoteSkill.installName, {
-        source: remoteSkill.sourceIdentifier,
-        sourceType: remoteSkill.providerId,
-        sourceUrl: url,
-        skillFolderHash,
-      });
+      await addSkillToLock(
+        remoteSkill.installName,
+        {
+          source: remoteSkill.sourceIdentifier,
+          sourceType: remoteSkill.providerId,
+          sourceUrl: url,
+          skillFolderHash,
+        },
+        options.localLock
+      );
     } catch {
       // Don't fail installation if lock file update fails
     }
@@ -751,7 +768,8 @@ async function handleWellKnownSkills(
         const selected = await promptForAgents(
           'Select agents to install skills to',
           allAgentChoices,
-          true
+          true,
+          options.localLock
         );
 
         if (p.isCancel(selected)) {
@@ -772,7 +790,10 @@ async function handleWellKnownSkills(
         );
       }
     } else {
-      const selected = await selectAgentsInteractive(installedAgents, { global: options.global });
+      const selected = await selectAgentsInteractive(installedAgents, {
+        global: options.global,
+        localLock: options.localLock,
+      });
 
       if (p.isCancel(selected)) {
         p.cancel('Installation cancelled');
@@ -956,18 +977,22 @@ async function handleWellKnownSkills(
     });
   }
 
-  // Add to skill lock file for update tracking (only for global installs)
-  if (successful.length > 0 && installGlobally) {
+  // Add to skill lock file for update tracking
+  if (successful.length > 0 && (installGlobally || options.localLock)) {
     const successfulSkillNames = new Set(successful.map((r) => r.skill));
     for (const skill of selectedSkills) {
       if (successfulSkillNames.has(skill.installName)) {
         try {
-          await addSkillToLock(skill.installName, {
-            source: sourceIdentifier,
-            sourceType: 'well-known',
-            sourceUrl: skill.sourceUrl,
-            skillFolderHash: '', // Well-known skills don't have a folder hash
-          });
+          await addSkillToLock(
+            skill.installName,
+            {
+              source: sourceIdentifier,
+              sourceType: 'well-known',
+              sourceUrl: skill.sourceUrl,
+              skillFolderHash: '', // Well-known skills don't have a folder hash
+            },
+            options.localLock
+          );
         } catch {
           // Don't fail installation if lock file update fails
         }
@@ -1141,7 +1166,8 @@ async function handleDirectUrlSkillLegacy(
         const selected = await promptForAgents(
           'Select agents to install skills to',
           allAgentChoices,
-          true
+          true,
+          options.localLock
         );
 
         if (p.isCancel(selected)) {
@@ -1162,7 +1188,10 @@ async function handleDirectUrlSkillLegacy(
         );
       }
     } else {
-      const selected = await selectAgentsInteractive(installedAgents, { global: options.global });
+      const selected = await selectAgentsInteractive(installedAgents, {
+        global: options.global,
+        localLock: options.localLock,
+      });
 
       if (p.isCancel(selected)) {
         p.cancel('Installation cancelled');
@@ -1293,17 +1322,21 @@ async function handleDirectUrlSkillLegacy(
     sourceType: 'mintlify',
   });
 
-  // Add to skill lock file for update tracking (only for global installs)
-  if (successful.length > 0 && installGlobally) {
+  // Add to skill lock file for update tracking
+  if (successful.length > 0 && (installGlobally || options.localLock)) {
     try {
       // skillFolderHash will be populated by telemetry server
       // Mintlify skills are single-file, so folder hash = content hash on server
-      await addSkillToLock(remoteSkill.installName, {
-        source: `mintlify/${remoteSkill.installName}`,
-        sourceType: 'mintlify',
-        sourceUrl: url,
-        skillFolderHash: '', // Populated by server
-      });
+      await addSkillToLock(
+        remoteSkill.installName,
+        {
+          source: `mintlify/${remoteSkill.installName}`,
+          sourceType: 'mintlify',
+          sourceUrl: url,
+          skillFolderHash: '', // Populated by server
+        },
+        options.localLock
+      );
     } catch {
       // Don't fail installation if lock file update fails
     }
@@ -1362,6 +1395,91 @@ async function handleDirectUrlSkillLegacy(
   await promptForFindSkills(options);
 }
 
+/**
+ * Install skills from the lockfile.
+ * Used when `npx skills add` or `npx skills install` is run without arguments.
+ */
+async function installFromLockfile(options: AddOptions): Promise<void> {
+  const spinner = p.spinner();
+
+  spinner.start('Reading lockfile...');
+  const lockedSkills = await getAllLockedSkills(options.localLock);
+  const skillEntries = Object.entries(lockedSkills);
+
+  if (skillEntries.length === 0) {
+    spinner.stop(pc.yellow('No skills found in lockfile'));
+    p.outro(pc.dim('Install skills with: npx skills add <source>'));
+    process.exit(0);
+  }
+
+  spinner.stop(
+    `Found ${pc.green(skillEntries.length)} skill${skillEntries.length > 1 ? 's' : ''} in lockfile`
+  );
+
+  // Group skills by source for batch installation
+  const bySource = new Map<string, { skills: string[]; entry: SkillLockEntry }>();
+  for (const [skillName, entry] of skillEntries) {
+    const existing = bySource.get(entry.sourceUrl);
+    if (existing) {
+      existing.skills.push(skillName);
+    } else {
+      bySource.set(entry.sourceUrl, { skills: [skillName], entry });
+    }
+  }
+
+  p.log.info(`Installing from ${bySource.size} source${bySource.size > 1 ? 's' : ''}:`);
+  for (const [sourceUrl, { skills }] of bySource) {
+    p.log.message(
+      `  ${pc.dim('•')} ${sourceUrl} ${pc.dim(`(${skills.length} skill${skills.length > 1 ? 's' : ''})`)}`
+    );
+  }
+  console.log();
+
+  // Install each source group
+  let successCount = 0;
+  let failCount = 0;
+
+  for (const [sourceUrl, { skills, entry }] of bySource) {
+    try {
+      // Build the source string based on sourceType
+      let sourceArg: string;
+      if (entry.sourceType === 'github') {
+        // Use the normalized source (owner/repo format)
+        sourceArg = entry.source;
+      } else {
+        // Use the full URL for other providers
+        sourceArg = sourceUrl;
+      }
+
+      p.log.step(`Installing from ${pc.cyan(entry.source)}...`);
+
+      // Call runAdd with the source and skill filter
+      await runAdd([sourceArg], {
+        ...options,
+        skill: skills,
+        yes: true, // Auto-confirm since we're restoring from lockfile
+      });
+
+      successCount += skills.length;
+    } catch (error) {
+      failCount += skills.length;
+      p.log.error(
+        `Failed to install from ${entry.source}: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
+  }
+
+  console.log();
+  if (successCount > 0) {
+    p.log.success(
+      pc.green(`Installed ${successCount} skill${successCount > 1 ? 's' : ''} from lockfile`)
+    );
+  }
+  if (failCount > 0) {
+    p.log.warn(pc.yellow(`Failed to install ${failCount} skill${failCount > 1 ? 's' : ''}`));
+  }
+}
+
 export async function runAdd(args: string[], options: AddOptions = {}): Promise<void> {
   const source = args[0];
   let installTipShown = false;
@@ -1375,18 +1493,9 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
   };
 
   if (!source) {
-    console.log();
-    console.log(
-      pc.bgRed(pc.white(pc.bold(' ERROR '))) + ' ' + pc.red('Missing required argument: source')
-    );
-    console.log();
-    console.log(pc.dim('  Usage:'));
-    console.log(`    ${pc.cyan('npx skills add')} ${pc.yellow('<source>')} ${pc.dim('[options]')}`);
-    console.log();
-    console.log(pc.dim('  Example:'));
-    console.log(`    ${pc.cyan('npx skills add')} ${pc.yellow('vercel-labs/agent-skills')}`);
-    console.log();
-    process.exit(1);
+    // No source provided - install from lockfile
+    await installFromLockfile(options);
+    return;
   }
 
   // --all implies --skill '*' and --agent '*' and -y
@@ -1582,7 +1691,8 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
           const selected = await promptForAgents(
             'Select agents to install skills to',
             allAgentChoices,
-            true
+            true,
+            options.localLock
           );
 
           if (p.isCancel(selected)) {
@@ -1604,7 +1714,10 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
           );
         }
       } else {
-        const selected = await selectAgentsInteractive(installedAgents, { global: options.global });
+        const selected = await selectAgentsInteractive(installedAgents, {
+          global: options.global,
+          localLock: options.localLock,
+        });
 
         if (p.isCancel(selected)) {
           p.cancel('Installation cancelled');
@@ -1823,8 +1936,8 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
       }
     }
 
-    // Add to skill lock file for update tracking (only for global installs)
-    if (successful.length > 0 && installGlobally && normalizedSource) {
+    // Add to skill lock file for update tracking
+    if (successful.length > 0 && (installGlobally || options.localLock) && normalizedSource) {
       const successfulSkillNames = new Set(successful.map((r) => r.skill));
       for (const skill of selectedSkills) {
         const skillDisplayName = getSkillDisplayName(skill);
@@ -1838,13 +1951,17 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
               if (hash) skillFolderHash = hash;
             }
 
-            await addSkillToLock(skill.name, {
-              source: normalizedSource,
-              sourceType: parsed.type,
-              sourceUrl: parsed.url,
-              skillPath: skillPathValue,
-              skillFolderHash,
-            });
+            await addSkillToLock(
+              skill.name,
+              {
+                source: normalizedSource,
+                sourceType: parsed.type,
+                sourceUrl: parsed.url,
+                skillPath: skillPathValue,
+                skillFolderHash,
+              },
+              options.localLock
+            );
           } catch {
             // Don't fail installation if lock file update fails
           }
@@ -1966,7 +2083,7 @@ async function promptForFindSkills(options?: AddOptions): Promise<void> {
   if (options?.yes) return;
 
   try {
-    const dismissed = await isPromptDismissed('findSkillsPrompt');
+    const dismissed = await isPromptDismissed('findSkillsPrompt', options?.localLock);
     if (dismissed) return;
 
     // Check if find-skills is already installed
@@ -1975,7 +2092,7 @@ async function promptForFindSkills(options?: AddOptions): Promise<void> {
     });
     if (findSkillsInstalled) {
       // Mark as dismissed so we don't check again
-      await dismissPrompt('findSkillsPrompt');
+      await dismissPrompt('findSkillsPrompt', options?.localLock);
       return;
     }
 
@@ -1986,14 +2103,14 @@ async function promptForFindSkills(options?: AddOptions): Promise<void> {
     });
 
     if (p.isCancel(install)) {
-      await dismissPrompt('findSkillsPrompt');
+      await dismissPrompt('findSkillsPrompt', options?.localLock);
       return;
     }
 
     if (install) {
       // Install find-skills globally to all agents
       // Mark as dismissed first to prevent recursive prompts
-      await dismissPrompt('findSkillsPrompt');
+      await dismissPrompt('findSkillsPrompt', options?.localLock);
 
       console.log();
       p.log.step('Installing find-skills skill...');
@@ -2005,6 +2122,7 @@ async function promptForFindSkills(options?: AddOptions): Promise<void> {
           global: true,
           yes: true,
           all: true,
+          localLock: options?.localLock,
         });
       } catch {
         p.log.warn('Failed to install find-skills. You can try again with:');
@@ -2012,7 +2130,7 @@ async function promptForFindSkills(options?: AddOptions): Promise<void> {
       }
     } else {
       // User declined - dismiss the prompt
-      await dismissPrompt('findSkillsPrompt');
+      await dismissPrompt('findSkillsPrompt', options?.localLock);
       p.log.message(
         pc.dim('You can install it later with: npx skills add vercel-labs/skills@find-skills')
       );
@@ -2060,6 +2178,8 @@ export function parseAddOptions(args: string[]): { source: string[]; options: Ad
       i--; // Back up one since the loop will increment
     } else if (arg === '--full-depth') {
       options.fullDepth = true;
+    } else if (arg === '--lock') {
+      options.localLock = true;
     } else if (arg && !arg.startsWith('-')) {
       source.push(arg);
     }
