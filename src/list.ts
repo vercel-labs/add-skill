@@ -13,6 +13,7 @@ const YELLOW = '\x1b[33m';
 interface ListOptions {
   global?: boolean;
   agent?: string[];
+  localLock?: boolean;
 }
 
 /**
@@ -48,6 +49,8 @@ export function parseListOptions(args: string[]): ListOptions {
     const arg = args[i];
     if (arg === '-g' || arg === '--global') {
       options.global = true;
+    } else if (arg === '--lock') {
+      options.localLock = true;
     } else if (arg === '-a' || arg === '--agent') {
       options.agent = options.agent || [];
       // Collect all following arguments until next flag

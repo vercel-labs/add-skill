@@ -13,6 +13,7 @@ export interface RemoveOptions {
   agent?: string[];
   yes?: boolean;
   all?: boolean;
+  localLock?: boolean;
 }
 
 export async function removeCommand(skillNames: string[], options: RemoveOptions) {
@@ -170,12 +171,12 @@ export async function removeCommand(skillNames: string[], options: RemoveOptions
       const canonicalPath = getCanonicalPath(skillName, { global: isGlobal, cwd });
       await rm(canonicalPath, { recursive: true, force: true });
 
-      const lockEntry = isGlobal ? await getSkillFromLock(skillName) : null;
+      const lockEntry = isGlobal ? await getSkillFromLock(skillName, options.localLock) : null;
       const effectiveSource = lockEntry?.source || 'local';
       const effectiveSourceType = lockEntry?.sourceType || 'local';
 
       if (isGlobal) {
-        await removeSkillFromLock(skillName);
+        await removeSkillFromLock(skillName, options.localLock);
       }
 
       results.push({
@@ -254,6 +255,8 @@ export function parseRemoveOptions(args: string[]): { skills: string[]; options:
       options.yes = true;
     } else if (arg === '--all') {
       options.all = true;
+    } else if (arg === '--lock') {
+      options.localLock = true;
     } else if (arg === '-a' || arg === '--agent') {
       options.agent = options.agent || [];
       i++;
