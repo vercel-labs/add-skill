@@ -183,6 +183,15 @@ export const agents: Record<AgentType, AgentConfig> = {
       return existsSync(join(home, '.iflow'));
     },
   },
+  'inference-sh': {
+    name: 'inference-sh',
+    displayName: 'inference.sh',
+    skillsDir: '.inferencesh/skills',
+    globalSkillsDir: join(home, '.inferencesh/skills'),
+    detectInstalled: async () => {
+      return existsSync(join(home, '.inferencesh'));
+    },
+  },
   kilo: {
     name: 'kilo',
     displayName: 'Kilo Code',
