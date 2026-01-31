@@ -3,6 +3,7 @@ import { join } from 'path';
 import { existsSync } from 'fs';
 import { xdgConfig } from 'xdg-basedir';
 import type { AgentConfig, AgentType } from './types.ts';
+import { getConfig } from './config.ts';
 
 const home = homedir();
 // Use xdg-basedir (not env-paths) to match OpenCode/Amp/Goose behavior on all platforms.
@@ -397,4 +398,23 @@ export async function detectInstalledAgents(): Promise<AgentType[]> {
 
 export function getAgentConfig(type: AgentType): AgentConfig {
   return agents[type];
+}
+
+/**
+ * Gets the skills directory for an agent, respecting config overrides
+ * @param agentType - The agent type
+ * @param isGlobal - Whether to get global or project-level directory
+ * @param cwd - Current working directory (for project-level)
+ * @returns The resolved skills directory path
+ */
+export function getAgentSkillsDir(agentType: AgentType, isGlobal: boolean, cwd?: string): string {
+  const config = getConfig();
+  const agent = agents[agentType];
+  const override = config.agents?.[agentType];
+
+  if (isGlobal) {
+    // Fall back to project path if agent doesn't support global installation
+    return override?.globalSkillsDir || agent.globalSkillsDir || join(cwd || process.cwd(), agent.skillsDir);
+  }
+  return join(cwd || process.cwd(), override?.skillsDir || agent.skillsDir);
 }

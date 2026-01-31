@@ -11,6 +11,7 @@ import { runFind } from './find.ts';
 import { runList } from './list.ts';
 import { removeCommand, parseRemoveOptions } from './remove.ts';
 import { track } from './telemetry.ts';
+import { runConfig } from './config-command.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -104,6 +105,7 @@ ${BOLD}Commands:${RESET}
   list, ls          List installed skills
   find [query]      Search for skills interactively
   init [name]       Initialize a skill (creates <name>/SKILL.md or ./SKILL.md)
+  config            Configure custom skill paths
   check             Check for available skill updates
   update            Update all skills to latest versions
 
@@ -588,6 +590,10 @@ async function main(): Promise<void> {
     case 'list':
     case 'ls':
       await runList(restArgs);
+      break;
+    case 'config':
+    case 'cfg':
+      runConfig(restArgs);
       break;
     case 'check':
       runCheck(restArgs);

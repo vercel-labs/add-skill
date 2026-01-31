@@ -14,9 +14,10 @@ import { join, basename, normalize, resolve, sep, relative, dirname } from 'path
 import { homedir, platform } from 'os';
 import type { Skill, AgentType, MintlifySkill, RemoteSkill } from './types.ts';
 import type { WellKnownSkill } from './providers/wellknown.ts';
-import { agents, detectInstalledAgents } from './agents.ts';
+import { agents, detectInstalledAgents, getAgentSkillsDir } from './agents.ts';
 import { AGENTS_DIR, SKILLS_SUBDIR } from './constants.ts';
 import { parseSkillMd } from './skills.ts';
+import { getConfig } from './config.ts';
 
 export type InstallMode = 'symlink' | 'copy';
 
@@ -71,6 +72,17 @@ function isPathSafe(basePath: string, targetPath: string): boolean {
  * @param cwd - Current working directory for project-level installs
  */
 export function getCanonicalSkillsDir(global: boolean, cwd?: string): string {
+  const config = getConfig();
+
+  // Check for config override
+  if (global && config.canonicalDir?.global) {
+    return config.canonicalDir.global;
+  }
+  if (!global && config.canonicalDir?.project) {
+    return join(cwd || process.cwd(), config.canonicalDir.project);
+  }
+
+  // Fall back to default
   const baseDir = global ? homedir() : cwd || process.cwd();
   return join(baseDir, AGENTS_DIR, SKILLS_SUBDIR);
 }
@@ -151,9 +163,9 @@ export async function installSkillForAgent(
   agentType: AgentType,
   options: { global?: boolean; cwd?: string; mode?: InstallMode } = {}
 ): Promise<InstallResult> {
-  const agent = agents[agentType];
   const isGlobal = options.global ?? false;
   const cwd = options.cwd || process.cwd();
+  const agent = agents[agentType];
 
   // Check if agent supports global installation
   if (isGlobal && agent.globalSkillsDir === undefined) {
@@ -174,7 +186,7 @@ export async function installSkillForAgent(
   const canonicalDir = join(canonicalBase, skillName);
 
   // Agent-specific location (for symlink)
-  const agentBase = isGlobal ? agent.globalSkillsDir! : join(cwd, agent.skillsDir);
+  const agentBase = getAgentSkillsDir(agentType, isGlobal, cwd);
   const agentDir = join(agentBase, skillName);
 
   const installMode = options.mode ?? 'symlink';
@@ -291,18 +303,9 @@ export async function isSkillInstalled(
   agentType: AgentType,
   options: { global?: boolean; cwd?: string } = {}
 ): Promise<boolean> {
-  const agent = agents[agentType];
   const sanitized = sanitizeName(skillName);
 
-  // Agent doesn't support global installation
-  if (options.global && agent.globalSkillsDir === undefined) {
-    return false;
-  }
-
-  const targetBase = options.global
-    ? agent.globalSkillsDir!
-    : join(options.cwd || process.cwd(), agent.skillsDir);
-
+  const targetBase = getAgentSkillsDir(agentType, options.global ?? false, options.cwd);
   const skillDir = join(targetBase, sanitized);
 
   if (!isPathSafe(targetBase, skillDir)) {
@@ -322,16 +325,9 @@ export function getInstallPath(
   agentType: AgentType,
   options: { global?: boolean; cwd?: string } = {}
 ): string {
-  const agent = agents[agentType];
-  const cwd = options.cwd || process.cwd();
   const sanitized = sanitizeName(skillName);
 
-  // Agent doesn't support global installation, fall back to project path
-  const targetBase =
-    options.global && agent.globalSkillsDir !== undefined
-      ? agent.globalSkillsDir
-      : join(cwd, agent.skillsDir);
-
+  const targetBase = getAgentSkillsDir(agentType, options.global ?? false, options.cwd);
   const installPath = join(targetBase, sanitized);
 
   if (!isPathSafe(targetBase, installPath)) {
@@ -371,10 +367,10 @@ export async function installMintlifySkillForAgent(
   agentType: AgentType,
   options: { global?: boolean; cwd?: string; mode?: InstallMode } = {}
 ): Promise<InstallResult> {
-  const agent = agents[agentType];
   const isGlobal = options.global ?? false;
   const cwd = options.cwd || process.cwd();
   const installMode = options.mode ?? 'symlink';
+  const agent = agents[agentType];
 
   // Check if agent supports global installation
   if (isGlobal && agent.globalSkillsDir === undefined) {
@@ -394,7 +390,7 @@ export async function installMintlifySkillForAgent(
   const canonicalDir = join(canonicalBase, skillName);
 
   // Agent-specific location (for symlink)
-  const agentBase = isGlobal ? agent.globalSkillsDir! : join(cwd, agent.skillsDir);
+  const agentBase = getAgentSkillsDir(agentType, isGlobal, cwd);
   const agentDir = join(agentBase, skillName);
 
   // Validate paths
@@ -479,10 +475,10 @@ export async function installRemoteSkillForAgent(
   agentType: AgentType,
   options: { global?: boolean; cwd?: string; mode?: InstallMode } = {}
 ): Promise<InstallResult> {
-  const agent = agents[agentType];
   const isGlobal = options.global ?? false;
   const cwd = options.cwd || process.cwd();
   const installMode = options.mode ?? 'symlink';
+  const agent = agents[agentType];
 
   // Check if agent supports global installation
   if (isGlobal && agent.globalSkillsDir === undefined) {
@@ -502,7 +498,7 @@ export async function installRemoteSkillForAgent(
   const canonicalDir = join(canonicalBase, skillName);
 
   // Agent-specific location (for symlink)
-  const agentBase = isGlobal ? agent.globalSkillsDir! : join(cwd, agent.skillsDir);
+  const agentBase = getAgentSkillsDir(agentType, isGlobal, cwd);
   const agentDir = join(agentBase, skillName);
 
   // Validate paths
@@ -588,10 +584,10 @@ export async function installWellKnownSkillForAgent(
   agentType: AgentType,
   options: { global?: boolean; cwd?: string; mode?: InstallMode } = {}
 ): Promise<InstallResult> {
-  const agent = agents[agentType];
   const isGlobal = options.global ?? false;
   const cwd = options.cwd || process.cwd();
   const installMode = options.mode ?? 'symlink';
+  const agent = agents[agentType];
 
   // Check if agent supports global installation
   if (isGlobal && agent.globalSkillsDir === undefined) {
@@ -611,7 +607,7 @@ export async function installWellKnownSkillForAgent(
   const canonicalDir = join(canonicalBase, skillName);
 
   // Agent-specific location (for symlink)
-  const agentBase = isGlobal ? agent.globalSkillsDir! : join(cwd, agent.skillsDir);
+  const agentBase = getAgentSkillsDir(agentType, isGlobal, cwd);
   const agentDir = join(agentBase, skillName);
 
   // Validate paths
@@ -779,14 +775,7 @@ export async function listInstalledSkills(
           : detectedAgents;
 
         for (const agentType of agentsToCheck) {
-          const agent = agents[agentType];
-
-          // Skip agents that don't support global installation when checking global scope
-          if (scope.global && agent.globalSkillsDir === undefined) {
-            continue;
-          }
-
-          const agentBase = scope.global ? agent.globalSkillsDir! : join(cwd, agent.skillsDir);
+          const agentBase = getAgentSkillsDir(agentType, scope.global, cwd);
 
           let found = false;
 
