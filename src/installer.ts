@@ -136,10 +136,14 @@ async function createSymlink(target: string, linkPath: string): Promise<boolean>
     const linkDir = dirname(linkPath);
     await mkdir(linkDir, { recursive: true });
 
-    const relativePath = relative(linkDir, target);
+    // Use absolute path for symlinks to avoid issues when the link directory
+    // itself is a symlink. When linkPath is inside a symlinked directory
+    // (e.g., ~/.claude/skills/ -> ~/.dotfiles/claude/skills/), the relative
+    // path calculation uses the logical path but the symlink is created at
+    // the physical path, causing the relative path to resolve incorrectly.
     const symlinkType = platform() === 'win32' ? 'junction' : undefined;
 
-    await symlink(relativePath, linkPath, symlinkType);
+    await symlink(resolvedTarget, linkPath, symlinkType);
     return true;
   } catch {
     return false;
